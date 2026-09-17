@@ -244,13 +244,64 @@ function renderRarityChips() {
   });
 }
 
+let selectedSpawnType = 'all';
+let selectedBiome = 'all';
+
+// 初始化機制與地區篩選按鈕事件
+function initFilterBars() {
+  const spawnChips = document.querySelectorAll('#spawnTypeChips .filter-chip');
+  spawnChips.forEach(chip => {
+    chip.onclick = () => {
+      spawnChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedSpawnType = chip.getAttribute('data-spawn-type') || 'all';
+      renderEggsGrid();
+    };
+  });
+
+  const biomeChips = document.querySelectorAll('#biomeChips .filter-chip');
+  biomeChips.forEach(chip => {
+    chip.onclick = () => {
+      biomeChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedBiome = chip.getAttribute('data-biome') || 'all';
+      renderEggsGrid();
+    };
+  });
+}
+
 // 渲染蛋清單卡片
 function renderEggsGrid() {
   const searchTerm = (eggSearchInput.value || '').trim().toLowerCase();
   const filtered = eggsCatalog.filter(egg => {
+    // 1. 搜尋關鍵字比對 (蛋名、別名、地區、刷新機制、獲取途徑)
     const nameMatch = (egg.name || '').toLowerCase().includes(searchTerm) ||
-                      (egg.cleanName || '').toLowerCase().includes(searchTerm);
-    return nameMatch;
+                      (egg.cleanName || '').toLowerCase().includes(searchTerm) ||
+                      (egg.biome || '').toLowerCase().includes(searchTerm) ||
+                      (egg.spawnType || '').toLowerCase().includes(searchTerm) ||
+                      (egg.obtainMethod || '').toLowerCase().includes(searchTerm);
+    if (!nameMatch) return false;
+
+    // 2. 刷新機制類型篩選
+    if (selectedSpawnType !== 'all') {
+      if (selectedSpawnType === 'high' && !egg.spawnType?.includes('高階')) return false;
+      if (selectedSpawnType === 'fusion' && !egg.spawnType?.includes('熔煉')) return false;
+      if (selectedSpawnType === 'event' && !egg.spawnType?.includes('活動')) return false;
+      if (selectedSpawnType === 'base' && !egg.spawnType?.includes('基礎')) return false;
+    }
+
+    // 3. 地區生態分類篩選
+    if (selectedBiome !== 'all') {
+      const b = (egg.biome || '').toLowerCase();
+      const targetB = selectedBiome.toLowerCase();
+      if (targetB === 'angels & demons') {
+        if (!b.includes('angel') && !b.includes('demon')) return false;
+      } else if (!b.includes(targetB)) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   eggCountBadge.textContent = `顯示 ${filtered.length} / ${eggsCatalog.length} 顆蛋`;
@@ -419,6 +470,7 @@ refreshBtn.onclick = () => {
 
 // 初始化
 window.addEventListener('DOMContentLoaded', async () => {
+  initFilterBars();
   await loadStatus();
   await loadEggsCatalog();
   await loadConfig();

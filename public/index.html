@@ -110,9 +110,43 @@
         </div>
       </div>
 
+      <!-- 刷新機制類型快速篩選 -->
+      <div class="filter-bar spawn-type-filter-bar">
+        <span class="bar-label">⚙️ 刷新機制：</span>
+        <div class="filter-chips" id="spawnTypeChips">
+          <div class="filter-chip active" data-spawn-type="all">全部類型 (143)</div>
+          <div class="filter-chip" data-spawn-type="high">🌟 高階自然刷新 (27)</div>
+          <div class="filter-chip" data-spawn-type="fusion">🔨 熔煉專屬 (3)</div>
+          <div class="filter-chip" data-spawn-type="event">🎟️ 限時活動/商店 (40)</div>
+          <div class="filter-chip" data-spawn-type="base">🥚 基礎/中階蛋 (73)</div>
+        </div>
+      </div>
+
+      <!-- 地區生態快速篩選 -->
+      <div class="filter-bar biome-filter-bar">
+        <span class="bar-label">🗺️ 地區分類：</span>
+        <div class="filter-chips" id="biomeChips">
+          <div class="filter-chip active" data-biome="all">全部地區</div>
+          <div class="filter-chip" data-biome="Cosmic">🪐 Cosmic</div>
+          <div class="filter-chip" data-biome="Titan Temple">🏛️ Titan Temple</div>
+          <div class="filter-chip" data-biome="Abyss Ocean">🌊 Abyss Ocean</div>
+          <div class="filter-chip" data-biome="Snow">❄️ Snow</div>
+          <div class="filter-chip" data-biome="Volcano">🌋 Volcano</div>
+          <div class="filter-chip" data-biome="Prehistoric">🦖 Prehistoric</div>
+          <div class="filter-chip" data-biome="Cherry Blossom">🌸 Cherry Blossom</div>
+          <div class="filter-chip" data-biome="Angels & Demons">👼 Angels & Demons</div>
+          <div class="filter-chip" data-biome="Jungle">🌴 Jungle</div>
+          <div class="filter-chip" data-biome="Lake">💧 Lake</div>
+          <div class="filter-chip" data-biome="Desert">🏜️ Desert</div>
+          <div class="filter-chip" data-biome="Forest">🌲 Forest</div>
+          <div class="filter-chip" data-biome="Rift">🌌 Rift</div>
+          <div class="filter-chip" data-biome="Event">🎪 Event</div>
+        </div>
+      </div>
+
       <!-- 稀有度過濾標籤 -->
       <div class="rarity-filter-bar">
-        <span class="bar-label">稀有度快速選取：</span>
+        <span class="bar-label">💎 稀有度選取：</span>
         <div class="rarity-chips" id="rarityChips">
           <!-- 動態生成 -->
         </div>
@@ -125,7 +159,7 @@
 
       <!-- 蛋搜尋列 -->
       <div class="search-bar-wrap">
-        <input type="text" id="eggSearchInput" placeholder="搜尋蛋名稱 (例如: Cosmic, Dragon, Skeleton...)">
+        <input type="text" id="eggSearchInput" placeholder="🔍 搜尋蛋名稱、地點或獲取方式 (例如: Cosmic, Dragon, 熔煉, 祭壇, T-Rex...)">
         <span class="egg-count" id="eggCountBadge">顯示 0 / 0 顆蛋</span>
       </div>
 

@@ -85,6 +85,51 @@ async function loadConfigFromSheet() {
   }
 }
 
+// 手動補充 Discord 特殊簡寫或別名
+const ALIASES = {
+  'trex': 'T-Rex',
+  't-rex': 'T-Rex',
+  'snakeking': 'King Snake',
+  'elgranmaja': 'El Maja',
+  'razorfang': 'RazorFang'
+};
+
+function normalizeEgg(rawName, detectedRarity, detectedBiome) {
+  if (!rawName) return null;
+  const norm = rawName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  let matched = eggsCatalog.find(e => {
+    const k1 = (e.cleanName || e.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const k2 = (e.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const k3 = (e.petName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return k1 === norm || k2 === norm || k3 === norm;
+  });
+
+  if (!matched && ALIASES[norm]) {
+    const aliasNorm = ALIASES[norm].toLowerCase().replace(/[^a-z0-9]/g, '');
+    matched = eggsCatalog.find(e => {
+      const k1 = (e.cleanName || e.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+      return k1 === aliasNorm;
+    });
+  }
+
+  if (matched) {
+    return {
+      name: matched.cleanName || matched.name,
+      rarity: matched.rarity || detectedRarity,
+      biome: (matched.biome && matched.biome !== 'Unknown') ? matched.biome : detectedBiome,
+      imageUrl: matched.imageUrl
+    };
+  }
+
+  return {
+    name: rawName,
+    rarity: detectedRarity || 'Secret',
+    biome: detectedBiome || '未知地點',
+    imageUrl: null
+  };
+}
+
 // 蛋資訊解析函數 (經過 SenZ V2 實測驗證)
 function extractEggInfo(embeds, content, createdAt) {
   let name = '未知蛋';
@@ -143,16 +188,13 @@ function extractEggInfo(embeds, content, createdAt) {
     }
   }
 
-  // 若尚未有蛋圖，從蛋圖鑑 catalog 檢索
-  if (!imageUrl) {
-    const cleanKey = name.toLowerCase().replace(/egg/g, '').trim();
-    const found = eggsCatalog.find(e => {
-      const w = e.name.toLowerCase().replace(/egg/g, '').trim();
-      return w === cleanKey || w.includes(cleanKey) || cleanKey.includes(w);
-    });
-    if (found && found.imageUrl) {
-      imageUrl = found.imageUrl;
-    }
+  // 標準化蛋名稱、稀有度與地點
+  const norm = normalizeEgg(name, rarity, location);
+  if (norm) {
+    name = norm.name;
+    rarity = norm.rarity;
+    if (location === '未知地點' || !location) location = norm.biome;
+    if (!imageUrl && norm.imageUrl) imageUrl = norm.imageUrl;
   }
 
   return {
@@ -219,8 +261,8 @@ async function analyzeAndPredict() {
     const intervals = [];
     for (let i = 1; i < timestamps.length; i++) {
       const diffMin = (timestamps[i] - timestamps[i - 1]) / (1000 * 60);
-      // 排除異常超長間隔（超過 12 小時可能為離線）
-      if (diffMin > 0 && diffMin <= 720) {
+      // 排除異常超長間隔（超過 120 分鐘可能為維護或伺服器離線）
+      if (diffMin > 0 && diffMin <= 120) {
         intervals.push(diffMin);
       }
     }
@@ -232,15 +274,19 @@ async function analyzeAndPredict() {
     // 平均週期
     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
 
-    // 近期 5 筆平均
-    const recentSlice = intervals.slice(-5);
+    // 近期 10 筆平均（更貼近當下活動節奏）
+    const recentSlice = intervals.slice(-10);
     const recentAvg = recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length;
 
-    // 預測下次掉落時間（最新紀錄時間 + 近期平均間隔）
+    // 預測下次掉落時間（若最新紀錄加上近期平均已過去，向後順延週期）
     const lastTimestamp = timestamps[timestamps.length - 1];
-    const nextTimestamp = lastTimestamp + Math.round(recentAvg * 60 * 1000);
+    const stepMs = Math.max(1, Math.round(recentAvg * 60 * 1000));
+    let nextTimestamp = lastTimestamp + stepMs;
+    while (nextTimestamp < Date.now()) {
+      nextTimestamp += stepMs;
+    }
     const predictedDate = new Date(nextTimestamp);
-    const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { hour12: false });
+    const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
     const minutesLeft = Math.max(0, Math.round((nextTimestamp - Date.now()) / (1000 * 60)));
 
     // 出現頻率統計
@@ -251,13 +297,21 @@ async function analyzeAndPredict() {
     }
     const topEggs = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
+      .slice(0, 8)
+      .map(([name, count]) => {
+        const clean = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matched = eggsCatalog.find(e => (e.cleanName || e.name).toLowerCase().replace(/[^a-z0-9]/g, '') === clean);
+        return {
+          name,
+          count,
+          rarity: matched ? matched.rarity : 'Secret'
+        };
+      });
 
     return {
       totalRecords: rows.length,
-      avgIntervalMinutes: Math.round(avgInterval),
-      recentAvgMinutes: Math.round(recentAvg),
+      avgIntervalMinutes: parseFloat(avgInterval.toFixed(1)),
+      recentAvgMinutes: parseFloat(recentAvg.toFixed(1)),
       nextTimestamp,
       predictedTimeStr,
       minutesLeft,
@@ -480,12 +534,27 @@ app.post('/api/sync-history', async (req, res) => {
       const existingRows = sheetJson.data || [];
       const existingTimestamps = new Set(existingRows.slice(1).map(r => new Date(r[0]).getTime()));
 
-      console.log(`[歷史回填] 開始讀取 #${ch.name} 過去訊息...`);
-      const messages = await ch.messages.fetch({ limit: 100 });
-      syncStatus.totalFetched = messages.size;
+      console.log(`[歷史回填] 開始讀取 #${ch.name} 完整歷史訊息...`);
+      let lastId = null;
+      const allMessages = [];
+
+      for (let b = 0; b < 16; b++) {
+        const opts = { limit: 100 };
+        if (lastId) opts.before = lastId;
+        const batch = await ch.messages.fetch(opts);
+        if (!batch || batch.size === 0) break;
+
+        for (const [id, msg] of batch) {
+          lastId = id;
+          allMessages.push(msg);
+        }
+        syncStatus.totalFetched = allMessages.length;
+        if (batch.size < 100) break;
+        await new Promise(r => setTimeout(r, 600));
+      }
 
       const newRowsToSave = [];
-      for (const [id, msg] of messages) {
+      for (const msg of allMessages) {
         const rawContent = msg.content || '';
         const embedTitle = msg.embeds[0]?.title || '';
         const embedDesc = msg.embeds[0]?.description || '';
@@ -498,14 +567,14 @@ app.post('/api/sync-history', async (req, res) => {
         const info = extractEggInfo(msg.embeds, rawContent, msg.createdAt);
         const msgTime = new Date(info.timestamp).getTime();
 
-        // 檢查時間戳是否已在試算表中 (容許 2 秒誤差)
+        // 檢查時間戳是否已在試算表中 (容許 3 秒誤差)
         const alreadyExists = Array.from(existingTimestamps).some(t => Math.abs(t - msgTime) < 3000);
         if (!alreadyExists && info.name !== '未知蛋') {
           newRowsToSave.push({
             timestamp: info.timestamp,
             name: info.name,
             rarity: info.rarity,
-            rawText: `[${info.location}] ${combined.slice(0, 200)}`
+            rawText: `[${info.location}] ${combined.slice(0, 180)}`
           });
           existingTimestamps.add(msgTime);
         }
@@ -517,17 +586,21 @@ app.post('/api/sync-history', async (req, res) => {
         // 反轉為時間正序寫入
         newRowsToSave.reverse();
 
-        // 呼叫 Google Apps Script batch_record API
-        await fetch(GOOGLE_SHEET_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'batch_record',
-            rows: newRowsToSave
-          })
-        });
+        const BATCH_SIZE = 150;
+        for (let i = 0; i < newRowsToSave.length; i += BATCH_SIZE) {
+          const chunk = newRowsToSave.slice(i, i + BATCH_SIZE);
+          await fetch(GOOGLE_SHEET_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'batch_record',
+              rows: chunk
+            })
+          });
+          syncStatus.newRecorded += chunk.length;
+          await new Promise(r => setTimeout(r, 1000));
+        }
 
-        syncStatus.newRecorded = newRowsToSave.length;
         console.log(`[歷史回填] 成功補填 ${newRowsToSave.length} 筆歷史紀錄！`);
       }
     } catch (err) {

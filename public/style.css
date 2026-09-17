@@ -736,10 +736,32 @@ input:checked + .slider:before {
   color: var(--rarity-rare);
   border: 1px solid rgba(59, 130, 246, 0.4);
 }
-.rarity-Common, .rarity-Uncommon, .rarity-Unknown {
+.rarity-Uncommon {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.rarity-Monster {
+  background: rgba(225, 29, 72, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+}
+.rarity-Event {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.4);
+}
+.rarity-Common, .rarity-Unknown {
   background: rgba(148, 163, 184, 0.15);
   color: var(--rarity-common);
   border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.biome-tag {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .egg-card-toggle {

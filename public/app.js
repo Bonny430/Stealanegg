@@ -9,7 +9,7 @@ let predictionData = null;
 let nextSpawnTimestamp = null;
 let countdownInterval = null;
 
-const RARITIES_ORDER = ['Secret', 'Divine', 'Eternal', 'Cosmic', 'Mythic', 'Legendary', 'Epic', 'Rare', 'Common'];
+const RARITIES_ORDER = ['Eternal', 'Secret', 'Divine', 'Cosmic', 'Mythic', 'Legendary', 'Epic', 'Rare', 'Uncommon', 'Common', 'Monster', 'Event'];
 
 // DOM 元素
 const botStatusBadge = document.getElementById('botStatusBadge');
@@ -194,13 +194,13 @@ async function loadHistory() {
     const res = await fetch('/api/history');
     const data = await res.json();
     if (data && data.rows && data.rows.length > 0) {
-      historyTableBody.innerHTML = data.rows.slice(0, 20).map(row => {
+      historyTableBody.innerHTML = data.rows.slice(0, 50).map(row => {
         const eggImg = getEggImage(row.name);
         return `
           <tr>
             <td>${formatDateTime(row.timestamp)}</td>
             <td>
-              <img src="${eggImg}" alt="${row.name}" class="table-egg-img" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
+              <img src="${eggImg}" alt="${row.name}" class="table-egg-img" referrerpolicy="no-referrer" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
             </td>
             <td><strong>${row.name}</strong></td>
             <td><span class="rarity-tag rarity-${row.rarity || 'Common'}">${row.rarity}</span></td>
@@ -220,10 +220,11 @@ async function loadHistory() {
 // 輔助查找蛋圖
 function getEggImage(eggName) {
   if (!eggName) return 'https://cdn.discordapp.com/emojis/1547091103537438741.png';
-  const clean = eggName.toLowerCase().replace(/egg/g, '').trim();
+  const clean = eggName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const found = eggsCatalog.find(e => {
-    const w = e.name.toLowerCase().replace(/egg/g, '').trim();
-    return w === clean || w.includes(clean) || clean.includes(w);
+    const wClean = (e.cleanName || e.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const wFull = (e.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return wClean === clean || wFull === clean || wClean.includes(clean) || clean.includes(wClean);
   });
   return (found && found.imageUrl) ? found.imageUrl : 'https://cdn.discordapp.com/emojis/1547091103537438741.png';
 }
@@ -263,7 +264,8 @@ function renderRarityChips() {
 function renderEggsGrid() {
   const searchTerm = (eggSearchInput.value || '').trim().toLowerCase();
   const filtered = eggsCatalog.filter(egg => {
-    const nameMatch = egg.name.toLowerCase().includes(searchTerm);
+    const nameMatch = (egg.name || '').toLowerCase().includes(searchTerm) ||
+                      (egg.cleanName || '').toLowerCase().includes(searchTerm);
     return nameMatch;
   });
 
@@ -276,17 +278,21 @@ function renderEggsGrid() {
 
   eggsGrid.innerHTML = filtered.map(egg => {
     const isRarityAllowed = userConfig.allowedRarities.map(x => x.toLowerCase()).includes((egg.rarity || '').toLowerCase());
-    const isIndividuallyIgnored = userConfig.ignoredEggs.map(x => x.toLowerCase()).includes(egg.name.toLowerCase());
+    const isIndividuallyIgnored = userConfig.ignoredEggs.map(x => x.toLowerCase()).includes(egg.name.toLowerCase()) ||
+                                 userConfig.ignoredEggs.map(x => x.toLowerCase()).includes((egg.cleanName || '').toLowerCase());
     const isActive = isRarityAllowed && !isIndividuallyIgnored;
 
     return `
       <div class="egg-card ${isActive ? '' : 'muted'}" data-egg-name="${egg.name}">
         <div class="egg-img-wrap">
-          <img src="${egg.imageUrl || 'https://cdn.discordapp.com/emojis/1547091103537438741.png'}" alt="${egg.name}" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
+          <img src="${egg.imageUrl || 'https://cdn.discordapp.com/emojis/1547091103537438741.png'}" alt="${egg.name}" referrerpolicy="no-referrer" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
         </div>
         <div class="egg-details">
-          <div class="egg-title" title="${egg.name}">${egg.name}</div>
-          <span class="rarity-tag rarity-${egg.rarity || 'Common'}">${egg.rarity || '未知'}</span>
+          <div class="egg-title" title="${egg.name}">${egg.cleanName || egg.name}</div>
+          <div>
+            <span class="rarity-tag rarity-${egg.rarity || 'Common'}">${egg.rarity || '未知'}</span>
+            ${egg.biome && egg.biome !== 'Unknown' ? `<span class="biome-tag">📍 ${egg.biome}</span>` : ''}
+          </div>
         </div>
         <div class="egg-card-toggle">
           <label class="switch">

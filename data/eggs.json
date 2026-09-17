@@ -117,7 +117,7 @@
     "name": "Yeti Egg",
     "rarity": "Eternal",
     "rarityKey": "secret",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0d/Yeti_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091161787797534.png"
   },
   {
     "name": "Lava Gecko Egg",
@@ -141,7 +141,7 @@
     "name": "Phoenix Egg",
     "rarity": "Eternal",
     "rarityKey": "eternal",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/cd/Phoenix_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091145517965322.png"
   },
   {
     "name": "Parrotfish Egg",
@@ -165,7 +165,7 @@
     "name": "Kraken Egg",
     "rarity": "Eternal",
     "rarityKey": "secret",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8b/Kraken_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091128178704414.png"
   },
   {
     "name": "Dodo Egg",
@@ -189,7 +189,7 @@
     "name": "Tralaledon Egg",
     "rarity": "Eternal",
     "rarityKey": "secret",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4a/Tralaledon_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091152518258810.png"
   },
   {
     "name": "Centapede Egg",
@@ -207,13 +207,13 @@
     "name": "Cosmic Skeleton Boss Egg",
     "rarity": "Secret",
     "rarityKey": "secret",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/58/Cosmic_Skeleton_Boss_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091103537438741.png"
   },
   {
     "name": "Eternal Lunar Dragon Egg",
     "rarity": "Divine",
     "rarityKey": "eternal",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6e/Eternal_Lunar_Dragon_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091108662607892.png"
   },
   {
     "name": "Crane Egg",
@@ -237,7 +237,7 @@
     "name": "Oni Tiger Egg",
     "rarity": "Divine",
     "rarityKey": "eternal",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/d6/Oni_Tiger_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547092334888616057.png"
   },
   {
     "name": "Spideron Egg",
@@ -291,19 +291,19 @@
     "name": "Pure Jellyfish Egg",
     "rarity": "Secret",
     "rarityKey": "secret",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/Pure_Jellyfish_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1548678024512274564.png"
   },
   {
     "name": "RazorFang Egg",
     "rarity": "Eternal",
     "rarityKey": "secret",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/3d/RazorFang_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1548678027209212009.png"
   },
   {
     "name": "Skeleton Horse Egg",
     "rarity": "Eternal",
     "rarityKey": "eternal",
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/49/Skeleton_Horse_Egg.png/revision/latest"
+    "imageUrl": "https://cdn.discordapp.com/emojis/1548678029130338384.png"
   },
   {
     "name": "ArchAngel Egg",

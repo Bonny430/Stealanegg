@@ -445,9 +445,9 @@
     "fullName": "World Burner Egg",
     "rarity": "Divine",
     "biome": "Angels & Demons",
-    "spawnType": "🔨 熔煉專屬 (Fusion Shrine)",
-    "obtainMethod": "Angels & Demons 融合祭壇放入指定寵物合成 (地圖不刷新)",
-    "isMapSpawnable": false,
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Angels & Demons (Demons 區域) 鳥巢自然刷新 (Divine 稀有度)",
+    "isMapSpawnable": true,
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/World_Burner_Egg.png/revision/latest?cb=20260912173051"
   },
   {

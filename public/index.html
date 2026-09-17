@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Steal An Egg - 蛋掉落監控與預測儀表板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 背景流光特效 -->
+  <div class="glow-bg"></div>
+
+  <div class="container">
+    <!-- 頂部導航 -->
+    <header class="header">
+      <div class="logo-group">
+        <div class="logo-icon">🥚</div>
+        <div class="logo-text">
+          <h1>Steal An Egg <span>Monitor</span></h1>
+          <p class="subtitle">即時蛋掉落監控 • 掉落週期預測 • 自訂推播過濾</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-badge" id="botStatusBadge">
+          <span class="status-dot"></span>
+          <span class="status-label" id="botStatusText">連線中...</span>
+        </div>
+        <a href="https://docs.google.com/spreadsheets/d/1vh5obGdyHAJ6I_DxtOlzllwEFQV7EjdrHUK-7PRSy5E/edit?usp=sharing" target="_blank" class="btn btn-secondary">
+          <span>📊 試算表資料庫</span>
+        </a>
+        <button id="refreshBtn" class="btn btn-icon" title="手動重新整理">
+          🔄
+        </button>
+      </div>
+    </header>
+
+    <!-- 預測與統計卡片區域 -->
+    <section class="prediction-grid">
+      <!-- 倒數預測主卡 -->
+      <div class="card prediction-card">
+        <div class="card-tag">AI 週期預測</div>
+        <div class="countdown-container">
+          <span class="countdown-label">預估下次蛋掉落倒數</span>
+          <div class="countdown-timer" id="countdownTimer">--:--:--</div>
+          <div class="predicted-time" id="predictedTimeText">預計掉落時間：計算中...</div>
+        </div>
+        <div class="prediction-meta">
+          <div class="meta-item">
+            <span class="meta-label">平均間隔</span>
+            <span class="meta-value" id="avgInterval">-- 分鐘</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">近期節奏 (近5次)</span>
+            <span class="meta-value" id="recentAvg">-- 分鐘</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">資料庫總量</span>
+            <span class="meta-value" id="totalRecords">-- 筆</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快速統計卡片 -->
+      <div class="card stats-card">
+        <h3>統計與常見掉落</h3>
+        <div class="top-eggs-list" id="topEggsList">
+          <div class="skeleton-loader">讀取統計資料中...</div>
+        </div>
+        <div class="sync-controller">
+          <div class="sync-info">
+            <span class="sync-title">歷史資料回填</span>
+            <span class="sync-desc">從 Discord 讀取過去的通知補齊資料庫 (自動過濾 AA)</span>
+          </div>
+          <button id="syncHistoryBtn" class="btn btn-primary btn-sm">
+            <span>📥 同步歷史資料</span>
+          </button>
+        </div>
+        <div id="syncProgress" class="sync-progress hidden">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <span class="progress-text" id="progressText">同步中...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 過濾器設定區域 -->
+    <section class="card filter-section">
+      <div class="section-header">
+        <div>
+          <h2>🔔 推播過濾設定</h2>
+          <p class="section-desc">設定您想要在 Telegram 接收的蛋種與稀有度。無論是否過濾，所有資料均會儲存至 Google Sheet 進行分析。</p>
+        </div>
+        <div class="filter-master-toggle">
+          <label class="switch-label">
+            <span>過濾器狀態</span>
+            <label class="switch">
+              <input type="checkbox" id="masterFilterSwitch" checked>
+              <span class="slider round"></span>
+            </label>
+          </label>
+          <button id="saveConfigBtn" class="btn btn-success">
+            <span>💾 儲存設定</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 稀有度過濾標籤 -->
+      <div class="rarity-filter-bar">
+        <span class="bar-label">稀有度快速選取：</span>
+        <div class="rarity-chips" id="rarityChips">
+          <!-- 動態生成 -->
+        </div>
+        <div class="chip-actions">
+          <button id="selectAllRarities" class="btn btn-text">全選</button>
+          <button id="selectHighOnly" class="btn btn-text">僅高階 (Secret+)</button>
+          <button id="clearAllRarities" class="btn btn-text">全不選</button>
+        </div>
+      </div>
+
+      <!-- 蛋搜尋列 -->
+      <div class="search-bar-wrap">
+        <input type="text" id="eggSearchInput" placeholder="搜尋蛋名稱 (例如: Cosmic, Dragon, Skeleton...)">
+        <span class="egg-count" id="eggCountBadge">顯示 0 / 0 顆蛋</span>
+      </div>
+
+      <!-- 蛋卡片清單 -->
+      <div class="eggs-grid" id="eggsGrid">
+        <div class="skeleton-loader">正在載入蛋圖鑑與設定...</div>
+      </div>
+    </section>
+
+    <!-- 近期掉落紀錄 -->
+    <section class="card history-section">
+      <div class="section-header">
+        <div>
+          <h2>📜 最新掉落動態 (Google Sheet)</h2>
+          <p class="section-desc">最新監聽到的蛋掉落事件紀錄</p>
+        </div>
+        <span class="auto-refresh-tag">⚡ 每 15 秒自動刷新</span>
+      </div>
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>掉落時間</th>
+              <th>蛋圖示</th>
+              <th>蛋名稱</th>
+              <th>稀有度</th>
+              <th>出現地點</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="6" class="text-center">載入歷史紀錄中...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Toast 提示訊息 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

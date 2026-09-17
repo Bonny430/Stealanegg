@@ -1,0 +1,518 @@
+[
+  {
+    "name": "Chicken Egg",
+    "rarity": "Common",
+    "rarityKey": "common",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7d/Chicken_Egg.png/revision/latest"
+  },
+  {
+    "name": "Bird Egg",
+    "rarity": "Rare",
+    "rarityKey": "uncommon",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7f/Bird_Egg.png/revision/latest"
+  },
+  {
+    "name": "Raccoon Egg",
+    "rarity": "Epic",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/80/Raccoon_Egg.png/revision/latest"
+  },
+  {
+    "name": "Bear Egg",
+    "rarity": "Legendary",
+    "rarityKey": "epic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Bear_Egg.png/revision/latest"
+  },
+  {
+    "name": "Frog Egg",
+    "rarity": "Common",
+    "rarityKey": "common",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/cf/Frog_Egg.png/revision/latest"
+  },
+  {
+    "name": "Catfish Egg",
+    "rarity": "Rare",
+    "rarityKey": "uncommon",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8c/Catfish_Egg.png/revision/latest"
+  },
+  {
+    "name": "Trulimero Trulicina Egg",
+    "rarity": "Epic",
+    "rarityKey": "epic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/5e/Trulimero_Trulicina_Egg.png/revision/latest"
+  },
+  {
+    "name": "Axolotl Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/9b/Axolotl_Egg.png/revision/latest"
+  },
+  {
+    "name": "Jerboa Egg",
+    "rarity": "Uncommon",
+    "rarityKey": "common",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0f/Jerboa_Egg.png/revision/latest"
+  },
+  {
+    "name": "Camel Egg",
+    "rarity": "Epic",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ec/Camel_Egg.png/revision/latest"
+  },
+  {
+    "name": "Snake Egg",
+    "rarity": "Mythic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2a/Snake_Egg.png/revision/latest"
+  },
+  {
+    "name": "Scorpion Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ef/Scorpion_Egg.png/revision/latest"
+  },
+  {
+    "name": "Chimpanzee Egg",
+    "rarity": "Rare",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/de/Chimpanzee_Egg.png/revision/latest"
+  },
+  {
+    "name": "Crocodile Egg",
+    "rarity": "Legendary",
+    "rarityKey": "epic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/5a/Crocodile_Egg.png/revision/latest"
+  },
+  {
+    "name": "Orangutini Ananassini Egg",
+    "rarity": "Mythic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f0/Orangutini_Ananassini_Egg.png/revision/latest"
+  },
+  {
+    "name": "Tiger Egg",
+    "rarity": "Secret",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f1/Tiger_Egg.png/revision/latest"
+  },
+  {
+    "name": "Penguin Egg",
+    "rarity": "Epic",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/5c/Penguin_Egg.png/revision/latest"
+  },
+  {
+    "name": "Polar Bear Egg",
+    "rarity": "Mythic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f3/Polar_Bear_Egg.png/revision/latest"
+  },
+  {
+    "name": "Mammoth Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/3f/Mammoth_Egg.png/revision/latest"
+  },
+  {
+    "name": "Yeti Egg",
+    "rarity": "Eternal",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0d/Yeti_Egg.png/revision/latest"
+  },
+  {
+    "name": "Lava Gecko Egg",
+    "rarity": "Epic",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/80/Lava_Gecko_Egg.png/revision/latest"
+  },
+  {
+    "name": "Flaming Bull Egg",
+    "rarity": "Legendary",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/10/Flaming_Bull_Egg.png/revision/latest"
+  },
+  {
+    "name": "Chillin Chilli Egg",
+    "rarity": "Secret",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/95/Chillin_Chilli_Egg.png/revision/latest"
+  },
+  {
+    "name": "Phoenix Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/cd/Phoenix_Egg.png/revision/latest"
+  },
+  {
+    "name": "Parrotfish Egg",
+    "rarity": "Epic",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2c/Parrotfish_Egg.png/revision/latest"
+  },
+  {
+    "name": "Shark Egg",
+    "rarity": "Mythic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f9/Shark_Egg.png/revision/latest"
+  },
+  {
+    "name": "Whale Shark Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e1/Whale_Shark_Egg.png/revision/latest"
+  },
+  {
+    "name": "Kraken Egg",
+    "rarity": "Eternal",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8b/Kraken_Egg.png/revision/latest"
+  },
+  {
+    "name": "Dodo Egg",
+    "rarity": "Legendary",
+    "rarityKey": "rare",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/de/Dodo_Egg.png/revision/latest"
+  },
+  {
+    "name": "Ankylosaurus Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/53/Ankylosaurus_Egg.png/revision/latest"
+  },
+  {
+    "name": "Bronto Egg",
+    "rarity": "Secret",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/Bronto_Egg.png/revision/latest"
+  },
+  {
+    "name": "Tralaledon Egg",
+    "rarity": "Eternal",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4a/Tralaledon_Egg.png/revision/latest"
+  },
+  {
+    "name": "Centapede Egg",
+    "rarity": "Legendary",
+    "rarityKey": "epic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f9/Centapede_Egg.png/revision/latest"
+  },
+  {
+    "name": "Cosmic Gorilla Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f9/Cosmic_Gorilla_Egg.png/revision/latest"
+  },
+  {
+    "name": "Cosmic Skeleton Boss Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/58/Cosmic_Skeleton_Boss_Egg.png/revision/latest"
+  },
+  {
+    "name": "Eternal Lunar Dragon Egg",
+    "rarity": "Divine",
+    "rarityKey": "eternal",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6e/Eternal_Lunar_Dragon_Egg.png/revision/latest"
+  },
+  {
+    "name": "Crane Egg",
+    "rarity": "Legendary",
+    "rarityKey": "epic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/10/Crane_Egg.png/revision/latest"
+  },
+  {
+    "name": "Red Panda Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/82/Red_Panda_Egg.png/revision/latest"
+  },
+  {
+    "name": "Koi Egg",
+    "rarity": "Secret",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ed/Koi_Egg.png/revision/latest"
+  },
+  {
+    "name": "Oni Tiger Egg",
+    "rarity": "Divine",
+    "rarityKey": "eternal",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/d6/Oni_Tiger_Egg.png/revision/latest"
+  },
+  {
+    "name": "Spideron Egg",
+    "rarity": "Legendary",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a3/Spideron_Egg.png/revision/latest"
+  },
+  {
+    "name": "Bladehide Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/01/Bladehide_Egg.png/revision/latest"
+  },
+  {
+    "name": "Rhinotaur Egg",
+    "rarity": "Eternal",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7e/Rhinotaur_Egg.png/revision/latest"
+  },
+  {
+    "name": "Nightflame Egg",
+    "rarity": "Legendary",
+    "rarityKey": "divine",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b9/Nightflame_Egg.png/revision/latest"
+  },
+  {
+    "name": "Light Dove Egg",
+    "rarity": "Mythic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Light_Dove_Egg.png/revision/latest"
+  },
+  {
+    "name": "Toro Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/c0/Toro_Egg.png/revision/latest"
+  },
+  {
+    "name": "Sacred Moth Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/c7/Sacred_Moth_Egg.png/revision/latest"
+  },
+  {
+    "name": "Demon Hound Egg",
+    "rarity": "Secret",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Demon_Hound_Egg.png/revision/latest"
+  },
+  {
+    "name": "Pure Jellyfish Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/Pure_Jellyfish_Egg.png/revision/latest"
+  },
+  {
+    "name": "RazorFang Egg",
+    "rarity": "Eternal",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/3d/RazorFang_Egg.png/revision/latest"
+  },
+  {
+    "name": "Skeleton Horse Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/49/Skeleton_Horse_Egg.png/revision/latest"
+  },
+  {
+    "name": "ArchAngel Egg",
+    "rarity": "Divine",
+    "rarityKey": "divine",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a9/ArchAngel_Egg.png/revision/latest"
+  },
+  {
+    "name": "Aetheron Egg",
+    "rarity": "Brainrot",
+    "rarityKey": "divine",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/96/Aetheron_Egg.png/revision/latest"
+  },
+  {
+    "name": "Bananita Dolphinita Egg",
+    "rarity": "Brainrot",
+    "rarityKey": "brainrot",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest"
+  },
+  {
+    "name": "Mangolini Parrochini Egg",
+    "rarity": "Brainrot",
+    "rarityKey": "brainrot",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest"
+  },
+  {
+    "name": "Strawberry Elephant Egg",
+    "rarity": "Monster",
+    "rarityKey": "brainrot",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest"
+  },
+  {
+    "name": "Froggo Egg",
+    "rarity": "Monster",
+    "rarityKey": "monster",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest"
+  },
+  {
+    "name": "Crocodon Egg",
+    "rarity": "Monster",
+    "rarityKey": "monster",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest"
+  },
+  {
+    "name": "Dreadscale Egg",
+    "rarity": "Monster",
+    "rarityKey": "monster",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest"
+  },
+  {
+    "name": "Mecha Froggo Egg",
+    "rarity": "Monster",
+    "rarityKey": "monster",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest"
+  },
+  {
+    "name": "Mecha Crocodon Egg",
+    "rarity": "Monster",
+    "rarityKey": "monster",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest"
+  },
+  {
+    "name": "Mecha Dreadscale Egg",
+    "rarity": "Legendary",
+    "rarityKey": "monster",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest"
+  },
+  {
+    "name": "Spirit Manta Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b7/Luminous_Egg.png/revision/latest"
+  },
+  {
+    "name": "Electric Eel Egg",
+    "rarity": "Eternal",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b7/Luminous_Egg.png/revision/latest"
+  },
+  {
+    "name": "Cthulhu Egg",
+    "rarity": "Secret",
+    "rarityKey": "divine",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b7/Luminous_Egg.png/revision/latest"
+  },
+  {
+    "name": "Luminous Spirit Manta Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/Luminous_Reroll_Egg.png/revision/latest"
+  },
+  {
+    "name": "Luminous Electric Eel Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/Luminous_Reroll_Egg.png/revision/latest"
+  },
+  {
+    "name": "Luminous Cthulhu Egg",
+    "rarity": "Legendary",
+    "rarityKey": "divine",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/Luminous_Reroll_Egg.png/revision/latest"
+  },
+  {
+    "name": "Void Angler Egg",
+    "rarity": "Mythic",
+    "rarityKey": "legendary",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest"
+  },
+  {
+    "name": "Riftwing Egg",
+    "rarity": "Mythic",
+    "rarityKey": "mythic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest"
+  },
+  {
+    "name": "Ventinal Egg",
+    "rarity": "Cosmic",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest"
+  },
+  {
+    "name": "Shattered Ram Egg",
+    "rarity": "Secret",
+    "rarityKey": "cosmic",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest"
+  },
+  {
+    "name": "Wendigo Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest"
+  },
+  {
+    "name": "Shardwing Egg",
+    "rarity": "Eternal",
+    "rarityKey": "secret",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest"
+  },
+  {
+    "name": "Shattered Drake Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest"
+  },
+  {
+    "name": "Mosasaurus Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091132276809768.png"
+  },
+  {
+    "name": "Gargoyle Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1548678018950758404.png"
+  },
+  {
+    "name": "Cosmic Dragon Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091101221916703.png"
+  },
+  {
+    "name": "Lava Dragon Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091130254884984.png"
+  },
+  {
+    "name": "Mutant Shark Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091135439314954.png"
+  },
+  {
+    "name": "Centaur Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1548678014156677250.png"
+  },
+  {
+    "name": "Stag Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091149846745090.png"
+  },
+  {
+    "name": "TRex Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091154850545794.png"
+  },
+  {
+    "name": "Cerberus Egg",
+    "rarity": "Secret",
+    "rarityKey": "secret",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091099036680222.png"
+  },
+  {
+    "name": "Pegasus Egg",
+    "rarity": "Eternal",
+    "rarityKey": "eternal",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1548678021177810954.png"
+  },
+  {
+    "name": "Unicorn Egg",
+    "rarity": "Divine",
+    "rarityKey": "divine",
+    "imageUrl": "https://cdn.discordapp.com/emojis/1547091158750994442.png"
+  }
+]

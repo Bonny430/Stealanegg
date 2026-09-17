@@ -61,32 +61,27 @@ function formatDateTime(isoStr) {
   return `${dateStr} ${timeStr}`;
 }
 
-// 倒數計時器
+// 倒數計時器 (嚴格對齊遊戲 5 分鐘固定重生整點: xx:00, xx:05, xx:10, xx:15...)
 function updateCountdown() {
-  if (!nextSpawnTimestamp) {
-    countdownTimer.textContent = '--:--:--';
-    return;
-  }
-
   const now = Date.now();
-  const diffMs = nextSpawnTimestamp - now;
-
-  if (diffMs <= 0) {
+  const cycleMs = 5 * 60 * 1000;
+  let target = Math.ceil(now / cycleMs) * cycleMs;
+  // 若剛好在整點的 2 秒內（伺服器正在生成並由 Bot 檢測），提示即將掉落
+  if (target - now <= 2000) {
     countdownTimer.textContent = '即將掉落！';
     countdownTimer.style.color = '#10b981';
     return;
   }
 
+  const diffMs = target - now;
   const totalSec = Math.floor(diffMs / 1000);
-  const hours = Math.floor(totalSec / 3600);
   const minutes = Math.floor((totalSec % 3600) / 60);
   const seconds = totalSec % 60;
 
-  const hStr = hours > 0 ? `${hours.toString().padStart(2, '0')}:` : '';
   const mStr = minutes.toString().padStart(2, '0');
   const sStr = seconds.toString().padStart(2, '0');
 
-  countdownTimer.textContent = `${hStr}${mStr}:${sStr}`;
+  countdownTimer.textContent = `${mStr}:${sStr}`;
   countdownTimer.style.color = '';
 }
 
@@ -144,31 +139,20 @@ async function loadPrediction() {
     predictionData = data;
 
     if (data) {
-      avgInterval.textContent = `${data.avgIntervalMinutes || '--'} 分鐘`;
-      recentAvg.textContent = `${data.recentAvgMinutes || '--'} 分鐘`;
+      avgInterval.textContent = `${data.spawnCycleMinutes || 5.0} 分鐘 (固定)`;
+      recentAvg.textContent = `約 ${data.recentAvgMinutes || '8.0'} 分鐘`;
       totalRecords.textContent = `${data.totalRecords || 0} 筆`;
-      predictedTimeText.textContent = data.predictedTimeStr
-        ? `預計掉落時間：${data.predictedTimeStr}`
-        : '資料累積中 (需至少 2 筆紀錄)';
 
       if (data.nextTimestamp) {
         nextSpawnTimestamp = data.nextTimestamp;
-        // 若上次計算的時間已過去，以平均間隔往後推算至未來的下一次掉落
-        const stepMs = Math.max(1, (data.recentAvgMinutes || data.avgIntervalMinutes || 8)) * 60 * 1000;
-        while (nextSpawnTimestamp < Date.now()) {
-          nextSpawnTimestamp += stepMs;
-        }
-      } else if (data.minutesLeft) {
-        nextSpawnTimestamp = Date.now() + data.minutesLeft * 60 * 1000;
-      }
-
-      if (nextSpawnTimestamp) {
         const pDate = new Date(nextSpawnTimestamp);
-        predictedTimeText.textContent = `預計掉落時間：${pDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })}`;
+        predictedTimeText.textContent = `預計下次出蛋：${pDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })}`;
       } else {
-        predictedTimeText.textContent = data.predictedTimeStr
-          ? `預計掉落時間：${data.predictedTimeStr}`
-          : '資料累積中 (需至少 2 筆紀錄)';
+        const now = Date.now();
+        const cycleMs = 5 * 60 * 1000;
+        const target = Math.ceil(now / cycleMs) * cycleMs;
+        const pDate = new Date(target);
+        predictedTimeText.textContent = `預計下次出蛋：${pDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })}`;
       }
 
       // 渲染常出現蛋種

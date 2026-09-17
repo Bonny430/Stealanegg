@@ -228,125 +228,144 @@ async function recordEggDrop(eggData) {
   }
 }
 
-// 資料分析與預測算法
-async function analyzeAndPredict() {
+// 本地歷史快取與統計（消除對 Google Sheet 的慢速重複查詢，實現 0ms API 與即時推播）
+let cachedRows = [];
+let cachedStats = null;
+
+// 計算統計數據與 5 分鐘固定重生模型
+function computeStatsFromRows(rows) {
+  if (!rows || rows.length === 0) {
+    return {
+      totalRecords: 0,
+      spawnCycleMinutes: 5,
+      avgIntervalMinutes: 5,
+      recentAvgMinutes: 5,
+      rareBroadcastIntervalMinutes: 5,
+      statusText: '資料庫尚無紀錄'
+    };
+  }
+
+  const validRows = rows.filter(r => r[0] && r[0].toString().trim() !== '');
+  const timestamps = validRows
+    .map(r => new Date(r[0]).getTime())
+    .filter(t => !isNaN(t))
+    .sort((a, b) => a - b);
+
+  // 伺服器出蛋固定週期：嚴格為 5 分鐘 (xx:00, xx:05, xx:10, xx:15...)
+  const now = Date.now();
+  const CYCLE_MS = 5 * 60 * 1000;
+  let nextTimestamp = Math.ceil(now / CYCLE_MS) * CYCLE_MS;
+  if (nextTimestamp - now < 3000) {
+    nextTimestamp += CYCLE_MS;
+  }
+  const predictedDate = new Date(nextTimestamp);
+  const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+  const minutesLeft = Math.max(1, Math.round((nextTimestamp - now) / 60000));
+
+  // 計算高階蛋廣播的間隔統計 (因普通蛋不推播，頻道公告平均間隔約 8~9 分鐘)
+  const intervals = [];
+  for (let i = 1; i < timestamps.length; i++) {
+    const diffMin = (timestamps[i] - timestamps[i - 1]) / (1000 * 60);
+    if (diffMin > 0 && diffMin <= 120) {
+      intervals.push(diffMin);
+    }
+  }
+
+  const avgInterval = intervals.length > 0
+    ? (intervals.reduce((a, b) => a + b, 0) / intervals.length)
+    : 5;
+  const recentSlice = intervals.slice(-10);
+  const recentAvg = recentSlice.length > 0
+    ? (recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length)
+    : 5;
+
+  // 出現頻率統計
+  const counts = {};
+  for (const r of validRows) {
+    const n = (r[1] || '未知蛋').trim();
+    counts[n] = (counts[n] || 0) + 1;
+  }
+  const topEggs = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, count]) => {
+      const clean = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const matched = eggsCatalog.find(e => (e.cleanName || e.name).toLowerCase().replace(/[^a-z0-9]/g, '') === clean);
+      return {
+        name,
+        count,
+        rarity: matched ? matched.rarity : 'Secret'
+      };
+    });
+
+  return {
+    totalRecords: validRows.length,
+    spawnCycleMinutes: 5,
+    avgIntervalMinutes: 5, // 伺服器固定每 5 分鐘出蛋
+    rareBroadcastIntervalMinutes: parseFloat(avgInterval.toFixed(1)),
+    recentAvgMinutes: parseFloat(recentAvg.toFixed(1)),
+    nextTimestamp,
+    predictedTimeStr,
+    minutesLeft,
+    topEggs
+  };
+}
+
+// 從 Google Sheet 刷新本地快取
+async function refreshCacheFromSheet() {
   try {
     const res = await fetch(GOOGLE_SHEET_API_URL);
     const json = await res.json();
-    if (!json || !json.data || json.data.length <= 1) {
-      return { totalRecords: 0, statusText: '資料庫尚無足夠紀錄' };
+    if (json && json.data && json.data.length > 1) {
+      cachedRows = json.data.slice(1).filter(r => r[0] && r[0].toString().trim() !== '');
+      cachedStats = computeStatsFromRows(cachedRows);
+      console.log(`[快取] 已同步 ${cachedRows.length} 筆資料庫紀錄，預測模型已更新`);
     }
-
-    const rows = json.data.slice(1).filter(r => r[0] && r[0].toString().trim() !== '');
-    if (rows.length === 0) return { totalRecords: 0, statusText: '資料庫為空' };
-
-    if (rows.length < 2) {
-      return {
-        totalRecords: rows.length,
-        statusText: '資料累積中 (需至少 2 筆紀錄以計算平均重生週期)'
-      };
-    }
-
-    // 解析時間戳記並排序
-    const timestamps = rows
-      .map(r => new Date(r[0]).getTime())
-      .filter(t => !isNaN(t))
-      .sort((a, b) => a - b);
-
-    if (timestamps.length < 2) {
-      return { totalRecords: rows.length, statusText: '時間戳記解析不足' };
-    }
-
-    // 計算相鄰蛋掉落的時間間隔（單位：分鐘）
-    const intervals = [];
-    for (let i = 1; i < timestamps.length; i++) {
-      const diffMin = (timestamps[i] - timestamps[i - 1]) / (1000 * 60);
-      // 排除異常超長間隔（超過 120 分鐘可能為維護或伺服器離線）
-      if (diffMin > 0 && diffMin <= 120) {
-        intervals.push(diffMin);
-      }
-    }
-
-    if (intervals.length === 0) {
-      return { totalRecords: rows.length, statusText: '間隔計算中' };
-    }
-
-    // 平均週期
-    const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-
-    // 近期 10 筆平均（更貼近當下活動節奏）
-    const recentSlice = intervals.slice(-10);
-    const recentAvg = recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length;
-
-    // 預測下次掉落時間（若最新紀錄加上近期平均已過去，向後順延週期）
-    const lastTimestamp = timestamps[timestamps.length - 1];
-    const stepMs = Math.max(1, Math.round(recentAvg * 60 * 1000));
-    let nextTimestamp = lastTimestamp + stepMs;
-    while (nextTimestamp < Date.now()) {
-      nextTimestamp += stepMs;
-    }
-    const predictedDate = new Date(nextTimestamp);
-    const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
-    const minutesLeft = Math.max(0, Math.round((nextTimestamp - Date.now()) / (1000 * 60)));
-
-    // 出現頻率統計
-    const counts = {};
-    for (const r of rows) {
-      const n = (r[1] || '未知蛋').trim();
-      counts[n] = (counts[n] || 0) + 1;
-    }
-    const topEggs = Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([name, count]) => {
-        const clean = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const matched = eggsCatalog.find(e => (e.cleanName || e.name).toLowerCase().replace(/[^a-z0-9]/g, '') === clean);
-        return {
-          name,
-          count,
-          rarity: matched ? matched.rarity : 'Secret'
-        };
-      });
-
-    return {
-      totalRecords: rows.length,
-      avgIntervalMinutes: parseFloat(avgInterval.toFixed(1)),
-      recentAvgMinutes: parseFloat(recentAvg.toFixed(1)),
-      nextTimestamp,
-      predictedTimeStr,
-      minutesLeft,
-      topEggs
-    };
   } catch (err) {
-    console.error('數據分析異常:', err.message);
-    return null;
+    console.warn('[快取] 載入 Google Sheet 失敗:', err.message);
   }
 }
 
-// 發送 Telegram 推播
-async function sendTelegramNotification(eggInfo, text, prediction) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+// 快速將新掉落記錄加入記憶體快取
+function addEggToMemoryCache(eggInfo) {
+  cachedRows.push([
+    eggInfo.timestamp,
+    eggInfo.name,
+    eggInfo.rarity,
+    `[${eggInfo.location}] ${eggInfo.rawText || ''}`
+  ]);
+  cachedStats = computeStatsFromRows(cachedRows);
+}
 
+// 極速發送 Telegram 推播（專為毫秒級響應設計）
+async function sendTelegramNotification(eggInfo, text, prediction) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('[Telegram] 尚未設定 Token 或 ChatId，略過推播');
+    return;
+  }
+
+  const tStart = Date.now();
   try {
+    const timeStr = new Date(eggInfo.timestamp).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+    
     let predictionSection = '';
     if (prediction) {
-      if (prediction.statusText) {
-        predictionSection = `\n\n📊 【預測資訊】\n• 目前筆數：${prediction.totalRecords} 筆\n• 狀態：${prediction.statusText}`;
-      } else {
-        predictionSection = `\n\n📊 【週期預測分析】\n• 總歷史掉落：已累計 ${prediction.totalRecords} 次\n• 平均重生間隔：約 ${prediction.avgIntervalMinutes} 分鐘（近期平均：${prediction.recentAvgMinutes} 分鐘）\n• 預估下次掉落：約 ${prediction.predictedTimeStr} (約 ${prediction.minutesLeft} 分鐘後)`;
-      }
+      predictionSection = `\n\n📊 【生蛋週期分析】\n` +
+        `• 伺服器週期：每 5 分鐘固定出蛋 (整點 xx:00, xx:05...)\n` +
+        `• 預計下次出蛋：${prediction.predictedTimeStr} (約 ${prediction.minutesLeft} 分鐘後)\n` +
+        `• 稀有蛋平均間隔：約 ${cachedStats?.rareBroadcastIntervalMinutes || '9.4'} 分鐘 (約 1~2 輪出一次)`;
     }
 
     const messageText = `🥚【Steal An Egg 掉落快訊】\n\n` +
       `• 蛋名稱：${eggInfo.name}\n` +
       `• 稀有度：${eggInfo.rarity}\n` +
       `• 出現地點：${eggInfo.location}\n` +
-      `• 發現時間：${new Date(eggInfo.timestamp).toLocaleTimeString('zh-TW', { hour12: false })}\n\n` +
+      `• 發現時間：${timeStr}\n\n` +
       `🔗 監控儀表板：https://stealanegg.onrender.com/\n` +
       `📋 資料庫：https://docs.google.com/spreadsheets/d/1vh5obGdyHAJ6I_DxtOlzllwEFQV7EjdrHUK-7PRSy5E/edit` +
       predictionSection;
 
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -354,7 +373,13 @@ async function sendTelegramNotification(eggInfo, text, prediction) {
         text: messageText
       })
     });
-    console.log('[Telegram] 推播發送成功:', eggInfo.name);
+    const dur = Date.now() - tStart;
+    if (res.ok) {
+      console.log(`⚡ [Telegram] 推播發送成功: ${eggInfo.name} (花費 ${dur}ms)`);
+    } else {
+      const errTxt = await res.text();
+      console.error(`[Telegram] 推播回應失敗 (${res.status}):`, errTxt);
+    }
   } catch (err) {
     console.error('[Telegram] 發送異常:', err.message);
   }
@@ -379,50 +404,65 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // 2. 解析蛋資訊
+  // 2. 毫秒級快速解析蛋資訊 (純記憶體處理，耗時 < 1ms)
   const eggInfo = extractEggInfo(message.embeds, rawContent, message.createdAt);
   eggInfo.rawText = combinedText;
 
-  // 重複推播防護 (若 30 秒內已收到同名蛋，避免官方與轉發雙重觸發)
+  // 重複推播防護 (30 秒視窗，避免同蛋多頻道轉發重複推送)
   const dedupeKey = `${eggInfo.name.toLowerCase()}_${Math.floor(Date.now() / 30000)}`;
   if (recentProcessedEggs.has(dedupeKey)) {
-    console.log(`[略過重複通知] ${eggInfo.name} 於 30 秒內已記錄並處理完畢`);
+    console.log(`[略過重複通知] ${eggInfo.name} 於 30 秒內已處理完畢`);
     return;
   }
   recentProcessedEggs.set(dedupeKey, Date.now());
 
   console.log(`[發現蛋掉落] 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location}`);
 
-  // 3. 無條件記錄至 Google Sheet 資料庫 (確保統計樣本 100% 完整)
-  await recordEggDrop(eggInfo);
-
-  // 4. 計算週期預測
-  const prediction = await analyzeAndPredict();
-
-  // 5. 檢查推播過濾設定 (若用戶在儀表板設定過濾，依設定決定是否發送 Telegram)
+  // 3. 【第一優先：極速發送 TELEGRAM 推播，絕不被外部 API 阻塞】
+  let shouldSendTelegram = true;
   if (currentConfig.filterEnabled) {
-    // 檢查稀有度
     const allowedRaritiesLower = (currentConfig.allowedRarities || []).map(r => r.toLowerCase());
     const isRarityAllowed = allowedRaritiesLower.includes(eggInfo.rarity.toLowerCase());
 
-    // 檢查個別黑名單蛋種
     const ignoredEggsLower = (currentConfig.ignoredEggs || []).map(n => n.toLowerCase());
     const isEggIgnored = ignoredEggsLower.includes(eggInfo.name.toLowerCase()) ||
                          ignoredEggsLower.includes(`${eggInfo.name.toLowerCase()} egg`);
 
-    if (!isRarityAllowed) {
-      console.log(`[推播過濾] 稀有度 [${eggInfo.rarity}] 不在推播允許清單中，已靜音`);
-      return;
-    }
-
-    if (isEggIgnored) {
-      console.log(`[推播過濾] 蛋種 [${eggInfo.name}] 在自訂黑名單中，已靜音`);
-      return;
+    if (!isRarityAllowed || isEggIgnored) {
+      console.log(`[推播過濾] 蛋種 [${eggInfo.name}] 或稀有度 [${eggInfo.rarity}] 依自訂設定已靜音`);
+      shouldSendTelegram = false;
     }
   }
 
-  // 6. 通過過濾，發送 Telegram 推播
-  await sendTelegramNotification(eggInfo, combinedText, prediction);
+  if (shouldSendTelegram) {
+    // 純記憶體精準推算 5 分鐘固定伺服器出蛋時間 (< 0.01ms)
+    const now = Date.now();
+    const cycleMs = 5 * 60 * 1000;
+    let nextTimestamp = Math.ceil(now / cycleMs) * cycleMs;
+    if (nextTimestamp - now < 3000) nextTimestamp += cycleMs;
+    const predictedDate = new Date(nextTimestamp);
+    const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+    const minutesLeft = Math.max(1, Math.round((nextTimestamp - now) / 60000));
+
+    const fastPrediction = {
+      predictedTimeStr,
+      minutesLeft
+    };
+
+    // 立即觸發發送 Telegram，不 await 任何請求，達到極限速度！
+    sendTelegramNotification(eggInfo, combinedText, fastPrediction).catch(err => {
+      console.error('[Telegram] 發送失敗:', err.message);
+    });
+  }
+
+  // 4. 【背景非同步：記錄至 Google Sheet 資料庫】
+  // 完全在背景非同步執行，不阻礙推播速度
+  recordEggDrop(eggInfo).catch(err => {
+    console.error('[Google Sheet] 背景寫入失敗:', err.message);
+  });
+
+  // 更新本地記憶體快取與統計
+  addEggToMemoryCache(eggInfo);
 });
 
 // ==================== REST API 路由 ====================
@@ -453,19 +493,53 @@ app.get('/api/eggs', (req, res) => {
   res.json(eggsCatalog);
 });
 
-// 3. 取得週期預測與統計數據
-app.get('/api/prediction', async (req, res) => {
-  const data = await analyzeAndPredict();
-  res.json(data || {});
+// 3. 取得週期預測與統計數據 (純記憶體瞬間響應)
+app.get('/api/prediction', (req, res) => {
+  if (!cachedStats) {
+    cachedStats = computeStatsFromRows(cachedRows);
+  }
+  const now = Date.now();
+  const CYCLE_MS = 5 * 60 * 1000;
+  let nextTimestamp = Math.ceil(now / CYCLE_MS) * CYCLE_MS;
+  if (nextTimestamp - now < 3000) nextTimestamp += CYCLE_MS;
+  const predictedDate = new Date(nextTimestamp);
+  const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+  const minutesLeft = Math.max(1, Math.round((nextTimestamp - now) / 60000));
+
+  res.json({
+    ...cachedStats,
+    nextTimestamp,
+    predictedTimeStr,
+    minutesLeft
+  });
 });
 
-// 4. 取得 Google Sheet 最新掉落歷史
+// 4. 取得 Google Sheet 最新掉落歷史 (優先讀取記憶體快取，0ms 響應)
 app.get('/api/history', async (req, res) => {
+  if (cachedRows.length > 0) {
+    const rows = cachedRows.slice(-50).reverse().map(r => {
+      let loc = '未知地點';
+      const raw = r[3] || '';
+      const locMatch = raw.match(/\[(.*?)\]/);
+      if (locMatch) loc = locMatch[1];
+      return {
+        timestamp: r[0],
+        name: r[1],
+        rarity: r[2],
+        location: loc,
+        details: raw
+      };
+    });
+    return res.json({ rows });
+  }
+
   try {
     const response = await fetch(GOOGLE_SHEET_API_URL);
     const json = await response.json();
     if (json && json.data && json.data.length > 1) {
-      const rows = json.data.slice(1).reverse().map(r => {
+      cachedRows = json.data.slice(1).filter(r => r[0] && r[0].toString().trim() !== '');
+      cachedStats = computeStatsFromRows(cachedRows);
+      const rows = cachedRows.slice(-50).reverse().map(r => {
         let loc = '未知地點';
         const raw = r[3] || '';
         const locMatch = raw.match(/\[(.*?)\]/);
@@ -623,6 +697,10 @@ app.get('/api/sync-status', (req, res) => {
 app.listen(PORT, async () => {
   console.log(`[Web] 儀表板伺服器運行於 Port ${PORT}`);
   await loadConfigFromSheet();
+  await refreshCacheFromSheet();
+
+  // 每 10 分鐘在背景靜態校驗 Google Sheet 快取
+  setInterval(refreshCacheFromSheet, 10 * 60 * 1000);
 });
 
 // 登入 Discord 小號

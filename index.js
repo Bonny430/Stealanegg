@@ -337,6 +337,23 @@ function addEggToMemoryCache(eggInfo) {
   cachedStats = computeStatsFromRows(cachedRows);
 }
 
+// 格式化台灣時間 (Asia/Taipei)
+function formatTaipeiDateTime(dateInput) {
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '--:--:--';
+  const formatter = new Intl.DateTimeFormat('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  return formatter.format(d).replace(/[\u2009\u202f\u2000-\u200a]/g, ' ').replace(/\//g, '-');
+}
+
 // 極速發送 Telegram 推播（專為毫秒級響應設計）
 async function sendTelegramNotification(eggInfo, text, prediction) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
@@ -346,7 +363,7 @@ async function sendTelegramNotification(eggInfo, text, prediction) {
 
   const tStart = Date.now();
   try {
-    const timeStr = new Date(eggInfo.timestamp).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+    const formattedDateTime = formatTaipeiDateTime(eggInfo.timestamp);
     
     let predictionSection = '';
     if (prediction) {
@@ -360,7 +377,7 @@ async function sendTelegramNotification(eggInfo, text, prediction) {
       `• 蛋名稱：${eggInfo.name}\n` +
       `• 稀有度：${eggInfo.rarity}\n` +
       `• 出現地點：${eggInfo.location}\n` +
-      `• 發現時間：${timeStr}\n\n` +
+      `• 發現時間：${formattedDateTime} (台灣時間)\n\n` +
       `🔗 監控儀表板：https://stealanegg.onrender.com/\n` +
       `📋 資料庫：https://docs.google.com/spreadsheets/d/1vh5obGdyHAJ6I_DxtOlzllwEFQV7EjdrHUK-7PRSy5E/edit` +
       predictionSection;

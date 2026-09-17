@@ -854,3 +854,11 @@ input:checked + .slider:before {
   padding: 16px;
   text-align: center;
 }
+
+.spawn-type-info {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 6px;
+  font-weight: 500;
+  display: block;
+}

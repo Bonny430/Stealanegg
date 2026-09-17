@@ -277,6 +277,7 @@ function renderEggsGrid() {
             <span class="rarity-tag rarity-${egg.rarity || 'Common'}">${egg.rarity || '未知'}</span>
             ${egg.biome && egg.biome !== 'Unknown' ? `<span class="biome-tag">📍 ${egg.biome}</span>` : ''}
           </div>
+          ${egg.spawnType ? `<div class="spawn-type-info" title="${egg.obtainMethod || ''}">${egg.spawnType}</div>` : ''}
         </div>
         <div class="egg-card-toggle">
           <label class="switch">

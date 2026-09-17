@@ -1,15 +1,13 @@
 {
-      "name": "steal-an-egg-notifier",
-        "version": "1.0.0",
-          "description": "Discord bot to forward messages",
-            "main": "index.js",
-              "scripts": {
-                  "start": "node index.js"
-                    },
-                      "dependencies": {
-                          "axios": "^1.6.7",
-                              "discord.js": "^14.14.1",
-                                  "express": "^4.18.2"
-                                    }
-                                    }
-                                    
+  "name": "steal-an-egg-notifier",
+  "version": "1.0.0",
+  "description": "Discord selfbot to forward steal-an-egg notifications",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js-selfbot-v13": "^3.4.0",
+    "express": "^4.18.2"
+  }
+}

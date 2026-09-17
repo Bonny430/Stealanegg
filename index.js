@@ -1,56 +1,102 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client } = require('discord.js-selfbot-v13');
 const express = require('express');
-const axios = require('axios');
 
-// 建立一個簡單的 Web 伺服器，讓 Render 能夠正常監聽 Port
+// 建立簡易 Web 伺服器供 Render 存活監測
 const app = express();
-const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('機器人運作中！Bot is running!'));
-app.listen(port, () => console.log(`Web 伺服器已啟動於 Port ${port}`));
+const port = process.env.PORT || 10000;
+app.get('/', (req, res) => res.send('Selfbot is active and running!'));
+app.listen(port, () => console.log(`Web 伺服器運行於 Port ${port}`));
 
-// Discord 機器人權限設定
 const client = new Client({
-        intents: [
-                    GatewayIntentBits.Guilds,
-                            GatewayIntentBits.GuildMessages,
-                                    GatewayIntentBits.MessageContent
-        ]
+  checkUpdate: false
 });
 
-// 從環境變數讀取設定 (這些等一下會在 Render 上設定)
-const TOKEN = process.env.DISCORD_TOKEN;
-const SOURCE_CHANNEL_ID = process.env.SOURCE_CHANNEL_ID;
-const TARGET_WEBHOOK_URL = process.env.TARGET_WEBHOOK_URL;
-
-client.once('ready', () => {
-        console.log(`機器人已上線，登入身分：${client.user.tag}`);
+client.on('ready', () => {
+  console.log(`小號已上線，登入身分：${client.user.tag}`);
 });
 
 client.on('messageCreate', async (message) => {
-        // 忽略機器人自己發送的訊息
-            if (message.author.bot) return;
+  // 檢查是否為目標頻道
+  if (!process.env.SOURCE_CHANNEL_ID || message.channel.id !== process.env.SOURCE_CHANNEL_ID) {
+    return;
+  }
 
-                // 確認是否為我們要監聽的頻道 (Steal an egg 頻道)
-                    if (message.channelId === SOURCE_CHANNEL_ID) {
-                                console.log(`收到新蛋通知: ${message.content}`);
+  // 取得訊息文字或 Embed 內容（注意：不要忽略 Bot 訊息，因為通知常由官方機器人發出）
+  let text = message.content || '';
 
-                                        // 準備要傳送給外部 API / Webhook 的資料格式
-                                                const payload = {
-                                                                content: message.content,
-                                                                            username: message.author.username
-                                                };
+  if (message.embeds && message.embeds.length > 0) {
+    const embedParts = [];
+    for (const embed of message.embeds) {
+      if (embed.title) embedParts.push(`**${embed.title}**`);
+      if (embed.description) embedParts.push(embed.description);
+      if (embed.fields && embed.fields.length > 0) {
+        for (const field of embed.fields) {
+          embedParts.push(`${field.name}: ${field.value}`);
+        }
+      }
+    }
+    const embedText = embedParts.filter(Boolean).join('\n');
+    text = text ? `${text}\n\n${embedText}` : embedText;
+  }
 
-                                                        // 如果有設定目標 API 或 Webhook 網址，就發送轉發請求
-                                                                if (TARGET_WEBHOOK_URL) {
-                                                                                try {
-                                                                                                    await axios.post(TARGET_WEBHOOK_URL, payload);
-                                                                                                                    console.log('成功轉發通知到外部 App！');
-                                                                                } catch (error) {
-                                                                                                    console.error('轉發失敗:', error.message);
-                                                                                }
-                                                                }
-                    }
+  if (!text) {
+    text = '【收到空訊息或純圖片通知】';
+  }
+
+  console.log(`[監聽到新訊息]:\n${text}`);
+
+  // 1. 轉發到 Telegram
+  if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: process.env.TELEGRAM_CHAT_ID,
+            text: `🔔 官方蛋通知：\n\n${text}`
+          })
+        }
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Telegram 轉發回應失敗 (${response.status}):`, errorText);
+      } else {
+        console.log('成功轉發至 Telegram');
+      }
+    } catch (err) {
+      console.error('Telegram 轉發異常:', err.message);
+    }
+  }
+
+  // 2. 轉發到自己的 Discord Webhook（若有設定）
+  if (process.env.TARGET_WEBHOOK_URL) {
+    try {
+      const response = await fetch(process.env.TARGET_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: text,
+          username: 'Egg Alert'
+        })
+      });
+      if (!response.ok) {
+        console.error(`Discord Webhook 轉發回應失敗 (${response.status})`);
+      } else {
+        console.log('成功轉發至 Discord Webhook');
+      }
+    } catch (err) {
+      console.error('Discord Webhook 轉發異常:', err.message);
+    }
+  }
 });
 
-// 啟動機器人
-client.login(TOKEN)                                                      
+// 使用小號的 User Token 登入
+if (!process.env.USER_TOKEN) {
+  console.warn('警告：尚未設定 USER_TOKEN 環境變數，機器人無法登入。請至 Render 設定。');
+} else {
+  client.login(process.env.USER_TOKEN).catch((err) => {
+    console.error('登入失敗，請確認 USER_TOKEN 是否正確:', err.message);
+  });
+}

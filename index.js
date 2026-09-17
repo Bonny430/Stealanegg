@@ -32,10 +32,19 @@ const USER_TOKEN = process.env.USER_TOKEN;
 // 重複推播防護 (30 秒視窗)
 const recentProcessedEggs = new Map();
 
-// 記憶體中推播設定快取
+// 28 種官方可刷新高階蛋種清單 (預設勾選)
+const DEFAULT_HIGH_TIER_EGGS = [
+  'Pure Jellyfish', 'Gargoyle', 'Kraken', 'T-Rex', 'Tralaledon', 'Cosmic Dragon',
+  'Mutant Shark', 'Cerberus', 'Stag', 'Mosasaurus', 'Oni Tiger', 'Cosmic Skeleton Boss',
+  'Yeti', 'Eternal Lunar Dragon', 'Gorilla King', 'Phoenix', 'Centaur', 'Ice Dragon',
+  'Lava Dragon', 'Pegasus', 'Skeleton Horse', 'King Snake', 'Unicorn', 'El Maja',
+  'Kitsune', 'ArchAngel', 'Nightflame', 'World Burner'
+];
+
+// 記憶體中推播設定快取 (嚴格以「蛋種」為篩選核心，不再以稀有度為準)
 let currentConfig = {
   filterEnabled: true,
-  allowedRarities: ['Secret', 'Divine', 'Eternal', 'Cosmic', 'Mythic', 'Legendary', 'Epic', 'Rare', 'Common', 'Uncommon'],
+  selectedEggs: [...DEFAULT_HIGH_TIER_EGGS],
   ignoredEggs: []
 };
 
@@ -438,15 +447,16 @@ client.on('messageCreate', async (message) => {
   // 3. 【第一優先：極速發送 TELEGRAM 推播，絕不被外部 API 阻塞】
   let shouldSendTelegram = true;
   if (currentConfig.filterEnabled) {
-    const allowedRaritiesLower = (currentConfig.allowedRarities || []).map(r => r.toLowerCase());
-    const isRarityAllowed = allowedRaritiesLower.includes(eggInfo.rarity.toLowerCase());
+    const eggClean = (eggInfo.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const allowedList = (Array.isArray(currentConfig.selectedEggs) && currentConfig.selectedEggs.length > 0)
+      ? currentConfig.selectedEggs
+      : DEFAULT_HIGH_TIER_EGGS;
+    const allowedClean = allowedList.map(n => n.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-    const ignoredEggsLower = (currentConfig.ignoredEggs || []).map(n => n.toLowerCase());
-    const isEggIgnored = ignoredEggsLower.includes(eggInfo.name.toLowerCase()) ||
-                         ignoredEggsLower.includes(`${eggInfo.name.toLowerCase()} egg`);
-
-    if (!isRarityAllowed || isEggIgnored) {
-      console.log(`[推播過濾] 蛋種 [${eggInfo.name}] 或稀有度 [${eggInfo.rarity}] 依自訂設定已靜音`);
+    // 嚴格依蛋種進行篩選（不再依賴稀有度）
+    const isEggAllowed = allowedClean.some(n => n === eggClean || eggClean.includes(n) || n.includes(eggClean));
+    if (!isEggAllowed) {
+      console.log(`[推播過濾] 蛋種 [${eggInfo.name}] 未在推播勾選清單中，已靜音`);
       shouldSendTelegram = false;
     }
   }

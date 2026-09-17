@@ -1,8 +1,18 @@
 // Steal An Egg Dashboard Client
 let eggsCatalog = [];
+
+// 28 種官方可刷新高階蛋種清單
+const DEFAULT_HIGH_TIER_NAMES = [
+  'Pure Jellyfish', 'Gargoyle', 'Kraken', 'T-Rex', 'Tralaledon', 'Cosmic Dragon',
+  'Mutant Shark', 'Cerberus', 'Stag', 'Mosasaurus', 'Oni Tiger', 'Cosmic Skeleton Boss',
+  'Yeti', 'Eternal Lunar Dragon', 'Gorilla King', 'Phoenix', 'Centaur', 'Ice Dragon',
+  'Lava Dragon', 'Pegasus', 'Skeleton Horse', 'King Snake', 'Unicorn', 'El Maja',
+  'Kitsune', 'ArchAngel', 'Nightflame', 'World Burner'
+];
+
 let userConfig = {
   filterEnabled: true,
-  allowedRarities: ['Secret', 'Divine', 'Eternal', 'Cosmic', 'Mythic', 'Legendary', 'Epic', 'Rare', 'Common', 'Uncommon'],
+  selectedEggs: [...DEFAULT_HIGH_TIER_NAMES],
   ignoredEggs: []
 };
 let predictionData = null;
@@ -20,7 +30,7 @@ const avgInterval = document.getElementById('avgInterval');
 const recentAvg = document.getElementById('recentAvg');
 const totalRecords = document.getElementById('totalRecords');
 const topEggsList = document.getElementById('topEggsList');
-const rarityChips = document.getElementById('rarityChips');
+const eggActiveCountBadge = document.getElementById('eggActiveCountBadge');
 const eggsGrid = document.getElementById('eggsGrid');
 const eggSearchInput = document.getElementById('eggSearchInput');
 const eggCountBadge = document.getElementById('eggCountBadge');
@@ -108,7 +118,7 @@ async function loadEggsCatalog() {
   try {
     const res = await fetch('/api/eggs');
     eggsCatalog = await res.json();
-    renderRarityChips();
+    updateSelectedCountBadge();
     renderEggsGrid();
   } catch (err) {
     console.error('載入蛋圖鑑失敗:', err);
@@ -122,8 +132,11 @@ async function loadConfig() {
     const data = await res.json();
     if (data && data.config) {
       userConfig = Object.assign(userConfig, data.config);
+      if (!Array.isArray(userConfig.selectedEggs) || userConfig.selectedEggs.length === 0) {
+        userConfig.selectedEggs = [...DEFAULT_HIGH_TIER_NAMES];
+      }
       masterFilterSwitch.checked = userConfig.filterEnabled !== false;
-      renderRarityChips();
+      updateSelectedCountBadge();
       renderEggsGrid();
     }
   } catch (err) {
@@ -213,35 +226,12 @@ function getEggImage(eggName) {
   return (found && found.imageUrl) ? found.imageUrl : 'https://cdn.discordapp.com/emojis/1547091103537438741.png';
 }
 
-// 渲染稀有度選取按鈕
-function renderRarityChips() {
-  const allRarities = Array.from(new Set(eggsCatalog.map(e => e.rarity).filter(Boolean)));
-  // 合併標準列表
-  const displayRarities = Array.from(new Set([...RARITIES_ORDER, ...allRarities]));
-
-  rarityChips.innerHTML = displayRarities.map(r => {
-    const isAllowed = userConfig.allowedRarities.map(x => x.toLowerCase()).includes(r.toLowerCase());
-    return `
-      <div class="rarity-chip rarity-${r} ${isAllowed ? '' : 'inactive'}" data-rarity="${r}">
-        <span>${isAllowed ? '✓' : '✗'}</span> ${r}
-      </div>
-    `;
-  }).join('');
-
-  // 點擊事件
-  rarityChips.querySelectorAll('.rarity-chip').forEach(chip => {
-    chip.onclick = () => {
-      const r = chip.getAttribute('data-rarity');
-      const idx = userConfig.allowedRarities.findIndex(x => x.toLowerCase() === r.toLowerCase());
-      if (idx >= 0) {
-        userConfig.allowedRarities.splice(idx, 1);
-      } else {
-        userConfig.allowedRarities.push(r);
-      }
-      renderRarityChips();
-      renderEggsGrid();
-    };
-  });
+// 蛋種勾選統計指示
+function updateSelectedCountBadge() {
+  const count = (userConfig.selectedEggs || []).length;
+  if (eggActiveCountBadge) {
+    eggActiveCountBadge.textContent = `已勾選 ${count} / ${eggsCatalog.length || 143} 種蛋接收通知`;
+  }
 }
 
 let selectedSpawnType = 'all';
@@ -312,13 +302,15 @@ function renderEggsGrid() {
   }
 
   eggsGrid.innerHTML = filtered.map(egg => {
-    const isRarityAllowed = userConfig.allowedRarities.map(x => x.toLowerCase()).includes((egg.rarity || '').toLowerCase());
-    const isIndividuallyIgnored = userConfig.ignoredEggs.map(x => x.toLowerCase()).includes(egg.name.toLowerCase()) ||
-                                 userConfig.ignoredEggs.map(x => x.toLowerCase()).includes((egg.cleanName || '').toLowerCase());
-    const isActive = isRarityAllowed && !isIndividuallyIgnored;
+    const eggName = egg.cleanName || egg.name;
+    const clean = eggName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const isActive = (userConfig.selectedEggs || []).some(n => {
+      const k = n.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return k === clean || clean.includes(k) || k.includes(clean);
+    });
 
     return `
-      <div class="egg-card ${isActive ? '' : 'muted'}" data-egg-name="${egg.name}">
+      <div class="egg-card ${isActive ? '' : 'muted'}" data-egg-name="${eggName}">
         <div class="egg-img-wrap">
           <img src="${egg.imageUrl || 'https://cdn.discordapp.com/emojis/1547091103537438741.png'}" alt="${egg.name}" referrerpolicy="no-referrer" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
         </div>
@@ -331,7 +323,7 @@ function renderEggsGrid() {
           ${egg.spawnType ? `<div class="spawn-type-info" title="${egg.obtainMethod || ''}">${egg.spawnType}</div>` : ''}
         </div>
         <div class="egg-card-toggle">
-          <label class="switch">
+          <label class="switch" title="${isActive ? '點擊取消通知' : '點擊接收通知'}">
             <input type="checkbox" class="egg-toggle-input" ${isActive ? 'checked' : ''}>
             <span class="slider round"></span>
           </label>
@@ -340,45 +332,68 @@ function renderEggsGrid() {
     `;
   }).join('');
 
-  // 綁定個別蛋開關
+  // 綁定個別蛋開關 (直接增刪 selectedEggs)
   eggsGrid.querySelectorAll('.egg-card').forEach(card => {
     const name = card.getAttribute('data-egg-name');
     const checkbox = card.querySelector('.egg-toggle-input');
     checkbox.onchange = (e) => {
       const checked = e.target.checked;
-      if (!checked) {
-        if (!userConfig.ignoredEggs.includes(name)) {
-          userConfig.ignoredEggs.push(name);
+      const clean = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (checked) {
+        if (!userConfig.selectedEggs.some(n => n.toLowerCase().replace(/[^a-z0-9]/g, '') === clean)) {
+          userConfig.selectedEggs.push(name);
         }
-        card.classList.add('muted');
-      } else {
-        userConfig.ignoredEggs = userConfig.ignoredEggs.filter(x => x.toLowerCase() !== name.toLowerCase());
         card.classList.remove('muted');
+      } else {
+        userConfig.selectedEggs = userConfig.selectedEggs.filter(n => n.toLowerCase().replace(/[^a-z0-9]/g, '') !== clean);
+        card.classList.add('muted');
       }
+      updateSelectedCountBadge();
     };
   });
 }
 
-// 快速篩選按鈕事件
-document.getElementById('selectAllRarities').onclick = () => {
-  userConfig.allowedRarities = Array.from(new Set(eggsCatalog.map(e => e.rarity).filter(Boolean)));
-  userConfig.ignoredEggs = [];
-  renderRarityChips();
-  renderEggsGrid();
-};
+// 快速篩選按鈕事件 (針對蛋種勾選)
+const selectHighOnlyBtn = document.getElementById('selectHighOnly');
+if (selectHighOnlyBtn) {
+  selectHighOnlyBtn.onclick = () => {
+    userConfig.selectedEggs = [...DEFAULT_HIGH_TIER_NAMES];
+    updateSelectedCountBadge();
+    renderEggsGrid();
+    showToast('⭐ 已勾選 28 種高階可刷新蛋！', 'success');
+  };
+}
 
-document.getElementById('selectHighOnly').onclick = () => {
-  userConfig.allowedRarities = ['Secret', 'Divine', 'Eternal', 'Cosmic', 'Mythic'];
-  userConfig.ignoredEggs = [];
-  renderRarityChips();
-  renderEggsGrid();
-};
+const selectTop10Btn = document.getElementById('selectTop10');
+if (selectTop10Btn) {
+  selectTop10Btn.onclick = () => {
+    const TOP_10 = ['Pure Jellyfish', 'Gargoyle', 'Kraken', 'T-Rex', 'Tralaledon', 'Cosmic Dragon', 'Mutant Shark', 'Cerberus', 'Stag', 'Mosasaurus'];
+    userConfig.selectedEggs = [...TOP_10];
+    updateSelectedCountBadge();
+    renderEggsGrid();
+    showToast('🔥 已勾選 Top 10 最常刷新蛋！', 'success');
+  };
+}
 
-document.getElementById('clearAllRarities').onclick = () => {
-  userConfig.allowedRarities = [];
-  renderRarityChips();
-  renderEggsGrid();
-};
+const selectAllEggsBtn = document.getElementById('selectAllEggs');
+if (selectAllEggsBtn) {
+  selectAllEggsBtn.onclick = () => {
+    userConfig.selectedEggs = eggsCatalog.map(e => e.cleanName || e.name);
+    updateSelectedCountBadge();
+    renderEggsGrid();
+    showToast('✅ 已勾選全部 143 種蛋接收通知！', 'success');
+  };
+}
+
+const clearAllEggsBtn = document.getElementById('clearAllEggs');
+if (clearAllEggsBtn) {
+  clearAllEggsBtn.onclick = () => {
+    userConfig.selectedEggs = [];
+    updateSelectedCountBadge();
+    renderEggsGrid();
+    showToast('❌ 已取消勾選所有蛋（已全部靜音）', 'error');
+  };
+}
 
 eggSearchInput.oninput = () => {
   renderEggsGrid();

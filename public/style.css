@@ -573,16 +573,34 @@ input:checked + .slider:before {
   box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
 }
 
-/* 稀有度篩選列 */
-.rarity-filter-bar {
+/* 蛋種推播快捷操作列 (以蛋為核心) */
+.egg-control-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.2);
+  gap: 12px;
+  padding: 12px 18px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+}
+
+.egg-status-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.egg-active-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .bar-label {

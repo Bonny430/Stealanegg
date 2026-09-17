@@ -49,14 +49,16 @@ function formatTime(isoStr) {
   if (!isoStr) return '--:--:--';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr;
-  return d.toLocaleTimeString('zh-TW', { hour12: false });
+  return d.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
 }
 
 function formatDateTime(isoStr) {
   if (!isoStr) return '--';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr;
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('zh-TW', { hour12: false })}`;
+  const timeStr = d.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+  const dateStr = d.toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei', month: 'numeric', day: 'numeric' });
+  return `${dateStr} ${timeStr}`;
 }
 
 // 倒數計時器
@@ -151,8 +153,22 @@ async function loadPrediction() {
 
       if (data.nextTimestamp) {
         nextSpawnTimestamp = data.nextTimestamp;
+        // 若上次計算的時間已過去，以平均間隔往後推算至未來的下一次掉落
+        const stepMs = Math.max(1, (data.recentAvgMinutes || data.avgIntervalMinutes || 8)) * 60 * 1000;
+        while (nextSpawnTimestamp < Date.now()) {
+          nextSpawnTimestamp += stepMs;
+        }
       } else if (data.minutesLeft) {
         nextSpawnTimestamp = Date.now() + data.minutesLeft * 60 * 1000;
+      }
+
+      if (nextSpawnTimestamp) {
+        const pDate = new Date(nextSpawnTimestamp);
+        predictedTimeText.textContent = `預計掉落時間：${pDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })}`;
+      } else {
+        predictedTimeText.textContent = data.predictedTimeStr
+          ? `預計掉落時間：${data.predictedTimeStr}`
+          : '資料累積中 (需至少 2 筆紀錄)';
       }
 
       // 渲染常出現蛋種

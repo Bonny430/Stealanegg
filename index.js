@@ -22,11 +22,15 @@ if (fs.existsSync(envPath)) {
 
 // 環境變數設定
 const PORT = process.env.PORT || 10000;
-const SOURCE_CHANNEL_ID = process.env.SOURCE_CHANNEL_ID || '1533067560134906007';
+const OFFICIAL_CHANNEL_ID = '1533067560134906007'; // 官方 Steal An Egg #◜🥚・egg-notifier 頻道
+const MONITORED_CHANNELS = new Set([OFFICIAL_CHANNEL_ID, process.env.SOURCE_CHANNEL_ID].filter(Boolean));
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const GOOGLE_SHEET_API_URL = process.env.GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxuLJ-ngjNo0JnQi9qmNBveGHW7KnnJRDfKW7WUEDXHmbB2949IWJmle8OiHp15InvB/exec';
 const USER_TOKEN = process.env.USER_TOKEN;
+
+// 重複推播防護 (30 秒視窗)
+const recentProcessedEggs = new Map();
 
 // 記憶體中推播設定快取
 let currentConfig = {
@@ -64,7 +68,7 @@ const client = new Client({ checkUpdate: false });
 
 client.on('ready', () => {
   console.log(`[Discord] 小號已連線上線，登入身分：${client.user.tag}`);
-  console.log(`[Discord] 監聽目標頻道 ID：${SOURCE_CHANNEL_ID}`);
+  console.log(`[Discord] 監聽目標頻道清單：${Array.from(MONITORED_CHANNELS).join(', ')}`);
 });
 
 // 啟動時從 Google Sheet 載入推播過濾設定
@@ -304,8 +308,8 @@ async function sendTelegramNotification(eggInfo, text, prediction) {
 
 // 監聽 Discord 訊息事件
 client.on('messageCreate', async (message) => {
-  // 僅監聽指定的 egg-notifier 頻道
-  if (message.channel.id !== SOURCE_CHANNEL_ID) {
+  // 僅監聽指定的蛋掉落頻道清單 (包含官方 #egg-notifier 及轉發頻道)
+  if (!MONITORED_CHANNELS.has(message.channel.id)) {
     return;
   }
 
@@ -324,6 +328,15 @@ client.on('messageCreate', async (message) => {
   // 2. 解析蛋資訊
   const eggInfo = extractEggInfo(message.embeds, rawContent, message.createdAt);
   eggInfo.rawText = combinedText;
+
+  // 重複推播防護 (若 30 秒內已收到同名蛋，避免官方與轉發雙重觸發)
+  const dedupeKey = `${eggInfo.name.toLowerCase()}_${Math.floor(Date.now() / 30000)}`;
+  if (recentProcessedEggs.has(dedupeKey)) {
+    console.log(`[略過重複通知] ${eggInfo.name} 於 30 秒內已記錄並處理完畢`);
+    return;
+  }
+  recentProcessedEggs.set(dedupeKey, Date.now());
+
   console.log(`[發現蛋掉落] 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location}`);
 
   // 3. 無條件記錄至 Google Sheet 資料庫 (確保統計樣本 100% 完整)
@@ -362,19 +375,21 @@ client.on('messageCreate', async (message) => {
 
 // 1. 伺服器與小號連線狀態
 app.get('/api/status', async (req, res) => {
-  let channelName = 'egg-notifier';
+  let channelNames = [];
   try {
     if (client.isReady()) {
-      const ch = await client.channels.fetch(SOURCE_CHANNEL_ID);
-      if (ch) channelName = ch.name;
+      for (const chId of MONITORED_CHANNELS) {
+        const ch = await client.channels.fetch(chId).catch(() => null);
+        if (ch) channelNames.push(ch.name);
+      }
     }
   } catch (_) {}
 
   res.json({
     online: client.isReady(),
     user: client.user ? client.user.tag : null,
-    channelId: SOURCE_CHANNEL_ID,
-    channelName,
+    channelId: Array.from(MONITORED_CHANNELS).join(', '),
+    channelName: channelNames.join(' & ') || 'egg-notifier',
     uptime: Math.round(process.uptime())
   });
 });
@@ -458,7 +473,7 @@ app.post('/api/sync-history', async (req, res) => {
   // 於背景非同步執行歷史抓取
   (async () => {
     try {
-      const ch = await client.channels.fetch(SOURCE_CHANNEL_ID);
+      const ch = await client.channels.fetch(OFFICIAL_CHANNEL_ID);
       // 讀取既有 Sheet 資料，避免重複寫入
       const sheetRes = await fetch(GOOGLE_SHEET_API_URL);
       const sheetJson = await sheetRes.json();

@@ -23,14 +23,48 @@ if (fs.existsSync(envPath)) {
 // 環境變數設定
 const PORT = process.env.PORT || 10000;
 const OFFICIAL_CHANNEL_ID = '1533067560134906007'; // 官方 Steal An Egg #◜🥚・egg-notifier 頻道
-const MONITORED_CHANNELS = new Set([OFFICIAL_CHANNEL_ID, process.env.SOURCE_CHANNEL_ID].filter(Boolean));
+
+// 多頻道監聽與交叉比對設定
+const KNOWN_CHANNELS = {
+  '1533067560134906007': { name: '◜🥚・egg-notifier', server: 'Steal An Egg Official A (SenZ V2 官方源)' },
+  '1540093905935278161': { name: '﹕🥚﹑egg-notifer', server: 'Steal An Egg Official B (SenZ V2 鏡像分流)' },
+  '1541597188163899493': { name: '🖤┃secrets', server: 'Steal an egg Tracker (極速 Webhook ~2秒)' },
+  '1541596326008066068': { name: '💜┃eternals', server: 'Steal an egg Tracker (Eternals 專屬)' },
+  '1541596390474514512': { name: '🧡┃divines', server: 'Steal an egg Tracker (Divines 專屬)' }
+};
+
+const DEFAULT_CHANNEL_IDS = [
+  '1533067560134906007',
+  '1540093905935278161',
+  '1541597188163899493',
+  '1541596326008066068',
+  '1541596390474514512'
+];
+
+const additionalIds = (process.env.ADDITIONAL_CHANNEL_IDS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const MONITORED_CHANNELS = new Set([
+  ...DEFAULT_CHANNEL_IDS,
+  process.env.SOURCE_CHANNEL_ID,
+  ...additionalIds
+].filter(Boolean));
+
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const GOOGLE_SHEET_API_URL = process.env.GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxuLJ-ngjNo0JnQi9qmNBveGHW7KnnJRDfKW7WUEDXHmbB2949IWJmle8OiHp15InvB/exec';
 const USER_TOKEN = process.env.USER_TOKEN;
 
-// 重複推播防護 (30 秒視窗)
-const recentProcessedEggs = new Map();
+// 多頻道交叉比對與去重防護 (45 秒滑動窗口)
+const activeDropEvents = new Map(); // key: eggClean_locKey -> { firstDetectedAt, firstChannelId, firstChannelName, firstGuildName, eggInfo }
+
+const crossCheckStats = {
+  totalDropsDetected: 0,
+  crossVerifiedCount: 0,
+  recentVerifications: []
+};
 
 // 28 種官方可刷新高階蛋種清單 (預設勾選)
 const DEFAULT_HIGH_TIER_EGGS = [
@@ -139,8 +173,8 @@ function normalizeEgg(rawName, detectedRarity, detectedBiome) {
   };
 }
 
-// 蛋資訊解析函數 (經過 SenZ V2 實測驗證)
-function extractEggInfo(embeds, content, createdAt) {
+// 蛋資訊解析函數 (支援 SenZ V2 Embed 與 secret hook 等多頻道訊息格式)
+function extractEggInfo(embeds, content, createdAt, channelMeta = {}) {
   let name = '未知蛋';
   let rarity = '未知';
   let location = '未知地點';
@@ -188,13 +222,21 @@ function extractEggInfo(embeds, content, createdAt) {
     }
   }
 
-  // 備用：從純文字 content 解析 (例如: -# <@&...> Cosmic Skeleton Boss spawned in Cosmic!)
-  if (name === '未知蛋' && content) {
-    const textMatch = content.match(/<@&\d+>\s*(.*?)\s+spawned in\s+(.*?)!/i);
+  // 3. 從純文字 content 解析 (支援 secret hook: <@&...> Yeti Egg spawned in Snow😟! 與 SenZ 提及文字)
+  if ((name === '未知蛋' || !name) && content) {
+    const textMatch = content.match(/(?:<@&?\d+>|-#\s*<@&?\d+>|^)\s*(.*?)\s+spawned in\s+(.*?)(?:!|$)/i);
     if (textMatch) {
-      name = textMatch[1].trim();
-      if (location === '未知地點') location = textMatch[2].trim();
+      let rawEgg = textMatch[1].trim().replace(/\s+egg$/i, '').trim();
+      name = rawEgg;
+
+      let rawLoc = textMatch[2].trim().replace(/[^\w\s&'-]/g, '').trim();
+      if (rawLoc) location = rawLoc;
     }
+  }
+
+  // 濾除無效廣告或空訊息 (例如 RoMarket 商店廣告)
+  if (!name || name === '未知蛋' || name.toLowerCase().includes('romarket') || name.toLowerCase().includes('store')) {
+    return null;
   }
 
   // 標準化蛋名稱、稀有度與地點
@@ -211,7 +253,10 @@ function extractEggInfo(embeds, content, createdAt) {
     name,
     rarity,
     location,
-    imageUrl
+    imageUrl,
+    channelId: channelMeta.channelId,
+    channelName: channelMeta.channelName,
+    guildName: channelMeta.guildName
   };
 }
 
@@ -364,7 +409,7 @@ function formatTaipeiDateTime(dateInput) {
 }
 
 // 極速發送 Telegram 推播（專為毫秒級響應設計）
-async function sendTelegramNotification(eggInfo, text, prediction) {
+async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[Telegram] 尚未設定 Token 或 ChatId，略過推播');
     return;
@@ -382,12 +427,15 @@ async function sendTelegramNotification(eggInfo, text, prediction) {
         `• 稀有蛋平均間隔：約 ${cachedStats?.rareBroadcastIntervalMinutes || '9.4'} 分鐘 (約 1~2 輪出一次)`;
     }
 
+    const sourceText = sourceInfo ? `• 偵測來源：#${sourceInfo.channelName} (${sourceInfo.server})\n` : '';
+
     const messageText = `🥚【Steal An Egg 掉落快訊】\n\n` +
       `• 蛋名稱：${eggInfo.name}\n` +
       `• 稀有度：${eggInfo.rarity}\n` +
       `• 出現地點：${eggInfo.location}\n` +
-      `• 發現時間：${formattedDateTime} (台灣時間)\n\n` +
-      `🔗 監控儀表板：https://stealanegg.onrender.com/\n` +
+      `• 發現時間：${formattedDateTime} (台灣時間)\n` +
+      sourceText +
+      `\n🔗 監控儀表板：https://stealanegg.onrender.com/\n` +
       `📋 資料庫：https://docs.google.com/spreadsheets/d/1vh5obGdyHAJ6I_DxtOlzllwEFQV7EjdrHUK-7PRSy5E/edit` +
       predictionSection;
 
@@ -413,7 +461,7 @@ async function sendTelegramNotification(eggInfo, text, prediction) {
 
 // 監聽 Discord 訊息事件
 client.on('messageCreate', async (message) => {
-  // 僅監聽指定的蛋掉落頻道清單 (包含官方 #egg-notifier 及轉發頻道)
+  // 僅監聽指定的蛋掉落頻道清單 (包含多個伺服器與頻道)
   if (!MONITORED_CHANNELS.has(message.channel.id)) {
     return;
   }
@@ -430,21 +478,71 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // 2. 毫秒級快速解析蛋資訊 (純記憶體處理，耗時 < 1ms)
-  const eggInfo = extractEggInfo(message.embeds, rawContent, message.createdAt);
-  eggInfo.rawText = combinedText;
+  // 取得該頻道名稱與伺服器資訊
+  const known = KNOWN_CHANNELS[message.channel.id];
+  const channelName = message.channel.name || known?.name || message.channel.id;
+  const serverName = message.guild?.name || known?.server || 'Discord';
 
-  // 重複推播防護 (30 秒視窗，避免同蛋多頻道轉發重複推送)
-  const dedupeKey = `${eggInfo.name.toLowerCase()}_${Math.floor(Date.now() / 30000)}`;
-  if (recentProcessedEggs.has(dedupeKey)) {
-    console.log(`[略過重複通知] ${eggInfo.name} 於 30 秒內已處理完畢`);
+  // 2. 毫秒級快速解析蛋資訊 (純記憶體處理，耗時 < 1ms)
+  const eggInfo = extractEggInfo(message.embeds, rawContent, message.createdAt, {
+    channelId: message.channel.id,
+    channelName,
+    guildName: serverName
+  });
+
+  if (!eggInfo) {
     return;
   }
-  recentProcessedEggs.set(dedupeKey, Date.now());
+  eggInfo.rawText = combinedText;
 
-  console.log(`[發現蛋掉落] 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location}`);
+  // 3. 多頻道交叉比對與重複防護 (45 秒滑動窗口)
+  const now = Date.now();
+  for (const [k, ev] of activeDropEvents.entries()) {
+    if (now - ev.firstDetectedAt > 45000) {
+      activeDropEvents.delete(k);
+    }
+  }
 
-  // 3. 【第一優先：極速發送 TELEGRAM 推播，絕不被外部 API 阻塞】
+  const normName = eggInfo.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const locKey = (eggInfo.location && eggInfo.location !== '未知地點')
+    ? eggInfo.location.toLowerCase().replace(/[^a-z0-9]/g, '')
+    : 'any';
+  const eventKey = `${normName}_${locKey}`;
+
+  const existingEvent = activeDropEvents.get(eventKey) || activeDropEvents.get(`${normName}_any`);
+  if (existingEvent) {
+    // 交叉比對成功！此掉落事件已由先前的頻道通報過
+    const deltaSec = ((now - existingEvent.firstDetectedAt) / 1000).toFixed(1);
+    console.log(`⚡ [交叉比對驗證] 蛋種 [${eggInfo.name}] 在頻道 #${channelName} (${serverName}) 亦回報掉落！比對有效 (時差: +${deltaSec}s，第一來源: #${existingEvent.firstChannelName})`);
+
+    crossCheckStats.crossVerifiedCount++;
+    crossCheckStats.recentVerifications.unshift({
+      eggName: eggInfo.name,
+      location: eggInfo.location,
+      firstSource: `#${existingEvent.firstChannelName} (${existingEvent.firstGuildName})`,
+      secondSource: `#${channelName} (${serverName})`,
+      delaySec: deltaSec,
+      verifiedAt: new Date().toISOString()
+    });
+    if (crossCheckStats.recentVerifications.length > 20) {
+      crossCheckStats.recentVerifications.pop();
+    }
+    return; // 抑制重複推播
+  }
+
+  // 記錄為該次掉落的第一通報來源
+  activeDropEvents.set(eventKey, {
+    eggInfo,
+    firstDetectedAt: now,
+    firstChannelId: message.channel.id,
+    firstChannelName: channelName,
+    firstGuildName: serverName
+  });
+  crossCheckStats.totalDropsDetected++;
+
+  console.log(`[發現蛋掉落] 來源: #${channelName} (${serverName}) | 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location}`);
+
+  // 4. 【第一優先：極速發送 TELEGRAM 推播，絕不被外部 API 阻塞】
   let shouldSendTelegram = true;
   if (currentConfig.filterEnabled) {
     const eggClean = (eggInfo.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -463,7 +561,6 @@ client.on('messageCreate', async (message) => {
 
   if (shouldSendTelegram) {
     // 純記憶體精準推算 5 分鐘固定伺服器出蛋時間 (< 0.01ms)
-    const now = Date.now();
     const cycleMs = 5 * 60 * 1000;
     let nextTimestamp = Math.ceil(now / cycleMs) * cycleMs;
     if (nextTimestamp - now < 3000) nextTimestamp += cycleMs;
@@ -477,12 +574,15 @@ client.on('messageCreate', async (message) => {
     };
 
     // 立即觸發發送 Telegram，不 await 任何請求，達到極限速度！
-    sendTelegramNotification(eggInfo, combinedText, fastPrediction).catch(err => {
+    sendTelegramNotification(eggInfo, combinedText, fastPrediction, {
+      channelName,
+      server: serverName
+    }).catch(err => {
       console.error('[Telegram] 發送失敗:', err.message);
     });
   }
 
-  // 4. 【背景非同步：記錄至 Google Sheet 資料庫】
+  // 5. 【背景非同步：記錄至 Google Sheet 資料庫】
   // 完全在背景非同步執行，不阻礙推播速度
   recordEggDrop(eggInfo).catch(err => {
     console.error('[Google Sheet] 背景寫入失敗:', err.message);
@@ -494,23 +594,39 @@ client.on('messageCreate', async (message) => {
 
 // ==================== REST API 路由 ====================
 
-// 1. 伺服器與小號連線狀態
+// 1. 伺服器與小號連線狀態 (支援多頻道監聽與交叉比對)
 app.get('/api/status', async (req, res) => {
-  let channelNames = [];
+  let channelDetails = [];
   try {
     if (client.isReady()) {
       for (const chId of MONITORED_CHANNELS) {
+        const known = KNOWN_CHANNELS[chId];
         const ch = await client.channels.fetch(chId).catch(() => null);
-        if (ch) channelNames.push(ch.name);
+        let accessible = false;
+        if (ch) {
+          const perms = ch.permissionsFor ? ch.permissionsFor(client.user) : null;
+          accessible = perms ? perms.has(['VIEW_CHANNEL', 'READ_MESSAGE_HISTORY']) : ch.viewable;
+        }
+        channelDetails.push({
+          id: chId,
+          name: ch ? ch.name : (known ? known.name : chId),
+          server: ch && ch.guild ? ch.guild.name : (known ? known.server : '未知伺服器'),
+          accessible
+        });
       }
     }
   } catch (_) {}
 
+  const activeChannelNames = channelDetails.filter(c => c.accessible).map(c => `#${c.name}`);
+
   res.json({
     online: client.isReady(),
     user: client.user ? client.user.tag : null,
-    channelId: Array.from(MONITORED_CHANNELS).join(', '),
-    channelName: channelNames.join(' & ') || 'egg-notifier',
+    channelCount: MONITORED_CHANNELS.size,
+    accessibleCount: channelDetails.filter(c => c.accessible).length,
+    channelName: activeChannelNames.join(' & ') || 'egg-notifier',
+    monitoredChannels: channelDetails,
+    crossCheckStats,
     uptime: Math.round(process.uptime())
   });
 });

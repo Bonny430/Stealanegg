@@ -89,6 +89,30 @@
       </div>
     </section>
 
+    <!-- 交叉比對頻道監控狀態 -->
+    <section class="card channel-monitor-card">
+      <div class="channel-monitor-header">
+        <div class="channel-monitor-title">
+          <span class="radar-dot"></span>
+          <div>
+            <h3>📡 多來源頻道交叉比對 (Multi-Channel Cross-Reference)</h3>
+            <p class="section-desc">已串接多個 Discord 伺服器與不同監控機器人，採「極速通報優先 + 交叉比對防重疊」機制，搶佔秒級時差</p>
+          </div>
+        </div>
+        <div class="channel-monitor-stats">
+          <span class="channel-stat-pill" id="monitoredChannelsCount">連線中...</span>
+          <span class="channel-stat-pill verified" id="crossVerifiedBadge">交叉驗證：0 次</span>
+        </div>
+      </div>
+      <div class="channels-grid" id="channelsGrid">
+        <div class="skeleton-loader">讀取監控頻道資訊中...</div>
+      </div>
+      <div id="latestCrossVerification" class="latest-cross-check hidden">
+        <span class="cross-check-icon">⚡</span>
+        <span id="latestCrossVerificationText">尚無交叉比對紀錄</span>
+      </div>
+    </section>
+
     <!-- 過濾器設定區域 -->
     <section class="card filter-section">
       <div class="section-header">

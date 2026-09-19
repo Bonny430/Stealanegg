@@ -43,6 +43,11 @@ const syncProgress = document.getElementById('syncProgress');
 const progressBar = document.getElementById('progressBar');
 const progressText = document.getElementById('progressText');
 const toast = document.getElementById('toast');
+const monitoredChannelsCount = document.getElementById('monitoredChannelsCount');
+const crossVerifiedBadge = document.getElementById('crossVerifiedBadge');
+const channelsGrid = document.getElementById('channelsGrid');
+const latestCrossVerification = document.getElementById('latestCrossVerification');
+const latestCrossVerificationText = document.getElementById('latestCrossVerificationText');
 
 // Toast 提示
 function showToast(message, type = 'success') {
@@ -95,17 +100,72 @@ function updateCountdown() {
   countdownTimer.style.color = '';
 }
 
-// 載入機器人狀態
+// 載入機器人狀態 (支援多頻道交叉比對)
 async function loadStatus() {
   try {
     const res = await fetch('/api/status');
     const data = await res.json();
     if (data.online) {
       botStatusBadge.className = 'status-badge';
-      botStatusText.textContent = `監聽中 (#${data.channelName || 'egg-notifier'})`;
+      botStatusText.textContent = `多源監聽中 (${data.accessibleCount || data.channelCount} 頻道)`;
     } else {
       botStatusBadge.className = 'status-badge error';
-      botStatusText.textContent = '離線中';
+      botStatusText.textContent = '小號離線中';
+    }
+
+    // 渲染多頻道監控卡片
+    if (monitoredChannelsCount) {
+      monitoredChannelsCount.textContent = `${data.accessibleCount || 0} / ${data.channelCount || 0} 個頻道運作中`;
+    }
+
+    if (crossVerifiedBadge && data.crossCheckStats) {
+      crossVerifiedBadge.textContent = `交叉驗證：${data.crossCheckStats.crossVerifiedCount || 0} 次`;
+    }
+
+    if (channelsGrid && Array.isArray(data.monitoredChannels)) {
+      channelsGrid.innerHTML = data.monitoredChannels.map(c => {
+        let tagClass = 'tag-normal';
+        let tagText = '備援通報源';
+        if (c.id === '1541597188163899493') {
+          tagClass = 'tag-speed';
+          tagText = '⚡ 極速秒級源 (~2s)';
+        } else if (c.id === '1533067560134906007') {
+          tagClass = 'tag-official';
+          tagText = '👑 SenZ 官方源';
+        } else if (c.id === '1540093905935278161') {
+          tagClass = 'tag-mirror';
+          tagText = '📡 分流鏡像源';
+        } else if (c.id === '1541596326008066068' || c.id === '1541596390474514512') {
+          tagClass = 'tag-tier';
+          tagText = '⭐ 專屬階級源';
+        }
+
+        const statusBadge = c.accessible
+          ? `<span class="ch-status-pill online"><span class="ch-dot"></span>監聽中</span>`
+          : `<span class="ch-status-pill offline">🔒 待權限</span>`;
+
+        return `
+          <div class="channel-card ${c.accessible ? 'active' : 'inactive'}">
+            <div class="channel-card-top">
+              <span class="channel-tag ${tagClass}">${tagText}</span>
+              ${statusBadge}
+            </div>
+            <div class="channel-name">#${c.name}</div>
+            <div class="channel-server">${c.server}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 渲染最新交叉驗證事件
+    if (latestCrossVerification && latestCrossVerificationText && data.crossCheckStats?.recentVerifications?.length > 0) {
+      const latest = data.crossCheckStats.recentVerifications[0];
+      latestCrossVerification.classList.remove('hidden');
+      latestCrossVerificationText.innerHTML = `
+        <strong>⚡ 交叉比對成功：</strong>
+        <span class="cross-egg-name">${latest.eggName}</span> (${latest.location})
+        — 先由 <code>${latest.firstSource}</code> 回報，隨後由 <code>${latest.secondSource}</code> 交叉確認 (時差 +${latest.delaySec}s)
+      `;
     }
   } catch (err) {
     botStatusBadge.className = 'status-badge error';

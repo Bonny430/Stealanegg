@@ -629,8 +629,219 @@ refreshBtn.onclick = () => {
   loadStatus();
   loadPrediction();
   loadHistory();
+  loadMemberStats();
   showToast('🔄 已重新整理最新數據！', 'success');
 };
+
+// ==================== 會員與訂閱系統前台邏輯 ====================
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[m]));
+}
+
+const statTotalMembers = document.getElementById('statTotalMembers');
+const statActiveVips = document.getElementById('statActiveVips');
+const statActiveAlerts = document.getElementById('statActiveAlerts');
+const toggleAdminPanelBtn = document.getElementById('toggleAdminPanelBtn');
+const adminPanelWrapper = document.getElementById('adminPanelWrapper');
+const adminKeyInput = document.getElementById('adminKeyInput');
+const refreshMembersBtn = document.getElementById('refreshMembersBtn');
+const membersTableBody = document.getElementById('membersTableBody');
+const vipChatIdInput = document.getElementById('vipChatIdInput');
+const vipDaysSelect = document.getElementById('vipDaysSelect');
+const vipNotesInput = document.getElementById('vipNotesInput');
+const submitGrantVipBtn = document.getElementById('submitGrantVipBtn');
+
+async function loadMemberStats() {
+  try {
+    const res = await fetch('/api/members');
+    const data = await res.json();
+    if (data.success && data.stats) {
+      if (statTotalMembers) statTotalMembers.textContent = `${data.stats.totalMembers || 0} 人`;
+      if (statActiveVips) statActiveVips.textContent = `${data.stats.activeVips || 0} 人`;
+      if (statActiveAlerts) statActiveAlerts.textContent = `${data.stats.activeAlerts || 0} 人`;
+    }
+  } catch (err) {
+    console.error('載入會員統計失敗:', err);
+  }
+}
+
+async function loadMembersList() {
+  if (!membersTableBody) return;
+  membersTableBody.innerHTML = '<tr><td colspan="8" class="text-center">讀取會員名單中...</td></tr>';
+  try {
+    const res = await fetch('/api/members');
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.members) || data.members.length === 0) {
+      membersTableBody.innerHTML = '<tr><td colspan="8" class="text-center">尚未有註冊會員</td></tr>';
+      return;
+    }
+
+    membersTableBody.innerHTML = data.members.map(m => {
+      const tierClass = m.tier === 'admin' ? 'admin' : (m.isVip ? 'vip' : 'free');
+      const tierLabel = m.tier === 'admin' ? '👑 Admin' : (m.isVip ? '🌟 VIP' : '⚪ Free');
+      const expireStr = m.tier === 'admin' ? '永久' : (m.expireAt ? new Date(m.expireAt).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '--');
+      const filterStr = m.filterType === 'all' ? '全部蛋種' : (m.filterType === 'rare_only' ? '僅 VIP 蛋' : `自訂 (${(m.customRarities || []).join(', ')})`);
+
+      return `
+        <tr>
+          <td><code>${m.chatId}</code></td>
+          <td><b>${escapeHtml(m.firstName || '')}</b> ${m.username ? `<small style="color:#94a3b8">(@${escapeHtml(m.username)})</small>` : ''}</td>
+          <td><span class="tier-badge ${tierClass}">${tierLabel}</span></td>
+          <td>${expireStr}</td>
+          <td>
+            <button class="btn btn-xs ${m.enabled ? 'btn-success' : 'btn-secondary'}" onclick="toggleMemberAlert('${m.chatId}')">
+              ${m.enabled ? '🔔 開啟' : '🔕 暫停'}
+            </button>
+          </td>
+          <td><small>${filterStr}</small></td>
+          <td>${m.notificationsCount || 0} 則</td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-xs btn-primary" onclick="quickGrantVip('${m.chatId}', 30)" title="開通/延長 30 天 VIP">
+                +30天
+              </button>
+              ${m.tier !== 'admin' && m.tier !== 'free' ? `
+                <button class="btn btn-xs btn-danger" onclick="revokeMemberVip('${m.chatId}')" title="降級為 Free">
+                  降級
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    membersTableBody.innerHTML = `<tr><td colspan="8" class="text-center" style="color:#fb7185">讀取失敗：${err.message}</td></tr>`;
+  }
+}
+
+window.toggleMemberAlert = async function(chatId) {
+  try {
+    const res = await fetch('/api/members/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`會員 ${chatId} 推播狀態已變更！`, 'success');
+      loadMemberStats();
+      loadMembersList();
+    }
+  } catch (err) {
+    showToast('操作失敗: ' + err.message, 'error');
+  }
+};
+
+window.quickGrantVip = async function(chatId, days = 30) {
+  const adminKey = adminKeyInput ? adminKeyInput.value.trim() : '';
+  try {
+    const res = await fetch('/api/members/set-vip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, days, adminKey, notes: '從網頁後台一鍵開通' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🎉 成功為會員 ${chatId} 開通 ${days} 天 VIP！`, 'success');
+      loadMemberStats();
+      loadMembersList();
+    } else {
+      showToast('開通失敗: ' + (data.error || '未知錯誤'), 'error');
+    }
+  } catch (err) {
+    showToast('操作失敗: ' + err.message, 'error');
+  }
+};
+
+window.revokeMemberVip = async function(chatId) {
+  if (!confirm(`確定要將會員 ${chatId} 降級為免費會員嗎？`)) return;
+  const adminKey = adminKeyInput ? adminKeyInput.value.trim() : '';
+  try {
+    const res = await fetch('/api/members/revoke-vip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, adminKey })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`已將會員 ${chatId} 降級為免費會員`, 'success');
+      loadMemberStats();
+      loadMembersList();
+    } else {
+      showToast('降級失敗: ' + (data.error || '未知錯誤'), 'error');
+    }
+  } catch (err) {
+    showToast('操作失敗: ' + err.message, 'error');
+  }
+};
+
+// 切換後台折疊
+if (toggleAdminPanelBtn) {
+  toggleAdminPanelBtn.onclick = () => {
+    adminPanelWrapper.classList.toggle('hidden');
+    if (!adminPanelWrapper.classList.contains('hidden')) {
+      loadMembersList();
+    }
+  };
+}
+
+// 刷新名冊
+if (refreshMembersBtn) {
+  refreshMembersBtn.onclick = () => {
+    loadMembersList();
+    loadMemberStats();
+    showToast('名冊已重新載入', 'success');
+  };
+}
+
+// 表單提交開通 VIP
+if (submitGrantVipBtn) {
+  submitGrantVipBtn.onclick = async () => {
+    const chatId = vipChatIdInput.value.trim();
+    const days = parseInt(vipDaysSelect.value, 10) || 30;
+    const notes = vipNotesInput.value.trim();
+    const adminKey = adminKeyInput.value.trim();
+
+    if (!chatId) {
+      showToast('請輸入會員 Chat ID', 'error');
+      return;
+    }
+
+    submitGrantVipBtn.disabled = true;
+    submitGrantVipBtn.textContent = '處理中...';
+    try {
+      const res = await fetch('/api/members/set-vip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, days, notes, adminKey })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`🎉 成功為 ${chatId} 開通 ${days} 天 VIP！`, 'success');
+        vipChatIdInput.value = '';
+        vipNotesInput.value = '';
+        loadMemberStats();
+        loadMembersList();
+      } else {
+        showToast('開通失敗: ' + (data.error || '驗證失敗'), 'error');
+      }
+    } catch (err) {
+      showToast('連線失敗: ' + err.message, 'error');
+    } finally {
+      submitGrantVipBtn.disabled = false;
+      submitGrantVipBtn.innerHTML = '<span>✨ 開通 VIP</span>';
+    }
+  };
+}
 
 // 初始化
 window.addEventListener('DOMContentLoaded', async () => {
@@ -640,6 +851,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadConfig();
   await loadPrediction();
   await loadHistory();
+  await loadMemberStats();
 
   // 每秒更新倒數
   countdownInterval = setInterval(updateCountdown, 1000);
@@ -649,5 +861,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     loadStatus();
     loadPrediction();
     loadHistory();
+    loadMemberStats();
   }, 15000);
 });

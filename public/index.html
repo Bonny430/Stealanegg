@@ -126,6 +126,132 @@
       </div>
     </section>
 
+    <!-- 會員與訂閱系統專區 -->
+    <section class="card member-section">
+      <div class="section-header">
+        <div>
+          <div class="card-tag" style="background: linear-gradient(135deg, #f59e0b, #ec4899); color: white; margin-bottom: 8px;">👑 VIP & Membership System</div>
+          <h2>👥 會員與訂閱管理中心</h2>
+          <p class="section-desc">串接 Telegram 機器人 <code>@Stealanegg3love24bot</code> 雙向互動，提供多用戶 1 對 1 私訊推播、自訂蛋種過濾與 VIP 尊爵特權。</p>
+        </div>
+        <div class="member-header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="https://t.me/Stealanegg3love24bot" target="_blank" class="btn btn-primary">
+            <span>✈️ 開啟 Telegram 機器人</span>
+          </a>
+          <button id="toggleAdminPanelBtn" class="btn btn-secondary">
+            <span>⚙️ 管理員面板</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 會員指標三卡片 -->
+      <div class="member-stats-grid">
+        <div class="member-stat-card">
+          <div class="member-stat-icon">👥</div>
+          <div class="member-stat-info">
+            <span class="member-stat-label">註冊會員總數</span>
+            <span class="member-stat-value" id="statTotalMembers">-- 人</span>
+          </div>
+        </div>
+        <div class="member-stat-card vip">
+          <div class="member-stat-icon">🌟</div>
+          <div class="member-stat-info">
+            <span class="member-stat-label">尊爵 VIP 會員</span>
+            <span class="member-stat-value" id="statActiveVips">-- 人</span>
+          </div>
+        </div>
+        <div class="member-stat-card alert">
+          <div class="member-stat-icon">🔔</div>
+          <div class="member-stat-info">
+            <span class="member-stat-label">即時推播接收中</span>
+            <span class="member-stat-value" id="statActiveAlerts">-- 人</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 會員等級特權對比 -->
+      <div class="tier-features-grid">
+        <div class="tier-box free">
+          <div class="tier-box-header">
+            <span class="tier-name">⚪ 一般會員 (Free)</span>
+            <span class="tier-price">永久免費</span>
+          </div>
+          <ul class="tier-feature-list">
+            <li>✅ 私訊機器人輸入 <code>/start</code> 立即免費開通</li>
+            <li>✅ 接收常規出蛋廣播與掉落紀錄</li>
+            <li>✅ 查詢 AI 週期預測分析 (<code>/predict</code>)</li>
+            <li>✅ 最新掉落蛋紀錄查詢 (<code>/last</code>)</li>
+          </ul>
+        </div>
+        <div class="tier-box vip">
+          <div class="tier-box-badge">HOT 推薦</div>
+          <div class="tier-box-header">
+            <span class="tier-name">🌟 VIP 尊爵會員</span>
+            <span class="tier-price">專屬特權</span>
+          </div>
+          <ul class="tier-feature-list">
+            <li>🔥 <b>秒級 1 對 1 私訊推播</b> 神級 Secret、Eternal、Divine 蛋</li>
+            <li>🔥 <b>自訂蛋種過濾清單</b> (<code>/filter</code> 自由勾選想追蹤的蛋)</li>
+            <li>🔥 支援 World Burner 等最高階自然掉落第一時間通報</li>
+            <li>🔥 隨時一鍵開關通知 (<code>/toggle</code>)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 管理員折疊面板 -->
+      <div id="adminPanelWrapper" class="admin-panel hidden">
+        <div class="admin-panel-header">
+          <h3>👑 系統管理員後台 (會員名冊與 VIP 發放)</h3>
+          <div class="admin-key-group">
+            <input type="password" id="adminKeyInput" placeholder="輸入管理金鑰 (預設直接連通)" class="text-input" style="width: 200px;">
+            <button id="refreshMembersBtn" class="btn btn-sm btn-secondary">🔄 重新整理名單</button>
+          </div>
+        </div>
+
+        <!-- 快速開通 VIP 表單 -->
+        <div class="quick-vip-form">
+          <div class="form-title">⚡ 快速開通 / 延長 VIP：</div>
+          <div class="form-inline-fields">
+            <input type="text" id="vipChatIdInput" placeholder="會員 Telegram Chat ID" class="text-input">
+            <select id="vipDaysSelect" class="select-input">
+              <option value="7">7 天 (體驗週)</option>
+              <option value="30" selected>30 天 (月度 VIP)</option>
+              <option value="90">90 天 (季度 VIP)</option>
+              <option value="365">365 天 (年度 VIP)</option>
+              <option value="3650">10 年 (永久 VIP)</option>
+            </select>
+            <input type="text" id="vipNotesInput" placeholder="備註 (選填)" class="text-input">
+            <button id="submitGrantVipBtn" class="btn btn-success btn-sm">
+              <span>✨ 開通 VIP</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 會員列表表格 -->
+        <div class="members-table-wrap">
+          <table class="members-table">
+            <thead>
+              <tr>
+                <th>會員 ID</th>
+                <th>名稱</th>
+                <th>身分等級</th>
+                <th>VIP 到期日</th>
+                <th>推播開關</th>
+                <th>過濾模式</th>
+                <th>已接收數</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="membersTableBody">
+              <tr>
+                <td colspan="8" class="text-center">點擊重新整理載入名冊...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- 過濾器設定區域 -->
     <section class="card filter-section">
       <div class="section-header">

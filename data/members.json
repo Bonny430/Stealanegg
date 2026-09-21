@@ -1,0 +1,17 @@
+{
+  "8670104462": {
+    "chatId": "8670104462",
+    "username": "bonny",
+    "firstName": "Admin",
+    "tier": "admin",
+    "expireAt": "2099-12-31T23:59:59.999Z",
+    "enabled": true,
+    "filterType": "all",
+    "customRarities": [],
+    "customEggNames": [],
+    "createdAt": "2026-09-21T12:04:29.976Z",
+    "updatedAt": "2026-09-21T12:04:29.978Z",
+    "notificationsCount": 0,
+    "notes": "Super Admin (System Owner)"
+  }
+}

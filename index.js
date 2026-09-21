@@ -20,6 +20,9 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+// 載入會員與訂閱服務模組
+const memberService = require('./memberService');
+
 // 環境變數設定
 const PORT = process.env.PORT || 10000;
 const OFFICIAL_CHANNEL_ID = '1533067560134906007'; // 官方 Steal An Egg #◜🥚・egg-notifier 頻道
@@ -463,11 +466,16 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
     });
     const dur = Date.now() - tStart;
     if (res.ok) {
-      console.log(`⚡ [Telegram] 推播發送成功: ${eggInfo.name} (花費 ${dur}ms)`);
+      console.log(`⚡ [Telegram] 主頻道推播發送成功: ${eggInfo.name} (花費 ${dur}ms)`);
     } else {
       const errTxt = await res.text();
-      console.error(`[Telegram] 推播回應失敗 (${res.status}):`, errTxt);
+      console.error(`[Telegram] 主頻道推播回應失敗 (${res.status}):`, errTxt);
     }
+
+    // 多會員精準分流推播 (VIP 專屬與個人化自訂過濾)
+    memberService.dispatchNotification(eggInfo, messageText).catch(err => {
+      console.warn('[Telegram Dispatch] 多會員分發異常:', err.message);
+    });
   } catch (err) {
     console.error('[Telegram] 發送異常:', err.message);
   }
@@ -942,11 +950,72 @@ app.post('/api/update-token', async (req, res) => {
   }
 });
 
+// 10. 會員管理系統 API
+app.get('/api/members', (req, res) => {
+  res.json({
+    success: true,
+    stats: memberService.getStats(),
+    members: memberService.getAllMembersList()
+  });
+});
+
+app.post('/api/members/set-vip', async (req, res) => {
+  const { chatId, days, notes, adminKey } = req.body;
+  const serverKey = process.env.ADMIN_KEY || 'stealanegg2026';
+  const isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
+  if (!isLocal && adminKey !== serverKey) {
+    return res.status(403).json({ success: false, error: '未授權的管理操作' });
+  }
+  if (!chatId) {
+    return res.status(400).json({ success: false, error: '缺少會員 Chat ID' });
+  }
+  try {
+    const member = await memberService.grantVip(chatId, parseInt(days, 10) || 30, notes);
+    res.json({ success: true, member });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/members/revoke-vip', (req, res) => {
+  const { chatId, adminKey } = req.body;
+  const serverKey = process.env.ADMIN_KEY || 'stealanegg2026';
+  const isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
+  if (!isLocal && adminKey !== serverKey) {
+    return res.status(403).json({ success: false, error: '未授權的管理操作' });
+  }
+  const member = memberService.revokeVip(chatId);
+  res.json({ success: true, member });
+});
+
+app.post('/api/members/toggle', (req, res) => {
+  const { chatId } = req.body;
+  if (!chatId) return res.status(400).json({ success: false, error: '缺少 Chat ID' });
+  const member = memberService.toggleEnabled(chatId);
+  res.json({ success: true, member });
+});
+
 // 啟動 Express
 app.listen(PORT, async () => {
   console.log(`[Web] 儀表板伺服器運行於 Port ${PORT}`);
   await loadConfigFromSheet();
   await refreshCacheFromSheet();
+
+  // 初始化會員服務與 Telegram 互動 Poller
+  memberService.init();
+  memberService.setStatsProvider({
+    getPrediction: () => {
+      const p = calculateNextPrediction(cachedStats?.recentDrops || []);
+      return {
+        ...p,
+        rareBroadcastIntervalMinutes: cachedStats?.rareBroadcastIntervalMinutes
+      };
+    },
+    getRecentDrops: (count) => {
+      return (cachedStats?.recentDrops || []).slice(0, count);
+    }
+  });
+  memberService.startTelegramPoller();
 
   // 每 10 分鐘在背景靜態校驗 Google Sheet 快取
   setInterval(refreshCacheFromSheet, 10 * 60 * 1000);

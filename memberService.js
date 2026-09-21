@@ -459,8 +459,8 @@ class MemberService {
 
     const eligibleMembers = [];
     for (const member of this.members.values()) {
-      // 避免與預設公共頻道重複
-      if (String(member.chatId) === String(this.superAdminChatId)) {
+      // 避免與公共頻道重複發送至同一 ChatId
+      if (eggInfo._sentToMainChannel && process.env.TELEGRAM_CHAT_ID && String(member.chatId) === String(process.env.TELEGRAM_CHAT_ID)) {
         continue;
       }
       if (this.shouldNotify(member, eggInfo)) {

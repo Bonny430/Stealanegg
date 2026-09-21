@@ -570,10 +570,10 @@ function formatTaipeiDateTime(dateInput) {
   return formatter.format(d).replace(/[\u2009\u202f\u2000-\u200a]/g, ' ').replace(/\//g, '-');
 }
 
-// 極速發送 Telegram 推播（專為毫秒級響應設計）
+// 極速發送 Telegram 推播（專為毫秒級響應設計，一有訊息立即推播）
 async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn('[Telegram] 尚未設定 Token 或 ChatId，略過推播');
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.warn('[Telegram] 尚未設定 Token，略過推播');
     return;
   }
 
@@ -589,9 +589,11 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
         `• 稀有蛋平均間隔：約 ${cachedStats?.rareBroadcastIntervalMinutes || '9.4'} 分鐘 (約 1~2 輪出一次)`;
     }
 
-    const sourceText = sourceInfo ? `• 偵測來源：#${sourceInfo.channelName} (${sourceInfo.server})\n` : '';
+    const crossTag = sourceInfo?.isCrossVerified ? ` [⚡ 交叉比對通報 +${sourceInfo.delaySec}s]` : '';
+    const sourceText = sourceInfo ? `• 偵測來源：#${sourceInfo.channelName} (${sourceInfo.server})${crossTag}\n` : '';
+    const headerTitle = sourceInfo?.isCrossVerified ? `🥚【Steal An Egg 掉落快訊 (多源通報)】` : `🥚【Steal An Egg 掉落快訊】`;
 
-    const messageText = `🥚【Steal An Egg 掉落快訊】\n\n` +
+    const messageText = `${headerTitle}\n\n` +
       `• 蛋名稱：${eggInfo.name}\n` +
       `• 稀有度：${eggInfo.rarity}\n` +
       `• 出現地點：${eggInfo.location}\n` +
@@ -601,28 +603,37 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
       `📋 資料庫：https://docs.google.com/spreadsheets/d/1vh5obGdyHAJ6I_DxtOlzllwEFQV7EjdrHUK-7PRSy5E/edit` +
       predictionSection;
 
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: messageText
-      })
-    });
-    const dur = Date.now() - tStart;
-    if (res.ok) {
-      console.log(`⚡ [Telegram] 主頻道推播發送成功: ${eggInfo.name} (花費 ${dur}ms)`);
-    } else {
-      const errTxt = await res.text();
-      console.error(`[Telegram] 主頻道推播回應失敗 (${res.status}):`, errTxt);
+    // 1. 發送至 Telegram 主頻道/群組 (若有設定且符合主頻道篩選)
+    let sentToMain = false;
+    if (TELEGRAM_CHAT_ID && sourceInfo?.shouldSendMainChannel !== false) {
+      sentToMain = true;
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: messageText
+        })
+      }).then(async res => {
+        const dur = Date.now() - tStart;
+        if (res.ok) {
+          console.log(`⚡ [Telegram] 主頻道推播發送成功: ${eggInfo.name}${crossTag} (花費 ${dur}ms)`);
+        } else {
+          const errTxt = await res.text();
+          console.error(`[Telegram] 主頻道推播回應失敗 (${res.status}):`, errTxt);
+        }
+      }).catch(err => {
+        console.error('[Telegram] 主頻道發送異常:', err.message);
+      });
     }
 
-    // 多會員精準分流推播 (VIP 專屬與個人化自訂過濾)
+    // 2. 多會員精準分流推播 (依每位會員各自自選蛋種清單獨立過濾)
+    eggInfo._sentToMainChannel = sentToMain;
     memberService.dispatchNotification(eggInfo, messageText).catch(err => {
       console.warn('[Telegram Dispatch] 多會員分發異常:', err.message);
     });
   } catch (err) {
-    console.error('[Telegram] 發送異常:', err.message);
+    console.error('[Telegram] 推播發送異常:', err.message);
   }
 }
 
@@ -710,7 +721,7 @@ async function handleDiscordMessage(message) {
   }
   eggInfo.rawText = combinedText;
 
-  // 3. 多頻道交叉比對與重複防護 (45 秒滑動窗口)
+  // 3. 多頻道交叉比對判斷 (45 秒滑動窗口)
   const now = Date.now();
   for (const [k, ev] of activeDropEvents.entries()) {
     if (now - ev.firstDetectedAt > 45000) {
@@ -724,41 +735,21 @@ async function handleDiscordMessage(message) {
     : 'any';
   const eventKey = `${normName}_${locKey}`;
 
-  const existingEvent = activeDropEvents.get(eventKey) || activeDropEvents.get(`${normName}_any`);
-  if (existingEvent) {
-    // 交叉比對成功！此掉落事件已由先前的頻道通報過
-    const deltaSec = ((now - existingEvent.firstDetectedAt) / 1000).toFixed(1);
-    console.log(`⚡ [交叉比對驗證] 蛋種 [${eggInfo.name}] 在頻道 #${channelName} (${serverName}) 亦回報掉落！比對有效 (時差: +${deltaSec}s，第一來源: #${existingEvent.firstChannelName})`);
-
-    crossCheckStats.crossVerifiedCount++;
-    crossCheckStats.recentVerifications.unshift({
-      eggName: eggInfo.name,
-      location: eggInfo.location,
-      firstSource: `#${existingEvent.firstChannelName} (${existingEvent.firstGuildName})`,
-      secondSource: `#${channelName} (${serverName})`,
-      delaySec: deltaSec,
-      verifiedAt: new Date().toISOString()
-    });
-    if (crossCheckStats.recentVerifications.length > 20) {
-      crossCheckStats.recentVerifications.pop();
+  let existingEvent = activeDropEvents.get(eventKey) || activeDropEvents.get(`${normName}_any`);
+  if (!existingEvent) {
+    for (const [k, ev] of activeDropEvents.entries()) {
+      if (k.startsWith(`${normName}_`)) {
+        existingEvent = ev;
+        break;
+      }
     }
-    return; // 抑制重複推播
   }
 
-  // 記錄為該次掉落的第一通報來源
-  activeDropEvents.set(eventKey, {
-    eggInfo,
-    firstDetectedAt: now,
-    firstChannelId: message.channel.id,
-    firstChannelName: channelName,
-    firstGuildName: serverName
-  });
-  crossCheckStats.totalDropsDetected++;
+  const isCrossVerified = Boolean(existingEvent);
+  const deltaSec = isCrossVerified ? ((now - existingEvent.firstDetectedAt) / 1000).toFixed(1) : null;
 
-  console.log(`[發現蛋掉落] 來源: #${channelName} (${serverName}) | 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location}`);
-
-  // 4. 【第一優先：極速發送 TELEGRAM 推播，絕不被外部 API 阻塞】
-  let shouldSendTelegram = true;
+  // 4. 【一有訊息就推播：極速發送 TELEGRAM 推播，絕不被交叉比對延遲或阻擋】
+  let shouldSendMainChannel = true;
   if (currentConfig.filterEnabled) {
     const eggClean = (eggInfo.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const allowedList = (Array.isArray(currentConfig.selectedEggs) && currentConfig.selectedEggs.length > 0)
@@ -766,45 +757,78 @@ async function handleDiscordMessage(message) {
       : DEFAULT_HIGH_TIER_EGGS;
     const allowedClean = allowedList.map(n => n.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-    // 嚴格依蛋種進行篩選（不再依賴稀有度）
+    // 嚴格依蛋種進行篩選
     const isEggAllowed = allowedClean.some(n => n === eggClean || eggClean.includes(n) || n.includes(eggClean));
     if (!isEggAllowed) {
-      console.log(`[推播過濾] 蛋種 [${eggInfo.name}] 未在推播勾選清單中，已靜音`);
-      shouldSendTelegram = false;
+      shouldSendMainChannel = false;
     }
   }
 
-  if (shouldSendTelegram) {
-    // 純記憶體精準推算 5 分鐘固定伺服器出蛋時間 (< 0.01ms)
-    const cycleMs = 5 * 60 * 1000;
-    let nextTimestamp = Math.ceil(now / cycleMs) * cycleMs;
-    if (nextTimestamp - now < 3000) nextTimestamp += cycleMs;
-    const predictedDate = new Date(nextTimestamp);
-    const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
-    const minutesLeft = Math.max(1, Math.round((nextTimestamp - now) / 60000));
+  // 純記憶體精準推算 5 分鐘固定伺服器出蛋時間 (< 0.01ms)
+  const cycleMs = 5 * 60 * 1000;
+  let nextTimestamp = Math.ceil(now / cycleMs) * cycleMs;
+  if (nextTimestamp - now < 3000) nextTimestamp += cycleMs;
+  const predictedDate = new Date(nextTimestamp);
+  const predictedTimeStr = predictedDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+  const minutesLeft = Math.max(1, Math.round((nextTimestamp - now) / 60000));
 
-    const fastPrediction = {
-      predictedTimeStr,
-      minutesLeft
-    };
+  const fastPrediction = {
+    predictedTimeStr,
+    minutesLeft
+  };
 
-    // 立即觸發發送 Telegram，不 await 任何請求，達到極限速度！
-    sendTelegramNotification(eggInfo, combinedText, fastPrediction, {
-      channelName,
-      server: serverName
-    }).catch(err => {
-      console.error('[Telegram] 發送失敗:', err.message);
-    });
-  }
-
-  // 5. 【背景非同步：記錄至 Google Sheet 資料庫】
-  // 完全在背景非同步執行，不阻礙推播速度
-  recordEggDrop(eggInfo).catch(err => {
-    console.error('[Google Sheet] 背景寫入失敗:', err.message);
+  // 立即觸發推播 (主頻道與所有會員 1對1 私訊)，一有訊息立刻送達！
+  sendTelegramNotification(eggInfo, combinedText, fastPrediction, {
+    channelName,
+    server: serverName,
+    isCrossVerified,
+    delaySec,
+    shouldSendMainChannel
+  }).catch(err => {
+    console.error('[Telegram] 發送失敗:', err.message);
   });
 
-  // 更新本地記憶體快取與統計
-  addEggToMemoryCache(eggInfo);
+  // 5. 【錄入資料庫的才是交叉比對：去重防重疊，保護 Google Sheet 與週期統計模型純淨】
+  if (existingEvent) {
+    // 交叉比對成功！此掉落事件已由先前的頻道通報並錄入資料庫，略過資料庫寫入
+    console.log(`⚡ [交叉比對驗證] 蛋種 [${eggInfo.name}] 在頻道 #${channelName} (${serverName}) 亦回報掉落！比對有效 (時差: +${deltaSec}s，第一來源: #${existingEvent.firstChannelName})。推播已即時送達，資料庫已自動去重！`);
+
+    crossCheckStats.crossVerifiedCount++;
+    crossCheckStats.recentVerifications.unshift({
+      eggName: eggInfo.name,
+      location: eggInfo.location,
+      firstSource: `#${existingEvent.firstChannelName} (${existingEvent.firstGuildName})`,
+      secondSource: `#${channelName} (${serverName})`,
+      delaySec,
+      verifiedAt: new Date().toISOString()
+    });
+    if (crossCheckStats.recentVerifications.length > 20) {
+      crossCheckStats.recentVerifications.pop();
+    }
+  } else {
+    // 該次掉落的第一通報來源：登記至活躍事件，並錄入資料庫與快取
+    activeDropEvents.set(eventKey, {
+      eggInfo,
+      firstDetectedAt: now,
+      firstChannelId: message.channel.id,
+      firstChannelName: channelName,
+      firstGuildName: serverName
+    });
+    crossCheckStats.totalDropsDetected++;
+
+    console.log(`[發現蛋掉落] 來源: #${channelName} (${serverName}) | 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location} -> 錄入 Google Sheet 資料庫`);
+
+    // 背景非同步記錄至 Google Sheet 資料庫 (附帶首發來源頻道資訊)
+    recordEggDrop({
+      ...eggInfo,
+      channelName
+    }).catch(err => {
+      console.error('[Google Sheet] 背景寫入失敗:', err.message);
+    });
+
+    // 寫入本地記憶體快取並更新預測模型
+    addEggToMemoryCache(eggInfo);
+  }
 }
 
 // ==================== REST API 路由 ====================

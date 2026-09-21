@@ -334,6 +334,208 @@ async function loadPrediction() {
   }
 }
 
+// ==================== 單蛋專屬掉落預測器邏輯 ====================
+const eggPredictorSelect = document.getElementById('eggPredictorSelect');
+const eggQuickPills = document.getElementById('eggQuickPills');
+const eggPredictorResult = document.getElementById('eggPredictorResult');
+
+let allEggPredictions = [];
+let currentSelectedPredictionEgg = 'World Burner';
+
+// 載入所有 28 款神蛋的預測數據
+async function loadEggPredictions() {
+  try {
+    const res = await fetch('/api/prediction/eggs');
+    const data = await res.json();
+    if (data.status === 'success' && Array.isArray(data.predictions)) {
+      allEggPredictions = data.predictions;
+      renderEggPrediction(currentSelectedPredictionEgg);
+    }
+  } catch (err) {
+    console.warn('載入單蛋預測失敗:', err.message);
+  }
+}
+
+// 初始化單蛋預測器
+async function initEggPredictor() {
+  if (!eggPredictorSelect) return;
+
+  // 填入下拉選單 (依生態與稀有度排序，神聖/永恆置頂)
+  eggPredictorSelect.innerHTML = HIGH_TIER_EGGS_META.map(meta => {
+    return `<option value="${meta.name}">[${meta.biome}] ${meta.name} (${meta.rarity})</option>`;
+  }).join('');
+
+  eggPredictorSelect.value = currentSelectedPredictionEgg;
+
+  eggPredictorSelect.addEventListener('change', (e) => {
+    currentSelectedPredictionEgg = e.target.value;
+    updateQuickPillsActive(currentSelectedPredictionEgg);
+    renderEggPrediction(currentSelectedPredictionEgg);
+  });
+
+  if (eggQuickPills) {
+    eggQuickPills.querySelectorAll('.quick-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const egg = pill.getAttribute('data-egg');
+        if (egg) {
+          currentSelectedPredictionEgg = egg;
+          if (eggPredictorSelect) eggPredictorSelect.value = egg;
+          updateQuickPillsActive(egg);
+          renderEggPrediction(egg);
+        }
+      });
+    });
+  }
+
+  await loadEggPredictions();
+}
+
+function updateQuickPillsActive(selectedEgg) {
+  if (!eggQuickPills) return;
+  eggQuickPills.querySelectorAll('.quick-pill').forEach(pill => {
+    if (pill.getAttribute('data-egg') === selectedEgg) {
+      pill.classList.add('active');
+    } else {
+      pill.classList.remove('active');
+    }
+  });
+}
+
+function renderEggPrediction(eggName) {
+  if (!eggPredictorResult) return;
+  const p = allEggPredictions.find(item => item.name === eggName) || {
+    name: eggName,
+    rarity: 'Secret',
+    biome: '未知生態',
+    lastLocation: '未知生態',
+    count: 0,
+    lastSeenStr: '無紀錄',
+    minutesSinceLast: null,
+    avgIntervalMin: 120,
+    estimatedMinutesLeft: 60,
+    overdueMinutes: 0,
+    predictedTimeStr: '--:--',
+    status: 'accumulating',
+    statusText: '⏳ 週期累積中',
+    progressPercent: 30
+  };
+
+  const isTracked = Array.isArray(userConfig.selectedEggs) && userConfig.selectedEggs.includes(p.name);
+  const rarityClass = `rarity-${(p.rarity || 'Secret').toLowerCase().replace(/[^a-z]/g, '')}`;
+  const isOverdue = p.status === 'overdue';
+
+  let estTimeHtml = '';
+  let estSubText = '';
+
+  if (p.status === 'overdue') {
+    estTimeHtml = `<div class="egg-pred-est-time overdue-text">🔥 隨時可能掉落！ (已逾期 ${p.overdueMinutes} 分鐘)</div>`;
+    estSubText = `已超逾歷史平均刷新間隔 (${p.avgIntervalMin} 分鐘)，伺服器每一輪 5 分鐘出蛋皆處於超高出蛋機率！`;
+  } else if (p.status === 'rare_prior') {
+    estTimeHtml = `<div class="egg-pred-est-time" style="color:#c084fc;">💎 約 12 ~ 24 小時 (極品神聖蛋)</div>`;
+    estSubText = `歷史掉落樣本極稀少，依天使與惡魔地圖權重估算基準週期，每輪 5 分鐘皆有極小神蹟爆率！`;
+  } else {
+    estTimeHtml = `<div class="egg-pred-est-time">⏳ 粗估約 ${p.estimatedMinutesLeft} 分鐘後 (約 ${p.predictedTimeStr} 左右)</div>`;
+    estSubText = `距離上次現身已過 ${p.minutesSinceLast} 分鐘，距離歷史平均週期 (${p.avgIntervalMin} 分鐘) 還需等待`;
+  }
+
+  const statusClass = `status-${p.status || 'accumulating'}`;
+  const progressFillClass = isOverdue ? 'overdue-fill' : '';
+
+  eggPredictorResult.innerHTML = `
+    <div class="egg-pred-top-row">
+      <div class="egg-pred-identity">
+        <div class="egg-pred-icon">🥚</div>
+        <div class="egg-pred-name-group">
+          <h3>${p.name}</h3>
+          <div class="egg-pred-tags">
+            <span class="my-egg-tag ${rarityClass}">${p.rarity}</span>
+            <span class="my-egg-tag biome">🗺️ ${p.biome}</span>
+          </div>
+        </div>
+      </div>
+      <button type="button" id="toggleTrackInPredBtn" class="btn btn-sm ${isTracked ? 'btn-secondary' : 'btn-primary'}" style="font-size:12px;">
+        <span>${isTracked ? '🔕 從我的推播取消此蛋' : '🔔 加入我的即時推播清單'}</span>
+      </button>
+    </div>
+
+    <div class="egg-pred-center-hero">
+      <div class="egg-pred-status-banner ${statusClass}">
+        <span>${p.statusText}</span>
+      </div>
+      ${estTimeHtml}
+      <div class="egg-pred-est-sub">${estSubText}</div>
+      <div class="egg-pred-progress-wrap">
+        <div class="egg-pred-progress-track">
+          <div class="egg-pred-progress-fill ${progressFillClass}" style="width: ${p.progressPercent}%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:#64748b;">
+          <span>週期起始</span>
+          <span>進度 ${p.progressPercent}%</span>
+          <span>預期出蛋窗口</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="egg-pred-bottom-stats">
+      <div class="egg-stat-box">
+        <div class="egg-stat-box-label">🕒 上次現身紀錄</div>
+        <div class="egg-stat-box-value">
+          ${p.minutesSinceLast !== null ? `${p.minutesSinceLast} 分前 (${p.lastSeenStr})` : '近期無紀錄'}
+        </div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;">📍 地點: ${p.lastLocation || p.biome}</div>
+      </div>
+      <div class="egg-stat-box">
+        <div class="egg-stat-box-label">⏱️ 歷史平均週期</div>
+        <div class="egg-stat-box-value">約 ${p.avgIntervalMin} 分鐘</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;">相當於每 ${Math.max(1, Math.round(p.avgIntervalMin / 5))} 輪 5 分鐘刷新</div>
+      </div>
+      <div class="egg-stat-box">
+        <div class="egg-stat-box-label">📊 歷史總出現次數</div>
+        <div class="egg-stat-box-value">${p.count} 次</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;">中位數間隔: 約 ${Math.round(p.medianIntervalMin)} 分鐘</div>
+      </div>
+    </div>
+  `;
+
+  // 綁定一鍵推播追蹤開關 (Telegram 雙向嚴格同步)
+  const toggleBtn = document.getElementById('toggleTrackInPredBtn');
+  if (toggleBtn) {
+    toggleBtn.onclick = async () => {
+      const idx = userConfig.selectedEggs.indexOf(p.name);
+      if (idx !== -1) {
+        userConfig.selectedEggs.splice(idx, 1);
+        showToast(`🔕 已從推播清單移除：${p.name}`, 'info');
+      } else {
+        userConfig.selectedEggs.push(p.name);
+        showToast(`🔔 已加入即時推播清單：${p.name}`, 'success');
+      }
+
+      updateSelectedCountBadge();
+      renderEggsGrid();
+      renderEggPrediction(p.name);
+
+      // 若已登入，直接同步至 Telegram 會員資料庫
+      if (currentUser && currentUser.member) {
+        try {
+          const res = await fetch('/api/auth/update-my-settings', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              enabled: userConfig.filterEnabled,
+              filterType: 'custom',
+              customEggNames: userConfig.selectedEggs
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.member) {
+            currentUser.member = data.member;
+          }
+        } catch (_) {}
+      }
+    };
+  }
+}
+
 // 載入最新歷史紀錄
 async function loadHistory() {
   try {
@@ -561,8 +763,28 @@ saveConfigBtn.onclick = async () => {
       body: JSON.stringify(userConfig)
     });
     const result = await res.json();
+
+    // 嚴格雙向同步：若會員已登入，立即更新會員個人推播名單並同步至 Telegram 與 Google Sheet
+    if (currentUser && currentUser.member) {
+      try {
+        const authRes = await fetch('/api/auth/update-my-settings', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            enabled: userConfig.filterEnabled,
+            filterType: 'custom',
+            customEggNames: userConfig.selectedEggs
+          })
+        });
+        const authData = await authRes.json();
+        if (authData.success && authData.member) {
+          currentUser.member = authData.member;
+        }
+      } catch (_) {}
+    }
+
     if (result && result.status === 'success') {
-      showToast('🎉 過濾器設定已成功儲存至 Google Sheet！', 'success');
+      showToast('🎉 設定已成功儲存並同步至 Telegram！', 'success');
     } else {
       showToast('⚠️ 設定儲存失敗，請檢查網路連線', 'error');
     }
@@ -954,6 +1176,20 @@ function updateAuthUI() {
       userRoleBadge.textContent = tierText;
     }
 
+    // 嚴格雙向同步：將 Telegram 會員自選神蛋即時載入至儀表板主畫面過濾器
+    if (Array.isArray(m.customEggNames)) {
+      userConfig.selectedEggs = [...m.customEggNames];
+      if (typeof m.enabled === 'boolean') {
+        userConfig.filterEnabled = m.enabled;
+        if (masterFilterSwitch) masterFilterSwitch.checked = m.enabled;
+      }
+      updateSelectedCountBadge();
+      renderEggsGrid();
+      if (typeof renderEggPrediction === 'function') {
+        renderEggPrediction(currentSelectedPredictionEgg);
+      }
+    }
+
     // 若為管理員，自動填入金鑰並解鎖後台
     if (currentUser.isAdmin && adminKeyInput && !adminKeyInput.value) {
       adminKeyInput.value = 'stealanegg2026';
@@ -1298,7 +1534,7 @@ if (openMySettingsBtn) {
       r.checked = r.value === currentMode;
     });
 
-    const selectedEggs = Array.isArray(m.customEggNames) && m.customEggNames.length > 0
+    const selectedEggs = Array.isArray(m.customEggNames)
       ? m.customEggNames
       : [...DEFAULT_HIGH_TIER_NAMES];
 
@@ -1519,6 +1755,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadEggsCatalog();
   await loadConfig();
   await loadPrediction();
+  await initEggPredictor();
   await loadHistory();
   await loadMemberStats();
   await checkAuthStatus();
@@ -1530,6 +1767,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   setInterval(() => {
     loadStatus();
     loadPrediction();
+    loadEggPredictions();
     loadHistory();
     loadMemberStats();
   }, 15000);

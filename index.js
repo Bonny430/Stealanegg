@@ -382,6 +382,151 @@ function computeStatsFromRows(rows) {
   };
 }
 
+// 28 款高階可刷新神蛋元數據 (含生態地區、稀有度與先驗基準週期)
+const HIGH_TIER_EGGS_META = [
+  { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic', baseCycleMin: 135 },
+  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 1080 },
+  { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple', baseCycleMin: 145 },
+  { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons', baseCycleMin: 50 },
+  { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean', baseCycleMin: 135 },
+  { name: 'Cerberus', rarity: 'Secret', biome: 'Volcano', baseCycleMin: 170 },
+  { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic', baseCycleMin: 290 },
+  { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano', baseCycleMin: 470 },
+  { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric', baseCycleMin: 240 },
+  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 1080 },
+  { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple', baseCycleMin: 370 },
+  { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean', baseCycleMin: 950 },
+  { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow', baseCycleMin: 450 },
+  { name: 'Lava Dragon', rarity: 'Eternal', biome: 'Volcano', baseCycleMin: 670 },
+  { name: 'Oni Tiger', rarity: 'Eternal', biome: 'Cherry Blossom', baseCycleMin: 250 },
+  { name: 'Pegasus', rarity: 'Eternal', biome: 'Angels & Demons', baseCycleMin: 560 },
+  { name: 'Skeleton Horse', rarity: 'Eternal', biome: 'Angels & Demons', baseCycleMin: 750 },
+  { name: 'Cosmic Skeleton Boss', rarity: 'Secret', biome: 'Cosmic', baseCycleMin: 260 },
+  { name: 'Centaur', rarity: 'Secret', biome: 'Angels & Demons', baseCycleMin: 300 },
+  { name: 'King Snake', rarity: 'Secret', biome: 'Jungle', baseCycleMin: 850 },
+  { name: 'Pure Jellyfish', rarity: 'Secret', biome: 'Angels & Demons', baseCycleMin: 50 },
+  { name: 'Stag', rarity: 'Secret', biome: 'Cherry Blossom', baseCycleMin: 155 },
+  { name: 'Yeti', rarity: 'Secret', biome: 'Snow', baseCycleMin: 290 },
+  { name: 'T-Rex', rarity: 'Secret', biome: 'Prehistoric', baseCycleMin: 120 },
+  { name: 'Tralaledon', rarity: 'Secret', biome: 'Prehistoric', baseCycleMin: 125 },
+  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom', baseCycleMin: 720 },
+  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple', baseCycleMin: 720 },
+  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic', baseCycleMin: 720 }
+];
+
+function computeSingleEggPrediction(query, rows = cachedRows) {
+  const cleanQuery = (query || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const matchedMeta = HIGH_TIER_EGGS_META.find(m => {
+    const cleanM = m.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return cleanM === cleanQuery || cleanM.includes(cleanQuery) || (cleanQuery.length >= 4 && cleanQuery.includes(cleanM));
+  }) || { name: query, rarity: 'Secret', biome: '未知生態', baseCycleMin: 240 };
+
+  const targetNameClean = matchedMeta.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const timestamps = [];
+  let lastLocation = matchedMeta.biome;
+  let detectedRarity = matchedMeta.rarity;
+
+  if (Array.isArray(rows)) {
+    for (const r of rows) {
+      const t = new Date(r[0]).getTime();
+      if (isNaN(t)) continue;
+      const n = (r[1] || '').trim();
+      if (!n || n === '未知' || n === '未知蛋') continue;
+      const cleanN = n.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanN === targetNameClean || (cleanN.length >= 5 && cleanN.includes(targetNameClean))) {
+        timestamps.push(t);
+        if (r[2] && r[2] !== '未知') detectedRarity = r[2];
+        if (r[3]) {
+          const m = r[3].match(/\[(.*?)\]/);
+          if (m) lastLocation = m[1];
+        }
+      }
+    }
+  }
+
+  timestamps.sort((a, b) => a - b);
+  const count = timestamps.length;
+  const now = Date.now();
+
+  const intervals = [];
+  for (let i = 1; i < timestamps.length; i++) {
+    const diffMin = (timestamps[i] - timestamps[i - 1]) / 60000;
+    if (diffMin >= 2 && diffMin <= 2880) intervals.push(diffMin);
+  }
+
+  let avgIntervalMin = intervals.length >= 2
+    ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
+    : matchedMeta.baseCycleMin;
+
+  const sortedIntervals = [...intervals].sort((a, b) => a - b);
+  const medianIntervalMin = sortedIntervals.length > 0
+    ? sortedIntervals[Math.floor(sortedIntervals.length / 2)]
+    : avgIntervalMin;
+
+  const lastSeen = count > 0 ? timestamps[timestamps.length - 1] : null;
+  const minutesSinceLast = lastSeen ? Math.max(0, Math.round((now - lastSeen) / 60000)) : null;
+
+  let status = 'accumulating';
+  let statusText = '⏳ 週期累積中';
+  let estimatedMinutesLeft = 0;
+  let predictedTime = null;
+  let progressPercent = 0;
+  let overdueMinutes = 0;
+
+  if (minutesSinceLast === null) {
+    status = 'rare_prior';
+    statusText = '💎 極稀有神蛋 (近期未見，高隨機刷新)';
+    estimatedMinutesLeft = avgIntervalMin;
+    predictedTime = new Date(now + estimatedMinutesLeft * 60000);
+    progressPercent = 50;
+  } else if (minutesSinceLast >= avgIntervalMin) {
+    status = 'overdue';
+    overdueMinutes = minutesSinceLast - avgIntervalMin;
+    statusText = `🔥 爆發警戒期 (逾期 ${overdueMinutes} 分鐘，極高機率隨時掉落)`;
+    estimatedMinutesLeft = 0;
+    const cycleMs = 5 * 60 * 1000;
+    predictedTime = new Date(Math.ceil(now / cycleMs) * cycleMs);
+    progressPercent = 100;
+  } else {
+    estimatedMinutesLeft = Math.max(1, avgIntervalMin - minutesSinceLast);
+    predictedTime = new Date(now + estimatedMinutesLeft * 60000);
+    progressPercent = Math.min(99, Math.round((minutesSinceLast / avgIntervalMin) * 100));
+    if (progressPercent >= 80) {
+      status = 'entering_window';
+      statusText = '🟡 進入出蛋窗口期 (近期即將現身)';
+    }
+  }
+
+  const lastSeenDate = lastSeen ? new Date(lastSeen) : null;
+  const lastSeenStr = lastSeenDate
+    ? lastSeenDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })
+    : '無紀錄';
+
+  return {
+    name: matchedMeta.name,
+    rarity: detectedRarity,
+    biome: matchedMeta.biome,
+    lastLocation,
+    count,
+    lastSeen: lastSeen ? new Date(lastSeen).toISOString() : null,
+    lastSeenStr,
+    minutesSinceLast,
+    avgIntervalMin,
+    medianIntervalMin,
+    estimatedMinutesLeft,
+    overdueMinutes,
+    predictedTime: predictedTime.toISOString(),
+    predictedTimeStr: predictedTime.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false }),
+    status,
+    statusText,
+    progressPercent
+  };
+}
+
+function computeAllEggPredictions(rows = cachedRows) {
+  return HIGH_TIER_EGGS_META.map(meta => computeSingleEggPrediction(meta.name, rows));
+}
+
 // 從 Google Sheet 刷新本地快取
 async function refreshCacheFromSheet() {
   try {
@@ -728,6 +873,22 @@ app.get('/api/prediction', (req, res) => {
     predictedTimeStr,
     minutesLeft
   });
+});
+
+// 3.1 取得 28 款高階神蛋專屬預估數據 (純記憶體快速響應)
+app.get('/api/prediction/eggs', (req, res) => {
+  const predictions = computeAllEggPredictions(cachedRows);
+  res.json({ status: 'success', predictions });
+});
+
+// 3.2 取得單一蛋種專屬預估數據
+app.get('/api/prediction/egg', (req, res) => {
+  const eggName = (req.query.name || req.query.egg || '').trim();
+  if (!eggName) {
+    return res.status(400).json({ error: '請提供蛋名稱 (例如 ?name=World Burner)' });
+  }
+  const prediction = computeSingleEggPrediction(eggName, cachedRows);
+  res.json({ status: 'success', prediction });
 });
 
 // 4. 取得 Google Sheet 最新掉落歷史 (優先讀取記憶體快取，0ms 響應)
@@ -1105,6 +1266,12 @@ app.listen(PORT, async () => {
     },
     getRecentDrops: (count) => {
       return (cachedStats?.recentDrops || []).slice(0, count);
+    },
+    getEggPrediction: (eggName) => {
+      return computeSingleEggPrediction(eggName, cachedRows);
+    },
+    getAllEggPredictions: () => {
+      return computeAllEggPredictions(cachedRows);
     }
   });
   memberService.startTelegramPoller();

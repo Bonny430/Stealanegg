@@ -119,6 +119,45 @@
       </div>
     </section>
 
+    <!-- 單蛋專屬掉落預測器 (以蛋為核心預測粗估時間) -->
+    <section class="card egg-predictor-section">
+      <div class="egg-pred-header">
+        <div class="egg-pred-title-group">
+          <div class="card-tag" style="background: linear-gradient(135deg, #a855f7, #6366f1); color:white; margin-bottom:6px;">🎯 Single Egg Spawn Estimator</div>
+          <h2>🔮 單蛋專屬掉落預測器</h2>
+          <p class="section-desc">選擇任意目標神蛋，系統基於 2,160+ 筆真實大數據與生態刷新規律，精準粗估<b>大概還需多久出現</b>、距上次現身時間與逾期警戒！</p>
+        </div>
+        <div class="egg-pred-selector-wrap">
+          <label for="eggPredictorSelect" style="font-size:12px; color:#94a3b8; font-weight:600; margin-bottom:4px; display:block;">目標預測蛋種：</label>
+          <select id="eggPredictorSelect" class="select-input egg-pred-select">
+            <!-- 動態填入 28 種高階神蛋 -->
+          </select>
+        </div>
+      </div>
+
+      <!-- 快速切換熱門蛋標籤 Chips -->
+      <div class="egg-quick-pills-bar">
+        <span class="bar-label" style="font-size:12px; color:#94a3b8;">🔥 快速切換：</span>
+        <div class="egg-quick-pills" id="eggQuickPills">
+          <button type="button" class="quick-pill active" data-egg="World Burner">🔥 World Burner</button>
+          <button type="button" class="quick-pill" data-egg="Cosmic Dragon">🪐 Cosmic Dragon</button>
+          <button type="button" class="quick-pill" data-egg="Mutant Shark">🦈 Mutant Shark</button>
+          <button type="button" class="quick-pill" data-egg="ArchAngel">👼 ArchAngel</button>
+          <button type="button" class="quick-pill" data-egg="Kraken">🐙 Kraken</button>
+          <button type="button" class="quick-pill" data-egg="Gargoyle">🗿 Gargoyle</button>
+          <button type="button" class="quick-pill" data-egg="Eternal Lunar Dragon">🌙 永恆月龍</button>
+          <button type="button" class="quick-pill" data-egg="Phoenix">🦅 Phoenix</button>
+          <button type="button" class="quick-pill" data-egg="Mosasaurus">🦖 Mosasaurus</button>
+          <button type="button" class="quick-pill" data-egg="Kitsune">🌸 Kitsune</button>
+        </div>
+      </div>
+
+      <!-- 預測展示面板 (Hero Result Card) -->
+      <div id="eggPredictorResult" class="egg-pred-result-card">
+        <div class="skeleton-loader">正在運算蛋種掉落週期模型...</div>
+      </div>
+    </section>
+
     <!-- 交叉比對頻道監控狀態 -->
     <section class="card channel-monitor-card">
       <div class="channel-monitor-header">

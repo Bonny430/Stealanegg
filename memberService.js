@@ -97,7 +97,7 @@ class MemberService {
         const raw = fs.readFileSync(MEMBERS_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         for (const [id, m] of Object.entries(parsed)) {
-          if (!Array.isArray(m.customEggNames) || m.customEggNames.length === 0) {
+          if (!Array.isArray(m.customEggNames)) {
             m.customEggNames = [...ALL_HIGH_TIER_NAMES];
           }
           if (!Array.isArray(m.activityLogs)) {
@@ -208,7 +208,7 @@ class MemberService {
           if (!m.chatId) continue;
           const id = String(m.chatId);
           if (!this.members.has(id)) {
-            if (!Array.isArray(m.customEggNames) || m.customEggNames.length === 0) {
+            if (!Array.isArray(m.customEggNames)) {
               m.customEggNames = [...ALL_HIGH_TIER_NAMES];
             }
             if (!Array.isArray(m.activityLogs)) m.activityLogs = [];
@@ -220,7 +220,7 @@ class MemberService {
               this.members.set(id, {
                 ...local,
                 ...m,
-                customEggNames: Array.isArray(m.customEggNames) && m.customEggNames.length > 0 ? m.customEggNames : local.customEggNames,
+                customEggNames: Array.isArray(m.customEggNames) ? m.customEggNames : local.customEggNames,
                 activityLogs: Array.isArray(local.activityLogs) && local.activityLogs.length > 0 ? local.activityLogs : (m.activityLogs || [])
               });
             }
@@ -249,7 +249,7 @@ class MemberService {
         tier: isSuperAdmin ? 'admin' : (details.tier || 'free'),
         expireAt: isSuperAdmin ? '2099-12-31T23:59:59.999Z' : (details.expireAt || null),
         enabled: true,
-        filterType: 'all', // 'all' | 'rare_only' | 'custom'
+        filterType: 'custom', // 預設自選神蛋模式，使自選清單即刻生效
         customRarities: isSuperAdmin ? [...ALL_RARITIES] : [...VIP_DEFAULT_RARITIES],
         customEggNames: [...ALL_HIGH_TIER_NAMES],
         activityLogs: [],
@@ -268,7 +268,7 @@ class MemberService {
         member.tier = 'admin';
         member.expireAt = '2099-12-31T23:59:59.999Z';
       }
-      if (!Array.isArray(member.customEggNames) || member.customEggNames.length === 0) {
+      if (!Array.isArray(member.customEggNames)) {
         member.customEggNames = [...ALL_HIGH_TIER_NAMES];
       }
       if (!Array.isArray(member.activityLogs)) {
@@ -944,9 +944,14 @@ class MemberService {
       return;
     }
 
-    // /predict 或 /next
-    if (text === '/predict' || text === '/next') {
-      await this.sendPredictionInfo(chatId);
+    // /predict 或 /next (支援 /predict <蛋名> 與 /predict 選單)
+    if (text.startsWith('/predict') || text.startsWith('/next')) {
+      const arg = text.replace(/^\/(?:predict|next)/i, '').trim();
+      if (arg) {
+        await this.sendSingleEggPrediction(chatId, arg);
+      } else {
+        await this.sendPredictionInfo(chatId);
+      }
       return;
     }
 
@@ -1082,7 +1087,41 @@ class MemberService {
     // 5. 預測資訊
     if (data === 'menu_predict') {
       await this.answerCallback(cb.id, '計算週期分析中...');
-      await this.sendPredictionInfo(chatId);
+      await this.sendPredictionInfo(chatId, messageId);
+      return;
+    }
+
+    // 5.1 查看單蛋專屬預測 (egg_pred:<eggName>)
+    if (data.startsWith('egg_pred:')) {
+      const egg = decodeURIComponent(data.replace('egg_pred:', ''));
+      await this.answerCallback(cb.id, `計算 ${egg} 預測中...`);
+      await this.sendSingleEggPrediction(chatId, egg, messageId);
+      return;
+    }
+
+    // 5.2 預測卡片內快速切換追蹤 (egg_toggle_pred:<eggName>)
+    if (data.startsWith('egg_toggle_pred:')) {
+      const egg = decodeURIComponent(data.replace('egg_toggle_pred:', ''));
+      if (!Array.isArray(member.customEggNames)) member.customEggNames = [...ALL_HIGH_TIER_NAMES];
+      member.filterType = 'custom';
+      const exists = member.customEggNames.includes(egg);
+      if (exists) {
+        member.customEggNames = member.customEggNames.filter(n => n !== egg);
+      } else {
+        member.customEggNames.push(egg);
+      }
+      this.logMemberAction(chatId, 'toggle_egg', `${exists ? '取消' : '新增'}追蹤蛋種：${egg}`, 'telegram');
+      this.saveLocal();
+      this.syncMemberToSheet(member).catch(() => {});
+      await this.answerCallback(cb.id, `${exists ? '⬜ 已取消追蹤' : '✅ 已開啟追蹤'}：${egg}`);
+      await this.sendSingleEggPrediction(chatId, egg, messageId);
+      return;
+    }
+
+    // 5.3 預測清單總表 (menu_pred_all)
+    if (data === 'menu_pred_all') {
+      await this.answerCallback(cb.id);
+      await this.sendPredictionMenu(chatId, messageId);
       return;
     }
 
@@ -1505,22 +1544,150 @@ class MemberService {
     return this.sendEggFilterMenu(chatId, 0, 'All', messageId);
   }
 
-  // 查詢週期預測
-  async sendPredictionInfo(chatId) {
+  // 查詢週期預測 (全域 5 分鐘 + 熱門神蛋預測快捷鍵)
+  async sendPredictionInfo(chatId, messageId = null) {
+    let p = null;
     if (this.statsProvider && typeof this.statsProvider.getPrediction === 'function') {
-      const p = this.statsProvider.getPrediction();
-      if (p) {
-        const predText = `📊 <b>【Steal An Egg 週期與掉落預測】</b>\n\n` +
-          `• <b>伺服器出蛋規律：</b> 每 5 分鐘固定一輪 (xx:00, xx:05, xx:10...)\n` +
-          `• <b>預估下次出蛋：</b> <b>${p.predictedTimeStr}</b> (約 <b>${p.minutesLeft}</b> 分鐘後)\n` +
-          `• <b>稀有蛋平均間隔：</b> 約 <b>${p.rareBroadcastIntervalMinutes || '9.4'}</b> 分鐘\n` +
-          `• <b>出蛋率分析：</b> 稀有蛋約每 1~2 輪伺服器週期產出一顆\n\n` +
-          `🔗 <i>即時動態雷達：https://stealanegg.onrender.com/</i>`;
-        await this.sendTelegramMessage(chatId, predText);
-        return;
-      }
+      p = this.statsProvider.getPrediction();
     }
-    await this.sendTelegramMessage(chatId, '📊 伺服器正在校驗最新週期數據，請稍候片刻再試！');
+
+    const nextTimeStr = p ? p.predictedTimeStr : '計算中';
+    const minutesLeft = p ? p.minutesLeft : 5;
+    const avgInt = p ? (p.rareBroadcastIntervalMinutes || '8.5') : '8.5';
+
+    const predText = `📊 <b>【Steal An Egg 週期與掉落預測】</b>\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `• <b>伺服器出蛋規律：</b> 每 5 分鐘固定一輪 (xx:00, xx:05, xx:10...)\n` +
+      `• <b>下次伺服器出蛋：</b> <b>${nextTimeStr}</b> (約 <b>${minutesLeft}</b> 分鐘後)\n` +
+      `• <b>稀有蛋平均間隔：</b> 約 <b>${avgInt}</b> 分鐘 (每 1~2 輪出蛋)\n\n` +
+      `🎯 <b>【單蛋專屬掉落預測】：</b>\n` +
+      `點擊下方神蛋直接查看<b>粗估多久後出現、距上次多久、是否逾期爆蛋</b>，或直接輸入 <code>/predict &lt;蛋名&gt;</code> (例: <code>/predict World Burner</code>, <code>/predict 鯊魚</code>)：`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🔥 World Burner', callback_data: 'egg_pred:World Burner' },
+          { text: '🪐 Cosmic Dragon', callback_data: 'egg_pred:Cosmic Dragon' }
+        ],
+        [
+          { text: '🦈 Mutant Shark', callback_data: 'egg_pred:Mutant Shark' },
+          { text: '👼 ArchAngel', callback_data: 'egg_pred:ArchAngel' }
+        ],
+        [
+          { text: '🐙 Kraken', callback_data: 'egg_pred:Kraken' },
+          { text: '🗿 Gargoyle', callback_data: 'egg_pred:Gargoyle' }
+        ],
+        [
+          { text: '🦅 Phoenix', callback_data: 'egg_pred:Phoenix' },
+          { text: '🦖 Mosasaurus', callback_data: 'egg_pred:Mosasaurus' }
+        ],
+        [
+          { text: '👑 Gorilla King', callback_data: 'egg_pred:Gorilla King' },
+          { text: '🌸 Kitsune', callback_data: 'egg_pred:Kitsune' }
+        ],
+        [
+          { text: '📋 28 款高階神蛋完整預測選單', callback_data: 'menu_pred_all' }
+        ],
+        [
+          { text: '🌐 開啟儀表板動態雷達', url: 'https://stealanegg.onrender.com/' }
+        ]
+      ]
+    };
+
+    if (messageId) {
+      await this.editMessageText(chatId, messageId, predText, { reply_markup: keyboard });
+    } else {
+      await this.sendTelegramMessage(chatId, predText, { reply_markup: keyboard });
+    }
+  }
+
+  // 查詢單蛋專屬預測
+  async sendSingleEggPrediction(chatId, query, messageId = null) {
+    if (!this.statsProvider || typeof this.statsProvider.getEggPrediction !== 'function') {
+      await this.sendTelegramMessage(chatId, '📊 預測系統正在讀取最新歷史紀錄，請稍候片刻再試！');
+      return;
+    }
+
+    const p = this.statsProvider.getEggPrediction(query);
+    if (!p) {
+      await this.sendTelegramMessage(chatId, `❌ 找不到與「${query}」相符的高階神蛋，請確認名稱（例：<code>/predict Cosmic</code>, <code>/predict World Burner</code>）。`);
+      return;
+    }
+
+    const member = this.members.get(String(chatId));
+    const isTracked = member && Array.isArray(member.customEggNames) && member.customEggNames.includes(p.name);
+
+    const barLen = 10;
+    const filled = Math.min(barLen, Math.max(0, Math.round((p.progressPercent / 100) * barLen)));
+    const progressBarStr = '█'.repeat(filled) + '░'.repeat(barLen - filled);
+
+    let estDesc = '';
+    if (p.status === 'overdue') {
+      estDesc = `🔥 <b>【已超逾歷史平均週期！】</b>\n👉 逾期約 <b>${p.overdueMinutes}</b> 分鐘未出現，目前處於<b>超高爆蛋警戒期</b>，極可能在即將到來的 5 分鐘刷新週期現身！`;
+    } else if (p.status === 'rare_prior') {
+      estDesc = `💎 <b>【超稀有神聖蛋】</b>\n👉 歷史出現頻率極低，粗估平均週期約 <b>${Math.round(p.avgIntervalMin / 60)} 小時</b>。隨機性高，每輪 5 分鐘皆有極小爆率！`;
+    } else {
+      estDesc = `👉 <b>粗估約剩餘 ${p.estimatedMinutesLeft} 分鐘</b> (預計約 <b>${p.predictedTimeStr}</b> 左右)`;
+    }
+
+    const text = `🔮 <b>【${p.name} 專屬掉落預測分析】</b>\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `🌟 <b>稀有度：</b> ${p.rarity} | 🗺️ <b>生態地區：</b> ${p.biome}\n` +
+      `📊 <b>歷史總掉落：</b> <b>${p.count}</b> 次 (跨伺服器監測統計)\n` +
+      `⏱️ <b>歷史平均間隔：</b> 約 <b>${p.avgIntervalMin}</b> 分鐘 (每 ${Math.max(1, Math.round(p.avgIntervalMin / 5))} 輪刷新)\n` +
+      `🕒 <b>上次現身時間：</b> ${p.minutesSinceLast !== null ? `<b>${p.minutesSinceLast}</b> 分鐘前 (${p.lastSeenStr} @ ${p.lastLocation})` : '近期無紀錄 (極品神蛋)'}\n\n` +
+      `⏳ <b>【下次出蛋時間粗估】：</b>\n` +
+      `${estDesc}\n\n` +
+      `📈 <b>週期累積進度：</b> <code>[${progressBarStr}] ${p.progressPercent}%</code>\n` +
+      `🏷️ <b>當前狀態：</b> ${p.statusText}\n\n` +
+      `🔔 <b>推播追蹤：</b> ${isTracked ? '✅ 已加入您的自訂推播名單' : '⬜ 未加入推播名單 (點擊下方即可一鍵追蹤)'}`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: isTracked ? '🔕 從推播取消此蛋' : '🔔 接收此蛋即時推播', callback_data: `egg_toggle_pred:${encodeURIComponent(p.name)}` },
+          { text: '🔄 刷新預測', callback_data: `egg_pred:${encodeURIComponent(p.name)}` }
+        ],
+        [
+          { text: '📋 查看 28 款神蛋選單', callback_data: 'menu_pred_all' },
+          { text: '📊 全域 5 分鐘倒數', callback_data: 'menu_predict' }
+        ]
+      ]
+    };
+
+    if (messageId) {
+      await this.editMessageText(chatId, messageId, text, { reply_markup: keyboard });
+    } else {
+      await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
+    }
+  }
+
+  // 28 款高階神蛋預測總表選單
+  async sendPredictionMenu(chatId, messageId = null) {
+    const text = `🎯 <b>【28 款高階神蛋掉落預測清單】</b>\n\n` +
+      `點擊下方任意蛋種，即可查看其歷史平均週期、距上次出現時間與粗估下次掉落倒數：`;
+
+    const rows = [];
+    for (let i = 0; i < ALL_HIGH_TIER_NAMES.length; i += 2) {
+      const egg1 = ALL_HIGH_TIER_NAMES[i];
+      const egg2 = ALL_HIGH_TIER_NAMES[i + 1];
+      const row = [{ text: egg1, callback_data: `egg_pred:${encodeURIComponent(egg1)}` }];
+      if (egg2) {
+        row.push({ text: egg2, callback_data: `egg_pred:${encodeURIComponent(egg2)}` });
+      }
+      rows.push(row);
+    }
+    rows.push([
+      { text: '◀️ 返回全域 5 分鐘預測', callback_data: 'menu_predict' },
+      { text: '⚙️ 蛋種推播過濾', callback_data: 'menu_filter' }
+    ]);
+
+    const keyboard = { inline_keyboard: rows };
+    if (messageId) {
+      await this.editMessageText(chatId, messageId, text, { reply_markup: keyboard });
+    } else {
+      await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
+    }
   }
 
   // 查詢最新 5 顆蛋

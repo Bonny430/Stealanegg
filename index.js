@@ -1093,7 +1093,99 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// 5. 取得推播過濾設定
+// 4.1 全服歷史資料庫多維查詢與分頁 API (提供網頁資料庫瀏覽器極速查詢)
+app.get('/api/history/drops', (req, res) => {
+  try {
+    let rows = [...cachedRows];
+    
+    const search = (req.query.search || '').trim().toLowerCase();
+    const rarity = (req.query.rarity || 'all').trim();
+    const biome = (req.query.biome || 'all').trim();
+    const sort = (req.query.sort || 'newest').trim();
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    // 關鍵字搜尋 (蛋名稱、稀有度、生態區或伺服器訊息)
+    if (search) {
+      rows = rows.filter(r => {
+        const name = (r[1] || '').toLowerCase();
+        const rar = (r[2] || '').toLowerCase();
+        const det = (r[3] || '').toLowerCase();
+        return name.includes(search) || rar.includes(search) || det.includes(search);
+      });
+    }
+
+    // 稀有度篩選
+    if (rarity && rarity !== 'all') {
+      rows = rows.filter(r => (r[2] || '').toLowerCase() === rarity.toLowerCase());
+    }
+
+    // 生態區篩選
+    if (biome && biome !== 'all') {
+      rows = rows.filter(r => {
+        const det = r[3] || '';
+        const m = det.match(/\[(.*?)\]/) || det.match(/\*\*Location:\*\*\s*([^\n<]+)/);
+        let loc = m ? m[1].trim() : 'General';
+        if (loc === 'Angles') loc = 'Angels';
+        if (loc === 'Demon') loc = 'Demons';
+        return loc.toLowerCase() === biome.toLowerCase();
+      });
+    }
+
+    // 排序
+    if (sort === 'newest') {
+      rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+    } else {
+      rows.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+    }
+
+    const total = rows.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const offset = (page - 1) * limit;
+    const pagedRows = rows.slice(offset, offset + limit).map((r, idx) => {
+      let loc = 'General';
+      const raw = r[3] || '';
+      const m = raw.match(/\[(.*?)\]/) || raw.match(/\*\*Location:\*\*\s*([^\n<]+)/);
+      if (m) loc = m[1].trim();
+      if (loc === 'Angles') loc = 'Angels';
+      if (loc === 'Demon') loc = 'Demons';
+
+      let cleanDetails = raw.replace(/<@&?\d+>/g, '').replace(/<:[a-zA-Z0-9_]+:\d+>/g, '').replace(/#/g, '').trim();
+
+      return {
+        seq: sort === 'newest' ? (total - (offset + idx)) : (offset + idx + 1),
+        timestamp: r[0],
+        twTime: formatTaipeiDateTime(r[0]),
+        name: r[1],
+        rarity: r[2],
+        biome: loc,
+        details: cleanDetails,
+        rawDetails: raw
+      };
+    });
+
+    res.json({
+      success: true,
+      total,
+      page,
+      limit,
+      totalPages,
+      rows: pagedRows
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4.2 下載清洗整理後之 Excel 檔案
+app.get('/api/download/xlsx', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'Steal_An_Egg_全服掉落歷史資料庫.xlsx');
+  if (fs.existsSync(filePath)) {
+    res.download(filePath, 'Steal_An_Egg_全服掉落歷史資料庫.xlsx');
+  } else {
+    res.status(404).send('Excel 檔案尚未生成');
+  }
+});
 app.get('/api/config', (req, res) => {
   res.json({ config: currentConfig });
 });

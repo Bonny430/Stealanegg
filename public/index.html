@@ -389,33 +389,98 @@
       </div>
     </section>
 
-    <!-- 近期掉落紀錄 -->
-    <section class="card history-section">
-      <div class="section-header">
+    <!-- 🗄️ 全服歷史資料庫瀏覽器 (Database Explorer) -->
+    <section class="card history-section" id="dbExplorerSection">
+      <div class="db-explorer-header">
         <div>
-          <h2>📜 最新掉落動態 (Google Sheet)</h2>
-          <p class="section-desc">最新監聽到的蛋掉落事件紀錄</p>
+          <div class="card-tag" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); color:white; margin-bottom:6px;">🗄️ Full Database Explorer</div>
+          <h2>🗄️ 全服歷史資料庫瀏覽器 & 掉落日誌</h2>
+          <p class="section-desc">已清洗剔除 180+ 雜訊，收錄 2,955+ 筆真實全服掉落紀錄，支援關鍵字搜尋、生態區與稀有度多維度過濾及 Excel 一鍵匯出！</p>
         </div>
-        <span class="auto-refresh-tag">⚡ 每 15 秒自動刷新</span>
+        <div class="db-action-btns">
+          <a href="/api/download/xlsx" class="btn btn-success btn-sm" download="Steal_An_Egg_全服掉落歷史資料庫.xlsx" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <span>📥 下載整理後 Excel (.xlsx)</span>
+          </a>
+          <a href="https://docs.google.com/spreadsheets/d/1vh5obGdyHAJ6I_DxtOlzllwEFQV7EjdrHUK-7PRSy5E/edit?usp=sharing" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <span>📊 前往 Google 試算表</span>
+          </a>
+          <button id="refreshDbBtn" class="btn btn-secondary btn-sm" style="padding: 6px 12px;" title="立即重新整理">
+            <span>🔄 刷新</span>
+          </button>
+        </div>
       </div>
+
+      <!-- 快捷工具與多維度篩選器 -->
+      <div class="db-toolbar">
+        <div class="db-filter-row">
+          <input type="text" id="dbSearchInput" class="db-search-input" placeholder="🔍 搜尋蛋名稱、生態區、掉落詳細關鍵字...">
+          <select id="dbBiomeSelect" class="db-select">
+            <option value="all">🗺️ 所有生態區 (All Biomes)</option>
+            <option value="Angels">👼 Angels 天使</option>
+            <option value="Demons">😈 Demons 惡魔</option>
+            <option value="Angels & Demons">⚔️ Angels & Demons 活動區</option>
+            <option value="Cosmic">🪐 Cosmic 宇宙</option>
+            <option value="Prehistoric">🦖 Prehistoric 史前</option>
+            <option value="Cherry Blossom">🌸 Cherry Blossom 櫻花</option>
+            <option value="Volcano">🌋 Volcano 火山</option>
+            <option value="Abyss Ocean">🌊 Abyss Ocean 深海</option>
+            <option value="Titan Temple">🏛️ Titan Temple 泰坦神廟</option>
+            <option value="Snow">❄️ Snow 雪地</option>
+            <option value="Jungle">🌴 Jungle 叢林</option>
+          </select>
+          <select id="dbSortSelect" class="db-select">
+            <option value="newest">🕒 由新到舊 (最新置頂)</option>
+            <option value="oldest">⏳ 由舊到新 (時間遞增)</option>
+          </select>
+          <select id="dbLimitSelect" class="db-select">
+            <option value="50">50 筆/頁</option>
+            <option value="100">100 筆/頁</option>
+          </select>
+        </div>
+
+        <div class="db-pills-row">
+          <span style="font-size:12px; color:#94a3b8; font-weight:600;">💎 稀有度篩選：</span>
+          <button type="button" class="rarity-pill active" data-rarity="all">🌟 全部 (All)</button>
+          <button type="button" class="rarity-pill" data-rarity="Divine">👑 神聖 (Divine)</button>
+          <button type="button" class="rarity-pill" data-rarity="Eternal">💎 永恆 (Eternal)</button>
+          <button type="button" class="rarity-pill" data-rarity="Secret">🔮 秘密 (Secret)</button>
+        </div>
+      </div>
+
+      <!-- 統計摘要與分頁指示條 -->
+      <div class="db-stats-bar">
+        <span>顯示第 <b id="dbStartRow">1</b> - <b id="dbEndRow">50</b> 筆紀錄 (篩選後共 <b id="dbTotalCount">--</b> 筆，全服收錄 2,955+ 筆)</span>
+        <span id="dbAutoRefreshBadge" class="auto-refresh-tag" style="margin:0;">⚡ 每 20 秒自動同步最新掉落</span>
+      </div>
+
+      <!-- 響應式資料表格 -->
       <div class="history-table-wrap">
         <table class="history-table">
           <thead>
             <tr>
-              <th>掉落時間</th>
-              <th>蛋圖示</th>
-              <th>蛋名稱</th>
-              <th>稀有度</th>
-              <th>出現地點</th>
-              <th>狀態</th>
+              <th style="width: 50px; text-align:center;">#</th>
+              <th style="width: 170px;">台灣時間 (UTC+8)</th>
+              <th style="width: 180px;">蛋名稱</th>
+              <th style="width: 100px; text-align:center;">稀有度</th>
+              <th style="width: 150px;">生態區 (Biome)</th>
+              <th>伺服器與掉落詳情 (Server / Details)</th>
             </tr>
           </thead>
-          <tbody id="historyTableBody">
+          <tbody id="dbTableBody">
             <tr>
-              <td colspan="6" class="text-center">載入歷史紀錄中...</td>
+              <td colspan="6" class="text-center" style="padding: 30px; color:#94a3b8;">載入全服歷史資料庫中...</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- 分頁控制導航條 -->
+      <div class="db-pagination-bar">
+        <button type="button" id="dbFirstPageBtn" class="db-page-btn" disabled>« 第一頁</button>
+        <button type="button" id="dbPrevPageBtn" class="db-page-btn" disabled>‹ 上一頁</button>
+        <span class="db-page-indicator">第 <b id="dbCurrentPage">1</b> / <b id="dbTotalPages">1</b> 頁</span>
+        <button type="button" id="dbNextPageBtn" class="db-page-btn" disabled>下一頁 ›</button>
+        <button type="button" id="dbLastPageBtn" class="db-page-btn" disabled>最末頁 »</button>
       </div>
     </section>
   </div>

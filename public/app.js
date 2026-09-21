@@ -545,33 +545,240 @@ function renderEggPrediction(eggName) {
   }
 }
 
-// 載入最新歷史紀錄
-async function loadHistory() {
+// 全服歷史資料庫瀏覽器 (Database Explorer) 狀態
+let dbState = {
+  search: '',
+  rarity: 'all',
+  biome: 'all',
+  sort: 'newest',
+  page: 1,
+  limit: 50,
+  totalPages: 1,
+  total: 0,
+  isLoading: false
+};
+
+// 載入全服歷史資料庫與分頁
+async function loadHistory(isBackground = false) {
+  if (dbState.isLoading && !isBackground) return;
+  dbState.isLoading = true;
+
+  const tableBody = document.getElementById('dbTableBody') || historyTableBody;
+  if (!tableBody) return;
+
+  if (!isBackground && tableBody.children.length <= 1) {
+    tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color:#94a3b8;">載入全服歷史紀錄中...</td></tr>`;
+  }
+
   try {
-    const res = await fetch('/api/history');
+    const params = new URLSearchParams({
+      page: dbState.page,
+      limit: dbState.limit,
+      search: dbState.search,
+      rarity: dbState.rarity,
+      biome: dbState.biome,
+      sort: dbState.sort
+    });
+
+    const res = await fetch(`/api/history/drops?${params.toString()}`);
     const data = await res.json();
-    if (data && data.rows && data.rows.length > 0) {
-      historyTableBody.innerHTML = data.rows.slice(0, 50).map(row => {
-        const eggImg = getEggImage(row.name);
-        return `
-          <tr>
-            <td>${formatDateTime(row.timestamp)}</td>
-            <td>
-              <img src="${eggImg}" alt="${row.name}" class="table-egg-img" referrerpolicy="no-referrer" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
-            </td>
-            <td><strong>${row.name}</strong></td>
-            <td><span class="rarity-tag rarity-${row.rarity || 'Common'}">${row.rarity}</span></td>
-            <td>${row.location || '未知地點'}</td>
-            <td><span class="status-badge" style="padding: 2px 8px; font-size: 11px;">已記錄</span></td>
-          </tr>
-        `;
-      }).join('');
+
+    if (data && data.success && Array.isArray(data.rows)) {
+      dbState.total = data.total;
+      dbState.totalPages = data.totalPages;
+
+      renderDbTable(data.rows);
+      updateDbPagination();
     } else {
-      historyTableBody.innerHTML = `<tr><td colspan="6" class="text-center">暫無資料</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color:#64748b;">暫無符合條件的掉落紀錄</td></tr>`;
+      updateDbPagination();
     }
   } catch (err) {
-    console.error('載入歷史失敗:', err);
+    console.error('載入全服歷史資料庫失敗:', err);
+    if (!isBackground) {
+      tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color:#fb7185;">載入歷史失敗: ${err.message}</td></tr>`;
+    }
+  } finally {
+    dbState.isLoading = false;
   }
+}
+
+// 渲染歷史資料庫表格列
+function renderDbTable(rows) {
+  const tableBody = document.getElementById('dbTableBody') || historyTableBody;
+  if (!tableBody) return;
+
+  if (!rows || rows.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color:#64748b;">暫無符合條件的掉落紀錄</td></tr>`;
+    return;
+  }
+
+  tableBody.innerHTML = rows.map(r => {
+    const eggImg = getEggImage(r.name);
+    
+    // 稀有度 Badge 樣式
+    let rarClass = 'common';
+    const rarLower = (r.rarity || '').toLowerCase();
+    if (rarLower === 'divine') rarClass = 'divine';
+    else if (rarLower === 'eternal') rarClass = 'eternal';
+    else if (rarLower === 'secret') rarClass = 'secret';
+
+    // Highlight Join Game link if present in rawDetails
+    let detailsHtml = escapeHtml(r.details);
+    const joinMatch = (r.rawDetails || '').match(/\[Click Here\]\((https:\/\/www\.roblox\.com\/games\/[^\)]+)\)/);
+    if (joinMatch) {
+      detailsHtml += ` <a href="${joinMatch[1]}" target="_blank" class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:10px; margin-left:6px; color:#38bdf8; text-decoration:none;">🚀 一鍵入房</a>`;
+    }
+
+    return `
+      <tr>
+        <td style="text-align:center; color:#64748b; font-size:12px;">${r.seq}</td>
+        <td style="font-size:12px; color:#94a3b8; white-space:nowrap;">${r.twTime || r.timestamp}</td>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="${eggImg}" alt="${r.name}" class="table-egg-img" referrerpolicy="no-referrer" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
+            <strong>${escapeHtml(r.name)}</strong>
+          </div>
+        </td>
+        <td style="text-align:center;">
+          <span class="db-table-badge ${rarClass}">${r.rarity || 'Normal'}</span>
+        </td>
+        <td>
+          <span class="db-biome-tag">📍 ${escapeHtml(r.biome)}</span>
+        </td>
+        <td style="font-size:12px; color:#cbd5e1;">
+          ${detailsHtml}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 更新分頁控制按鈕與指示數字
+function updateDbPagination() {
+  const startEl = document.getElementById('dbStartRow');
+  const endEl = document.getElementById('dbEndRow');
+  const totalEl = document.getElementById('dbTotalCount');
+  const currentEl = document.getElementById('dbCurrentPage');
+  const totalPagesEl = document.getElementById('dbTotalPages');
+
+  const firstBtn = document.getElementById('dbFirstPageBtn');
+  const prevBtn = document.getElementById('dbPrevPageBtn');
+  const nextBtn = document.getElementById('dbNextPageBtn');
+  const lastBtn = document.getElementById('dbLastPageBtn');
+
+  const start = dbState.total === 0 ? 0 : (dbState.page - 1) * dbState.limit + 1;
+  const end = Math.min(dbState.page * dbState.limit, dbState.total);
+
+  if (startEl) startEl.innerText = start.toLocaleString();
+  if (endEl) endEl.innerText = end.toLocaleString();
+  if (totalEl) totalEl.innerText = dbState.total.toLocaleString();
+  if (currentEl) currentEl.innerText = dbState.page;
+  if (totalPagesEl) totalPagesEl.innerText = dbState.totalPages;
+
+  if (firstBtn) firstBtn.disabled = (dbState.page <= 1);
+  if (prevBtn) prevBtn.disabled = (dbState.page <= 1);
+  if (nextBtn) nextBtn.disabled = (dbState.page >= dbState.totalPages);
+  if (lastBtn) lastBtn.disabled = (dbState.page >= dbState.totalPages);
+}
+
+// 初始化全服歷史資料庫瀏覽器監聽器
+function initDbExplorer() {
+  const searchInput = document.getElementById('dbSearchInput');
+  const biomeSelect = document.getElementById('dbBiomeSelect');
+  const sortSelect = document.getElementById('dbSortSelect');
+  const limitSelect = document.getElementById('dbLimitSelect');
+  const refreshBtn = document.getElementById('refreshDbBtn');
+
+  // 搜尋防抖
+  let searchTimer = null;
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        dbState.search = e.target.value.trim();
+        dbState.page = 1;
+        loadHistory();
+      }, 300);
+    });
+  }
+
+  if (biomeSelect) {
+    biomeSelect.addEventListener('change', (e) => {
+      dbState.biome = e.target.value;
+      dbState.page = 1;
+      loadHistory();
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      dbState.sort = e.target.value;
+      dbState.page = 1;
+      loadHistory();
+    });
+  }
+
+  if (limitSelect) {
+    limitSelect.addEventListener('change', (e) => {
+      dbState.limit = parseInt(e.target.value) || 50;
+      dbState.page = 1;
+      loadHistory();
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      loadHistory();
+      showToast('全服歷史資料庫已刷新', 'info');
+    });
+  }
+
+  // 稀有度膠囊點擊
+  const pills = document.querySelectorAll('.rarity-pill');
+  pills.forEach(p => {
+    p.addEventListener('click', () => {
+      pills.forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      dbState.rarity = p.getAttribute('data-rarity') || 'all';
+      dbState.page = 1;
+      loadHistory();
+    });
+  });
+
+  // 分頁按鈕
+  const firstBtn = document.getElementById('dbFirstPageBtn');
+  const prevBtn = document.getElementById('dbPrevPageBtn');
+  const nextBtn = document.getElementById('dbNextPageBtn');
+  const lastBtn = document.getElementById('dbLastPageBtn');
+
+  if (firstBtn) firstBtn.addEventListener('click', () => {
+    if (dbState.page > 1) {
+      dbState.page = 1;
+      loadHistory();
+    }
+  });
+
+  if (prevBtn) prevBtn.addEventListener('click', () => {
+    if (dbState.page > 1) {
+      dbState.page--;
+      loadHistory();
+    }
+  });
+
+  if (nextBtn) nextBtn.addEventListener('click', () => {
+    if (dbState.page < dbState.totalPages) {
+      dbState.page++;
+      loadHistory();
+    }
+  });
+
+  if (lastBtn) lastBtn.addEventListener('click', () => {
+    if (dbState.page < dbState.totalPages) {
+      dbState.page = dbState.totalPages;
+      loadHistory();
+    }
+  });
 }
 
 // 輔助查找蛋圖
@@ -1760,6 +1967,7 @@ if (saveMySettingsBtn) {
 // 初始化
 window.addEventListener('DOMContentLoaded', async () => {
   initFilterBars();
+  initDbExplorer();
   await loadStatus();
   await loadEggsCatalog();
   await loadConfig();

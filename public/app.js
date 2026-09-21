@@ -906,7 +906,6 @@ const myProfileTierBadge = document.getElementById('myProfileTierBadge');
 const myProfileExpireText = document.getElementById('myProfileExpireText');
 const myProfileChatId = document.getElementById('myProfileChatId');
 const myNotifyToggle = document.getElementById('myNotifyToggle');
-const myCustomRaritiesWrap = document.getElementById('myCustomRaritiesWrap');
 
 // 檢查登入狀態
 async function checkAuthStatus() {
@@ -967,12 +966,12 @@ function updateAuthUI() {
 
 // 登入彈窗開啟與關閉
 if (openLoginModalBtn) {
-  openLoginModalBtn.onclick = () => {
-    loginModal.classList.remove('hidden');
-    loginErrorMsg.classList.add('hidden');
-    adminLoginErrorMsg.classList.add('hidden');
+  openLoginModalBtn.addEventListener('click', () => {
+    if (loginModal) loginModal.classList.remove('hidden');
+    if (loginErrorMsg) loginErrorMsg.classList.add('hidden');
+    if (adminLoginErrorMsg) adminLoginErrorMsg.classList.add('hidden');
     if (loginChatIdInput) loginChatIdInput.focus();
-  };
+  });
 }
 
 function closeLoginModal() {
@@ -983,6 +982,21 @@ function closeLoginModal() {
 if (closeLoginModalBtn) closeLoginModalBtn.onclick = closeLoginModal;
 if (cancelLoginBtn) cancelLoginBtn.onclick = closeLoginModal;
 if (cancelAdminLoginBtn) cancelAdminLoginBtn.onclick = closeLoginModal;
+
+// 點擊遮罩背景或按 Esc 鍵關閉彈窗
+window.addEventListener('click', (e) => {
+  if (e.target === loginModal) closeLoginModal();
+  if (e.target === tokenModal && tokenModal) tokenModal.classList.add('hidden');
+  if (e.target === mySettingsModal) closeMySettingsModal();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeLoginModal();
+    closeMySettingsModal();
+    if (tokenModal) tokenModal.classList.add('hidden');
+  }
+});
 
 // 登入 Tab 切換
 if (tabTelegramBtn && tabAdminBtn) {

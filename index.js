@@ -251,8 +251,13 @@ function extractEggInfo(embeds, content, createdAt, channelMeta = {}) {
     }
   }
 
-  // 濾除無效廣告或空訊息 (例如 RoMarket 商店廣告)
-  if (!name || name === '未知蛋' || name.toLowerCase().includes('romarket') || name.toLowerCase().includes('store')) {
+  // 濾除無效廣告、非蛋訊息、Rift 裂縫事件、Discord 邀請連結等雜訊
+  const isJunkMessage = /Admin Abuse|管理員濫用|Admin Spawned|Staff Spawned|\bAA\b|Riftborn|Riftbeast|Shattered Rift|discord\.gg|ts pinging ppl|Every 5 mins|romarket|store/i.test(combinedText);
+  if (isJunkMessage) {
+    return null;
+  }
+
+  if (!name || name === '未知蛋' || name === '未知' || name.includes('未知')) {
     return null;
   }
 
@@ -279,6 +284,12 @@ function extractEggInfo(embeds, content, createdAt, channelMeta = {}) {
 
 // 記錄單筆蛋掉落至 Google Sheet
 async function recordEggDrop(eggData) {
+  // 嚴格防止任何未知蛋或無效資料寫入 Google Sheet
+  if (!eggData || !eggData.name || eggData.name === '未知' || eggData.name === '未知蛋' || eggData.name.includes('未知')) {
+    console.log(`[Google Sheet 守衛] 忽略未知蛋寫入：${eggData?.name}`);
+    return null;
+  }
+
   try {
     const res = await fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
@@ -350,10 +361,11 @@ function computeStatsFromRows(rows) {
     ? (recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length)
     : 5;
 
-  // 出現頻率統計
+  // 出現頻率統計 (僅統計官方有效神蛋)
   const counts = {};
   for (const r of validRows) {
-    const n = (r[1] || '未知蛋').trim();
+    const n = (r[1] || '').trim();
+    if (!n || n === '未知' || n === '未知蛋' || n.includes('未知')) continue;
     counts[n] = (counts[n] || 0) + 1;
   }
   const topEggs = Object.entries(counts)
@@ -533,9 +545,14 @@ async function refreshCacheFromSheet() {
     const res = await fetch(GOOGLE_SHEET_API_URL);
     const json = await res.json();
     if (json && json.data && json.data.length > 1) {
-      cachedRows = json.data.slice(1).filter(r => r[0] && r[0].toString().trim() !== '');
+      cachedRows = json.data.slice(1).filter(r => {
+        if (!r[0] || r[0].toString().trim() === '') return false;
+        const n = (r[1] || '').trim();
+        if (!n || n === '未知' || n === '未知蛋' || n.includes('未知')) return false;
+        return true;
+      });
       cachedStats = computeStatsFromRows(cachedRows);
-      console.log(`[快取] 已同步 ${cachedRows.length} 筆資料庫紀錄，預測模型已更新`);
+      console.log(`[快取] 已同步 ${cachedRows.length} 筆資料庫紀錄，預測模型已更新 (已過濾未知蛋雜訊)`);
     }
   } catch (err) {
     console.warn('[快取] 載入 Google Sheet 失敗:', err.message);

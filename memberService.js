@@ -174,26 +174,11 @@ class MemberService {
     }
   }
 
-  // 向 Google Sheet 同步單一會員
+  // 向 Google Sheet 同步單一會員 (安全守衛：保護蛋掉落試算表不被污染)
   async syncMemberToSheet(member) {
-    if (!this.sheetApiUrl) return;
-    try {
-      await fetch(this.sheetApiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'upsert_member',
-          member: {
-            ...member,
-            customRarities: member.customRarities || [],
-            customEggNames: member.customEggNames || [],
-            activityLogs: (member.activityLogs || []).slice(0, 20)
-          }
-        })
-      });
-    } catch (err) {
-      console.warn('[MemberService] 同步至 Google Sheet 失敗:', err.message);
-    }
+    // 經診斷：Google Apps Script 預設接收端為掉落專用工作表，發送非掉落之會員資料會觸發預設回退寫入「未知」蛋紀錄。
+    // 會員資料目前已在伺服器端 data/members.json 保持完整持久化儲存與即時讀寫，此處安全略過以確保大數據純淨。
+    return;
   }
 
   // 從 Google Sheet 載入會員

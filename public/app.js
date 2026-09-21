@@ -422,20 +422,20 @@ function renderEggPrediction(eggName) {
 
   const isTracked = Array.isArray(userConfig.selectedEggs) && userConfig.selectedEggs.includes(p.name);
   const rarityClass = `rarity-${(p.rarity || 'Secret').toLowerCase().replace(/[^a-z]/g, '')}`;
-  const isOverdue = p.status === 'overdue';
+  const isOverdue = p.estimatedMinutesLeft === 0 || p.status === 'overdue';
 
   let estTimeHtml = '';
   let estSubText = '';
 
-  if (p.status === 'overdue') {
+  if (p.estimatedMinutesLeft === 0) {
     estTimeHtml = `<div class="egg-pred-est-time overdue-text">🔥 隨時可能掉落！ (已逾期 ${p.overdueMinutes} 分鐘)</div>`;
-    estSubText = `已超逾歷史平均刷新間隔 (${p.avgIntervalMin} 分鐘)，伺服器每一輪 5 分鐘出蛋皆處於超高出蛋機率！`;
+    estSubText = `已進入高機率出蛋波段！預估窗口：<b>${p.predictedRangeStr || '即刻 ~ 15 分鐘內'}</b>，伺服器每一輪 5 分鐘刷新皆處於極高爆率！`;
   } else if (p.status === 'rare_prior') {
-    estTimeHtml = `<div class="egg-pred-est-time" style="color:#c084fc;">💎 約 12 ~ 24 小時 (極品神聖蛋)</div>`;
-    estSubText = `歷史掉落樣本極稀少，依天使與惡魔地圖權重估算基準週期，每輪 5 分鐘皆有極小神蹟爆率！`;
+    estTimeHtml = `<div class="egg-pred-est-time" style="color:#c084fc;">💎 約 ${(p.avgIntervalMin / 60).toFixed(0)} 小時 (極品神聖蛋)</div>`;
+    estSubText = `歷史掉落樣本極稀少，依活動發布起點與地圖權重校準基準週期，每輪 5 分鐘皆有極小神蹟爆率！`;
   } else {
-    estTimeHtml = `<div class="egg-pred-est-time">⏳ 粗估約 ${p.estimatedMinutesLeft} 分鐘後 (約 ${p.predictedTimeStr} 左右)</div>`;
-    estSubText = `距離上次現身已過 ${p.minutesSinceLast} 分鐘，距離歷史平均週期 (${p.avgIntervalMin} 分鐘) 還需等待`;
+    estTimeHtml = `<div class="egg-pred-est-time">⏳ 預估窗口：${p.predictedRangeStr || `約 ${p.estimatedMinutesLeft} 分鐘`}</div>`;
+    estSubText = `基準預計時間約 <b>${p.predictedTimeStr}</b> 左右 (距上次現身已過 ${p.minutesSinceLast} 分鐘，當前處於：<b>${p.phaseText || p.statusText}</b>)`;
   }
 
   const statusClass = `status-${p.status || 'accumulating'}`;
@@ -450,6 +450,7 @@ function renderEggPrediction(eggName) {
           <div class="egg-pred-tags">
             <span class="my-egg-tag ${rarityClass}">${p.rarity}</span>
             <span class="my-egg-tag biome">🗺️ ${p.biome}</span>
+            <span class="my-egg-tag" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">${p.phaseText || p.statusText}</span>
           </div>
         </div>
       </div>
@@ -460,7 +461,7 @@ function renderEggPrediction(eggName) {
 
     <div class="egg-pred-center-hero">
       <div class="egg-pred-status-banner ${statusClass}">
-        <span>${p.statusText}</span>
+        <span>${p.phaseText || p.statusText}</span>
       </div>
       ${estTimeHtml}
       <div class="egg-pred-est-sub">${estSubText}</div>
@@ -485,14 +486,22 @@ function renderEggPrediction(eggName) {
         <div style="font-size:11px; color:#64748b; margin-top:2px;">📍 地點: ${p.lastLocation || p.biome}</div>
       </div>
       <div class="egg-stat-box">
-        <div class="egg-stat-box-label">⏱️ 歷史平均週期</div>
-        <div class="egg-stat-box-value">約 ${p.avgIntervalMin} 分鐘</div>
-        <div style="font-size:11px; color:#64748b; margin-top:2px;">相當於每 ${Math.max(1, Math.round(p.avgIntervalMin / 5))} 輪 5 分鐘刷新</div>
+        <div class="egg-stat-box-label">⚡ 高峰 / 常態 / 低谷三軌</div>
+        <div class="egg-stat-box-value" style="font-size:12px; line-height:1.4;">
+          ⚡高峰: ${p.burstIntervalMin || Math.round(p.avgIntervalMin * 0.35)}m<br>
+          ⚖️中位: ${p.medianIntervalMin || p.avgIntervalMin}m<br>
+          ❄️低谷: ${p.valleyIntervalMin || Math.round(p.avgIntervalMin * 1.6)}m
+        </div>
       </div>
       <div class="egg-stat-box">
-        <div class="egg-stat-box-label">📊 歷史總出現次數</div>
-        <div class="egg-stat-box-value">${p.count} 次</div>
-        <div style="font-size:11px; color:#64748b; margin-top:2px;">中位數間隔: 約 ${Math.round(p.medianIntervalMin)} 分鐘</div>
+        <div class="egg-stat-box-label">📈 近期節奏與目標</div>
+        <div class="egg-stat-box-value">目標: ${p.dynamicTargetMin || p.avgIntervalMin} 分鐘</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;">近 5 筆 EMA: 約 ${p.recentAvgMin || p.avgIntervalMin} 分鐘</div>
+      </div>
+      <div class="egg-stat-box">
+        <div class="egg-stat-box-label">📊 總樣本與活動起點</div>
+        <div class="egg-stat-box-value">${p.count} 次掉落</div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">${p.genesisNote || '原生常規掉落'}</div>
       </div>
     </div>
   `;

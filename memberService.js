@@ -1607,24 +1607,31 @@ class MemberService {
     const progressBarStr = '█'.repeat(filled) + '░'.repeat(barLen - filled);
 
     let estDesc = '';
-    if (p.status === 'overdue') {
-      estDesc = `🔥 <b>【已超逾歷史平均週期！】</b>\n👉 逾期約 <b>${p.overdueMinutes}</b> 分鐘未出現，目前處於<b>超高爆蛋警戒期</b>，極可能在即將到來的 5 分鐘刷新週期現身！`;
+    if (p.estimatedMinutesLeft === 0) {
+      estDesc = `🔥 <b>【已超逾動態預期週期！】</b>\n👉 逾期約 <b>${p.overdueMinutes}</b> 分鐘，已進入<b>超高爆蛋警戒窗口</b>，預計在即刻 ~ 15 分鐘內現身！`;
     } else if (p.status === 'rare_prior') {
-      estDesc = `💎 <b>【超稀有神聖蛋】</b>\n👉 歷史出現頻率極低，粗估平均週期約 <b>${Math.round(p.avgIntervalMin / 60)} 小時</b>。隨機性高，每輪 5 分鐘皆有極小爆率！`;
+      estDesc = `💎 <b>【超稀有活動神聖蛋】</b>\n👉 歷史出現頻率極低，活動基準週期約 <b>${Math.round(p.avgIntervalMin / 60)} 小時</b>。隨機性高，每輪 5 分鐘皆有極小爆率！`;
     } else {
-      estDesc = `👉 <b>粗估約剩餘 ${p.estimatedMinutesLeft} 分鐘</b> (預計約 <b>${p.predictedTimeStr}</b> 左右)`;
+      estDesc = `👉 <b>粗估約剩餘 ${p.estimatedMinutesLeft} 分鐘</b> (預計約 <b>${p.predictedTimeStr}</b> 左右)\n👉 <b>動態預估窗口：</b> ${p.predictedRangeStr || `約 ${p.estimatedMinutesLeft} 分鐘`}`;
     }
+
+    const genesisPart = p.genesisNote ? `🌟 <b>活動起點：</b> ${p.genesisNote}\n` : '';
 
     const text = `🔮 <b>【${p.name} 專屬掉落預測分析】</b>\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `🌟 <b>稀有度：</b> ${p.rarity} | 🗺️ <b>生態地區：</b> ${p.biome}\n` +
+      genesisPart +
       `📊 <b>歷史總掉落：</b> <b>${p.count}</b> 次 (跨伺服器監測統計)\n` +
-      `⏱️ <b>歷史平均間隔：</b> 約 <b>${p.avgIntervalMin}</b> 分鐘 (每 ${Math.max(1, Math.round(p.avgIntervalMin / 5))} 輪刷新)\n` +
       `🕒 <b>上次現身時間：</b> ${p.minutesSinceLast !== null ? `<b>${p.minutesSinceLast}</b> 分鐘前 (${p.lastSeenStr} @ ${p.lastLocation})` : '近期無紀錄 (極品神蛋)'}\n\n` +
-      `⏳ <b>【下次出蛋時間粗估】：</b>\n` +
+      `⚡ <b>【高峰 / 常態 / 低谷三軌週期】：</b>\n` +
+      `• ⚡ <b>高峰連鎖期：</b> 約 <b>${p.burstIntervalMin || Math.round(p.avgIntervalMin * 0.35)}</b> 分鐘 (密集連出波段)\n` +
+      `• ⚖️ <b>常態中位數：</b> 約 <b>${p.medianIntervalMin || p.avgIntervalMin}</b> 分鐘\n` +
+      `• ❄️ <b>低谷蓄能上限：</b> 約 <b>${p.valleyIntervalMin || Math.round(p.avgIntervalMin * 1.6)}</b> 分鐘 (乾旱延遲上限)\n` +
+      `• 📈 <b>近 5 筆節奏 (EMA)：</b> 約 <b>${p.recentAvgMin || p.avgIntervalMin}</b> 分鐘 (權重 60%)\n\n` +
+      `⏳ <b>【下次出蛋時間預估】：</b>\n` +
       `${estDesc}\n\n` +
       `📈 <b>週期累積進度：</b> <code>[${progressBarStr}] ${p.progressPercent}%</code>\n` +
-      `🏷️ <b>當前狀態：</b> ${p.statusText}\n\n` +
+      `🏷️ <b>當前波段：</b> <b>${p.phaseText || p.statusText}</b>\n\n` +
       `🔔 <b>推播追蹤：</b> ${isTracked ? '✅ 已加入您的自訂推播名單' : '⬜ 未加入推播名單 (點擊下方即可一鍵追蹤)'}`;
 
     const keyboard = {

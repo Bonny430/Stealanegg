@@ -252,7 +252,9 @@ function extractEggInfo(embeds, content, createdAt, channelMeta = {}) {
   }
 
   // 濾除無效廣告、非蛋訊息、Rift 裂縫事件、Discord 邀請連結等雜訊
-  const isJunkMessage = /Admin Abuse|管理員濫用|Admin Spawned|Staff Spawned|\bAA\b|Riftborn|Riftbeast|Shattered Rift|discord\.gg|ts pinging ppl|Every 5 mins|romarket|store/i.test(combinedText);
+  const embedText = (embeds && Array.isArray(embeds)) ? embeds.map(e => `${e.title || ''} ${e.description || ''}`).join(' ') : '';
+  const fullText = `${content || ''} ${embedText}`;
+  const isJunkMessage = /Admin Abuse|管理員濫用|Admin Spawned|Staff Spawned|\bAA\b|Riftborn|Riftbeast|Shattered Rift|discord\.gg|ts pinging ppl|Every 5 mins|romarket|store/i.test(fullText);
   if (isJunkMessage) {
     return null;
   }
@@ -394,10 +396,29 @@ function computeStatsFromRows(rows) {
   };
 }
 
+// 活動與蛋種加入時間點對照表 (Genesis Time for each egg / biome)
+const EGG_GENESIS_TIMES = {
+  // Angels & Demons 活動正式發布時間: 2026-09-12 17:30:00 UTC (台灣時間 2026-09-13 01:30:00)
+  'World Burner': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'ArchAngel': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'Centaur': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'Pure Jellyfish': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'Gargoyle': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'Pegasus': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'RazorFang': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  'Skeleton Horse': new Date('2026-09-12T17:30:00.000Z').getTime(),
+  // 泰坦神廟 (Titan Temple)
+  'Nightflame': new Date('2026-08-28T00:00:00.000Z').getTime(),
+  // 櫻花祭 (Cherry Blossom)
+  'Kitsune': new Date('2026-09-05T00:00:00.000Z').getTime(),
+  // 宇宙區 (Cosmic)
+  'Unicorn': new Date('2026-09-05T00:00:00.000Z').getTime()
+};
+
 // 28 款高階可刷新神蛋元數據 (含生態地區、稀有度與先驗基準週期)
 const HIGH_TIER_EGGS_META = [
   { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic', baseCycleMin: 135 },
-  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 1080 },
+  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 11595 }, // 活動開跑至首現約 8.05 天
   { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple', baseCycleMin: 145 },
   { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons', baseCycleMin: 50 },
   { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean', baseCycleMin: 135 },
@@ -405,7 +426,7 @@ const HIGH_TIER_EGGS_META = [
   { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic', baseCycleMin: 290 },
   { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano', baseCycleMin: 470 },
   { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric', baseCycleMin: 240 },
-  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 1080 },
+  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 3440 }, // 活動開跑至首現約 2.39 天
   { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple', baseCycleMin: 370 },
   { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean', baseCycleMin: 950 },
   { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow', baseCycleMin: 450 },
@@ -421,9 +442,9 @@ const HIGH_TIER_EGGS_META = [
   { name: 'Yeti', rarity: 'Secret', biome: 'Snow', baseCycleMin: 290 },
   { name: 'T-Rex', rarity: 'Secret', biome: 'Prehistoric', baseCycleMin: 120 },
   { name: 'Tralaledon', rarity: 'Secret', biome: 'Prehistoric', baseCycleMin: 125 },
-  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom', baseCycleMin: 720 },
-  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple', baseCycleMin: 720 },
-  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic', baseCycleMin: 720 }
+  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom', baseCycleMin: 2880 },
+  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple', baseCycleMin: 4320 },
+  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic', baseCycleMin: 2880 }
 ];
 
 function computeSingleEggPrediction(query, rows = cachedRows) {
@@ -461,51 +482,127 @@ function computeSingleEggPrediction(query, rows = cachedRows) {
   const now = Date.now();
 
   const intervals = [];
-  for (let i = 1; i < timestamps.length; i++) {
-    const diffMin = (timestamps[i] - timestamps[i - 1]) / 60000;
-    if (diffMin >= 2 && diffMin <= 2880) intervals.push(diffMin);
+  const genesisTime = EGG_GENESIS_TIMES[matchedMeta.name];
+  // 1. 活動蛋校準：若有活動上線起點，且已記錄首次掉落，將「活動起點至首現時間」納入第 1 個歷史週期！
+  if (count > 0 && genesisTime && timestamps[0] > genesisTime) {
+    const initialElapsedMin = Math.round((timestamps[0] - genesisTime) / 60000);
+    if (initialElapsedMin >= 5) intervals.push(initialElapsedMin);
   }
 
-  let avgIntervalMin = intervals.length >= 2
-    ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
-    : matchedMeta.baseCycleMin;
+  // 2. 遍歷相鄰掉落間隔 (神聖極罕見蛋放寬至 25,000 分鐘 / 17 天)
+  const maxValidInterval = (matchedMeta.rarity === 'Divine' || matchedMeta.baseCycleMin >= 1000) ? 25000 : 2880;
+  for (let i = 1; i < timestamps.length; i++) {
+    const diffMin = (timestamps[i] - timestamps[i - 1]) / 60000;
+    if (diffMin >= 2 && diffMin <= maxValidInterval) intervals.push(diffMin);
+  }
 
   const sortedIntervals = [...intervals].sort((a, b) => a - b);
+
+  // ⚡ 高峰連鎖密集間隔 (20th 百分位數)
+  const burstIntervalMin = sortedIntervals.length > 0
+    ? Math.max(15, Math.round(sortedIntervals[Math.floor(sortedIntervals.length * 0.20)]))
+    : Math.round(matchedMeta.baseCycleMin * 0.35);
+
+  // ⚖️ 常態中位數間隔 (50th 百分位數)
   const medianIntervalMin = sortedIntervals.length > 0
-    ? sortedIntervals[Math.floor(sortedIntervals.length / 2)]
-    : avgIntervalMin;
+    ? Math.round(sortedIntervals[Math.floor(sortedIntervals.length * 0.50)])
+    : matchedMeta.baseCycleMin;
+
+  // ❄️ 低谷乾旱蓄能上限 (85th 百分位數)
+  const valleyIntervalMin = sortedIntervals.length > 0
+    ? Math.max(medianIntervalMin, Math.round(sortedIntervals[Math.floor(sortedIntervals.length * 0.85)]))
+    : Math.round(matchedMeta.baseCycleMin * 1.6);
+
+  // 📈 近 5 筆加權移動趨勢 (EMA)
+  const recentIntervals = intervals.slice(-5);
+  const recentAvgMin = recentIntervals.length > 0
+    ? Math.round(recentIntervals.reduce((a, b) => a + b, 0) / recentIntervals.length)
+    : medianIntervalMin;
+
+  // 🎯 動態目標基準週期：若樣本充足，融合 60% 近期節奏 + 40% 歷史中位數
+  const dynamicTargetMin = intervals.length >= 3
+    ? Math.round(0.6 * recentAvgMin + 0.4 * medianIntervalMin)
+    : medianIntervalMin;
+
+  // 歷史總平均間隔
+  const avgIntervalMin = intervals.length > 0
+    ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
+    : matchedMeta.baseCycleMin;
 
   const lastSeen = count > 0 ? timestamps[timestamps.length - 1] : null;
   const minutesSinceLast = lastSeen ? Math.max(0, Math.round((now - lastSeen) / 60000)) : null;
 
+  // 動態波段狀態識別 (Phase Detection)
+  let phase = 'normal';
+  let phaseText = '⏳ 常態平穩蓄能期';
   let status = 'accumulating';
   let statusText = '⏳ 週期累積中';
   let estimatedMinutesLeft = 0;
-  let predictedTime = null;
-  let progressPercent = 0;
   let overdueMinutes = 0;
+  let progressPercent = 0;
+  let predictedTime = null;
 
   if (minutesSinceLast === null) {
+    phase = 'genesis_waiting';
+    phaseText = '💎 活動初生蓄能期';
     status = 'rare_prior';
-    statusText = '💎 極稀有神蛋 (近期未見，高隨機刷新)';
-    estimatedMinutesLeft = avgIntervalMin;
+    statusText = '💎 極稀有活動蛋 (等待全服首現)';
+    estimatedMinutesLeft = dynamicTargetMin;
     predictedTime = new Date(now + estimatedMinutesLeft * 60000);
-    progressPercent = 50;
-  } else if (minutesSinceLast >= avgIntervalMin) {
-    status = 'overdue';
-    overdueMinutes = minutesSinceLast - avgIntervalMin;
-    statusText = `🔥 爆發警戒期 (逾期 ${overdueMinutes} 分鐘，極高機率隨時掉落)`;
+    progressPercent = 30;
+  } else if (minutesSinceLast >= dynamicTargetMin) {
+    overdueMinutes = minutesSinceLast - dynamicTargetMin;
+    if (minutesSinceLast >= valleyIntervalMin) {
+      phase = 'valley_critical';
+      phaseText = '🔥 頂級逾期爆發期';
+      status = 'overdue';
+      statusText = `🔥 頂級逾期爆發期 (已逾 ${overdueMinutes} 分鐘，超越低谷上限，極高爆率！)`;
+    } else {
+      phase = 'valley_entering';
+      phaseText = '⚡ 進入低谷衝刺期';
+      status = 'overdue';
+      statusText = `⚡ 進入低谷衝刺期 (已逾 ${overdueMinutes} 分鐘，伺服器蓄能釋放中)`;
+    }
     estimatedMinutesLeft = 0;
     const cycleMs = 5 * 60 * 1000;
     predictedTime = new Date(Math.ceil(now / cycleMs) * cycleMs);
     progressPercent = 100;
   } else {
-    estimatedMinutesLeft = Math.max(1, avgIntervalMin - minutesSinceLast);
+    estimatedMinutesLeft = Math.max(1, dynamicTargetMin - minutesSinceLast);
     predictedTime = new Date(now + estimatedMinutesLeft * 60000);
-    progressPercent = Math.min(99, Math.round((minutesSinceLast / avgIntervalMin) * 100));
+    progressPercent = Math.min(99, Math.round((minutesSinceLast / dynamicTargetMin) * 100));
+
     if (progressPercent >= 80) {
+      phase = 'window';
+      phaseText = '🟡 核心掉落窗口期';
       status = 'entering_window';
-      statusText = '🟡 進入出蛋窗口期 (近期即將現身)';
+      statusText = '🟡 核心掉落窗口期 (近期即將現身)';
+    } else if (burstIntervalMin <= 90 && minutesSinceLast <= burstIntervalMin * 1.2 && recentIntervals.length > 0 && recentIntervals[recentIntervals.length - 1] <= burstIntervalMin * 1.5) {
+      phase = 'burst';
+      phaseText = '⚡ 連鎖密集爆蛋期';
+      status = 'burst_active';
+      statusText = '⚡ 連鎖密集爆蛋期 (正處高頻連出波段)';
+    } else {
+      phase = 'normal';
+      phaseText = '⏳ 常態平穩蓄能期';
+      status = 'accumulating';
+      statusText = '⏳ 常態平穩蓄能期 (穩步累積中)';
+    }
+  }
+
+  // 區間時間顯示窗口
+  const minMinutesLeft = Math.max(0, burstIntervalMin - (minutesSinceLast || 0));
+  const maxMinutesLeft = Math.max(0, valleyIntervalMin - (minutesSinceLast || 0));
+  let predictedRangeStr = '';
+  if (estimatedMinutesLeft === 0) {
+    predictedRangeStr = '即刻 ~ 15 分鐘內';
+  } else {
+    const minH = (minMinutesLeft / 60).toFixed(1);
+    const maxH = (maxMinutesLeft / 60).toFixed(1);
+    if (maxMinutesLeft > 180) {
+      predictedRangeStr = `約 ${minH} ~ ${maxH} 小時 (基準約 ${(estimatedMinutesLeft / 60).toFixed(1)} 小時)`;
+    } else {
+      predictedRangeStr = `約 ${minMinutesLeft} ~ ${maxMinutesLeft} 分鐘 (基準約 ${estimatedMinutesLeft} 分鐘)`;
     }
   }
 
@@ -513,6 +610,13 @@ function computeSingleEggPrediction(query, rows = cachedRows) {
   const lastSeenStr = lastSeenDate
     ? lastSeenDate.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })
     : '無紀錄';
+
+  let genesisNote = null;
+  if (genesisTime) {
+    const gDate = new Date(genesisTime);
+    const gStr = gDate.toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
+    genesisNote = `活動上線起點: ${gStr} (已校準初始週期計時)`;
+  }
 
   return {
     name: matchedMeta.name,
@@ -523,8 +627,18 @@ function computeSingleEggPrediction(query, rows = cachedRows) {
     lastSeen: lastSeen ? new Date(lastSeen).toISOString() : null,
     lastSeenStr,
     minutesSinceLast,
+    // 週期與波段指標
     avgIntervalMin,
     medianIntervalMin,
+    burstIntervalMin,
+    valleyIntervalMin,
+    recentAvgMin,
+    dynamicTargetMin,
+    phase,
+    phaseText,
+    predictedRangeStr,
+    genesisNote,
+    // 預估抵達
     estimatedMinutesLeft,
     overdueMinutes,
     predictedTime: predictedTime.toISOString(),

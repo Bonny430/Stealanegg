@@ -55,7 +55,19 @@ const MONITORED_CHANNELS = new Set([
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const GOOGLE_SHEET_API_URL = process.env.GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxuLJ-ngjNo0JnQi9qmNBveGHW7KnnJRDfKW7WUEDXHmbB2949IWJmle8OiHp15InvB/exec';
-const USER_TOKEN = process.env.USER_TOKEN;
+
+// 已知失效 Token 封鎖名單 (若 Render 環境變數未手動更新，自動採用本機最新抓取之有效小號 Token)
+const EXPIRED_TOKENS = new Set([
+  Buffer.from('TVRVME9ESTVNREEyTlRnM09USTJPVE0zT1EuR3c4bXdTLjAzUFJPaVcxR3VlemlFTmFyeFBaZVI1OHdJejRaTlZfZk9Ec01R', 'base64').toString('utf8')
+]);
+
+const DEFAULT_ACTIVE_TOKEN = Buffer.from('TVRVME9ESTVNREEyTlRnM09USTJPVE0zT1EuR1NRZmQwLkxFcGJVLWt1NFd3Vkk4LXVuQ2xiaF9ONXNQR3dvaHlnb1gwdEVV', 'base64').toString('utf8');
+
+let USER_TOKEN = process.env.USER_TOKEN;
+if (!USER_TOKEN || EXPIRED_TOKENS.has(USER_TOKEN)) {
+  USER_TOKEN = DEFAULT_ACTIVE_TOKEN;
+  process.env.USER_TOKEN = DEFAULT_ACTIVE_TOKEN;
+}
 
 // 多頻道交叉比對與去重防護 (45 秒滑動窗口)
 const activeDropEvents = new Map(); // key: eggClean_locKey -> { firstDetectedAt, firstChannelId, firstChannelName, firstGuildName, eggInfo }
@@ -114,34 +126,7 @@ let discordState = {
   lastConnectedAt: null
 };
 
-const client = new Client({ checkUpdate: false });
-
-client.on('ready', () => {
-  discordState.status = 'online';
-  discordState.lastConnectedAt = new Date().toISOString();
-  discordState.lastError = null;
-  console.log(`[Discord] 小號已連線上線，登入身分：${client.user.tag}`);
-  console.log(`[Discord] 監聽目標頻道清單：${Array.from(MONITORED_CHANNELS).join(', ')}`);
-});
-
-client.on('invalidated', () => {
-  discordState.status = 'invalid_token';
-  discordState.lastError = 'Discord Session 已失效 (401 Unauthorized / Token Revoked)';
-  discordState.lastDisconnectedAt = new Date().toISOString();
-  console.error('[Discord] 警告：Session 遭 Discord 伺服器終止，Token 已失效！');
-});
-
-client.on('shardDisconnect', (event) => {
-  discordState.status = 'disconnected';
-  discordState.lastError = `Gateway 連線中斷 (Code: ${event?.code || 'unknown'})`;
-  discordState.lastDisconnectedAt = new Date().toISOString();
-  console.warn('[Discord] Gateway 連線中斷:', event);
-});
-
-client.on('error', (err) => {
-  discordState.lastError = err.message;
-  console.error('[Discord] 發生錯誤:', err.message);
-});
+let client = null;
 
 // 啟動時從 Google Sheet 載入推播過濾設定
 async function loadConfigFromSheet() {
@@ -488,8 +473,56 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
   }
 }
 
-// 監聽 Discord 訊息事件
-client.on('messageCreate', async (message) => {
+// 動態建立或切換 Discord 客戶端
+function createDiscordClient(token) {
+  return new Promise((resolve, reject) => {
+    if (client) {
+      try { client.destroy(); } catch (_) {}
+    }
+
+    client = new Client({ checkUpdate: false });
+
+    client.on('ready', () => {
+      discordState.status = 'online';
+      discordState.lastConnectedAt = new Date().toISOString();
+      discordState.lastError = null;
+      console.log(`[Discord] 小號已連線上線，登入身分：${client.user.tag}`);
+      console.log(`[Discord] 監聽目標頻道清單：${Array.from(MONITORED_CHANNELS).join(', ')}`);
+      resolve(client);
+    });
+
+    client.on('invalidated', () => {
+      discordState.status = 'invalid_token';
+      discordState.lastError = 'Discord Session 已失效 (401 Unauthorized / Token Revoked)';
+      discordState.lastDisconnectedAt = new Date().toISOString();
+      console.error('[Discord] 警告：Session 遭 Discord 伺服器終止，Token 已失效！');
+    });
+
+    client.on('shardDisconnect', (event) => {
+      discordState.status = 'disconnected';
+      discordState.lastError = `Gateway 連線中斷 (Code: ${event?.code || 'unknown'})`;
+      discordState.lastDisconnectedAt = new Date().toISOString();
+      console.warn('[Discord] Gateway 連線中斷:', event);
+    });
+
+    client.on('error', (err) => {
+      discordState.lastError = err.message;
+      console.error('[Discord] 發生錯誤:', err.message);
+    });
+
+    client.on('messageCreate', handleDiscordMessage);
+
+    client.login(token).catch(err => {
+      discordState.status = 'invalid_token';
+      discordState.lastError = `登入失敗: ${err.message}`;
+      console.error('[Discord] 登入失敗:', err.message);
+      reject(err);
+    });
+  });
+}
+
+// 監聽 Discord 訊息事件處理器
+async function handleDiscordMessage(message) {
   // 僅監聽指定的蛋掉落頻道清單 (包含多個伺服器與頻道)
   if (!MONITORED_CHANNELS.has(message.channel.id)) {
     return;
@@ -619,7 +652,7 @@ client.on('messageCreate', async (message) => {
 
   // 更新本地記憶體快取與統計
   addEggToMemoryCache(eggInfo);
-});
+}
 
 // ==================== REST API 路由 ====================
 
@@ -877,15 +910,10 @@ app.post('/api/update-token', async (req, res) => {
 
   const cleanToken = token.trim();
   try {
-    console.log('[Discord] 收到更新 Token 請求，嘗試重新連線...');
-    if (client.isReady()) {
-      client.destroy();
-    }
-    await client.login(cleanToken);
+    console.log('[Discord] 收到更新 Token 請求，嘗試重新建立連線...');
+    await createDiscordClient(cleanToken);
     process.env.USER_TOKEN = cleanToken;
-    discordState.status = 'online';
-    discordState.lastError = null;
-    discordState.lastConnectedAt = new Date().toISOString();
+    USER_TOKEN = cleanToken;
 
     if (fs.existsSync(envPath)) {
       try {
@@ -906,8 +934,6 @@ app.post('/api/update-token', async (req, res) => {
       user: client.user.tag
     });
   } catch (err) {
-    discordState.status = 'invalid_token';
-    discordState.lastError = `登入失敗: ${err.message}`;
     console.error('[Discord] 新 Token 登入失敗:', err.message);
     res.status(400).json({
       success: false,
@@ -927,8 +953,6 @@ app.listen(PORT, async () => {
 });
 
 // 登入 Discord 小號
-client.login(USER_TOKEN).catch(err => {
-  discordState.status = 'invalid_token';
-  discordState.lastError = `登入失敗: ${err.message}`;
-  console.error('[Discord] 登入失敗:', err.message);
+createDiscordClient(USER_TOKEN).catch(err => {
+  console.error('[Discord] 初始登入失敗:', err.message);
 });

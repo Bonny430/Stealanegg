@@ -1031,6 +1031,21 @@ app.post('/api/auth/update-my-settings', (req, res) => {
   res.json({ success: true, member: updated });
 });
 
+// 取得登入會員的歷史操作日誌
+app.get('/api/auth/my-logs', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
+  const session = memberService.validateSession(authHeader);
+  if (!session.valid) {
+    return res.status(401).json({ success: false, error: '請先登入以檢視個人操作紀錄' });
+  }
+  const member = memberService.members.get(String(session.chatId));
+  res.json({
+    success: true,
+    chatId: session.chatId,
+    logs: member?.activityLogs || []
+  });
+});
+
 // 會員名冊與狀態 API
 app.get('/api/members', (req, res) => {
   res.json({

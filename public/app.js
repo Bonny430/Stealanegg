@@ -1176,8 +1176,76 @@ if (logoutBtn) {
   };
 }
 
-// 個人偏好設定 Modal
-const RARITY_LIST = ['Secret', 'Eternal', 'Divine', 'World Burner', 'Mythical', 'Legendary', 'Rare'];
+// ==================== 個人偏好設定 Modal & 操作日誌 ====================
+const HIGH_TIER_EGGS_META = [
+  { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic' },
+  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons' },
+  { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple' },
+  { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean' },
+  { name: 'Cerberus', rarity: 'Secret', biome: 'Volcano' },
+  { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic' },
+  { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano' },
+  { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric' },
+  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons' },
+  { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple' },
+  { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean' },
+  { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow' },
+  { name: 'Lava Dragon', rarity: 'Eternal', biome: 'Volcano' },
+  { name: 'Oni Tiger', rarity: 'Eternal', biome: 'Cherry Blossom' },
+  { name: 'Pegasus', rarity: 'Eternal', biome: 'Angels & Demons' },
+  { name: 'Skeleton Horse', rarity: 'Eternal', biome: 'Angels & Demons' },
+  { name: 'Cosmic Skeleton Boss', rarity: 'Secret', biome: 'Cosmic' },
+  { name: 'Centaur', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'King Snake', rarity: 'Secret', biome: 'Jungle' },
+  { name: 'Pure Jellyfish', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'Stag', rarity: 'Secret', biome: 'Cherry Blossom' },
+  { name: 'Yeti', rarity: 'Secret', biome: 'Snow' },
+  { name: 'T-Rex', rarity: 'Secret', biome: 'Prehistoric' },
+  { name: 'Tralaledon', rarity: 'Secret', biome: 'Prehistoric' },
+  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom' },
+  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple' },
+  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic' }
+];
+
+const TOP_10_EGG_LIST = [
+  'Cosmic Dragon', 'World Burner', 'Mutant Shark', 'Gargoyle', 'Kraken',
+  'Cerberus', 'Eternal Lunar Dragon', 'Phoenix', 'Mosasaurus', 'ArchAngel'
+];
+
+// DOM 元素引用
+const tabMyFilterBtn = document.getElementById('tabMyFilterBtn');
+const tabMyLogsBtn = document.getElementById('tabMyLogsBtn');
+const myFilterTabWrap = document.getElementById('myFilterTabWrap');
+const myLogsTabWrap = document.getElementById('myLogsTabWrap');
+const myLogsCountBadge = document.getElementById('myLogsCountBadge');
+const myCustomEggsWrap = document.getElementById('myCustomEggsWrap');
+const myEggsGridContainer = document.getElementById('myEggsGridContainer');
+const mySelectedEggCount = document.getElementById('mySelectedEggCount');
+const mySelectAll28Btn = document.getElementById('mySelectAll28Btn');
+const mySelectTop10Btn = document.getElementById('mySelectTop10Btn');
+const myClearEggsBtn = document.getElementById('myClearEggsBtn');
+const myLogsTimeline = document.getElementById('myLogsTimeline');
+const myLogsEmptyNotice = document.getElementById('myLogsEmptyNotice');
+const refreshMyLogsBtn = document.getElementById('refreshMyLogsBtn');
+
+// 切換 Tab
+if (tabMyFilterBtn && tabMyLogsBtn) {
+  tabMyFilterBtn.onclick = () => {
+    tabMyFilterBtn.classList.add('active');
+    tabMyLogsBtn.classList.remove('active');
+    if (myFilterTabWrap) myFilterTabWrap.classList.remove('hidden');
+    if (myLogsTabWrap) myLogsTabWrap.classList.add('hidden');
+  };
+
+  tabMyLogsBtn.onclick = () => {
+    tabMyLogsBtn.classList.add('active');
+    tabMyFilterBtn.classList.remove('active');
+    if (myLogsTabWrap) myLogsTabWrap.classList.remove('hidden');
+    if (myFilterTabWrap) myFilterTabWrap.classList.add('hidden');
+    loadMyLogs();
+  };
+}
 
 if (openMySettingsBtn) {
   openMySettingsBtn.onclick = () => {
@@ -1186,6 +1254,9 @@ if (openMySettingsBtn) {
       return;
     }
     const m = currentUser.member;
+
+    // 預設切換至推播 Tab
+    if (tabMyFilterBtn) tabMyFilterBtn.click();
 
     if (myProfileTierBadge) {
       const tierClass = m.tier === 'admin' ? 'admin' : (m.isVip ? 'vip' : 'free');
@@ -1213,41 +1284,175 @@ if (openMySettingsBtn) {
       r.checked = r.value === currentMode;
     });
 
-    renderMyCustomRarities(m.customRarities || []);
+    const selectedEggs = Array.isArray(m.customEggNames) && m.customEggNames.length > 0
+      ? m.customEggNames
+      : [...DEFAULT_HIGH_TIER_NAMES];
+
+    renderMyEggsChecklist(selectedEggs);
 
     if (currentMode === 'custom') {
-      myCustomRaritiesWrap.classList.remove('hidden');
+      if (myCustomEggsWrap) myCustomEggsWrap.classList.remove('hidden');
     } else {
-      myCustomRaritiesWrap.classList.add('hidden');
+      if (myCustomEggsWrap) myCustomEggsWrap.classList.add('hidden');
     }
 
-    mySettingsModal.classList.remove('hidden');
+    if (myLogsCountBadge) {
+      myLogsCountBadge.textContent = m.activityLogs?.length || 0;
+    }
+
+    if (mySettingsModal) mySettingsModal.classList.remove('hidden');
   };
 }
 
-function renderMyCustomRarities(selected = []) {
-  if (!myCustomRaritiesWrap) return;
-  myCustomRaritiesWrap.innerHTML = RARITY_LIST.map(r => {
-    const isChecked = selected.includes(r);
+// 渲染 28 款神蛋勾選卡片
+function renderMyEggsChecklist(selectedEggs = []) {
+  if (!myEggsGridContainer) return;
+
+  myEggsGridContainer.innerHTML = HIGH_TIER_EGGS_META.map(egg => {
+    const isChecked = selectedEggs.includes(egg.name);
+    const rarityClass = `rarity-${egg.rarity.toLowerCase().replace(/[^a-z]/g, '')}`;
     return `
-      <label class="rarity-checkbox-item">
-        <input type="checkbox" value="${r}" ${isChecked ? 'checked' : ''} class="my-rarity-chk">
-        <span>${r}</span>
+      <label class="my-egg-card ${isChecked ? 'selected' : ''}">
+        <input type="checkbox" value="${egg.name}" ${isChecked ? 'checked' : ''} class="my-egg-chk" style="accent-color:#38bdf8;">
+        <div class="my-egg-info">
+          <div class="my-egg-name" title="${egg.name}">${egg.name}</div>
+          <div class="my-egg-meta">
+            <span class="my-egg-tag ${rarityClass}">${egg.rarity}</span>
+            <span class="my-egg-tag biome">${egg.biome}</span>
+          </div>
+        </div>
       </label>
     `;
   }).join('');
+
+  updateSelectedCount();
+
+  // 綁定卡片勾選事件
+  myEggsGridContainer.querySelectorAll('.my-egg-card').forEach(card => {
+    const chk = card.querySelector('.my-egg-chk');
+    if (!chk) return;
+    chk.onchange = () => {
+      if (chk.checked) {
+        card.classList.add('selected');
+      } else {
+        card.classList.remove('selected');
+      }
+      updateSelectedCount();
+    };
+  });
 }
 
-// 監聽模式 Radio 切換
+function updateSelectedCount() {
+  const checked = document.querySelectorAll('.my-egg-chk:checked');
+  if (mySelectedEggCount) {
+    mySelectedEggCount.textContent = checked.length;
+  }
+}
+
+// 快速範本按鈕
+if (mySelectAll28Btn) {
+  mySelectAll28Btn.onclick = () => {
+    document.querySelectorAll('.my-egg-chk').forEach(chk => {
+      chk.checked = true;
+      chk.closest('.my-egg-card')?.classList.add('selected');
+    });
+    updateSelectedCount();
+  };
+}
+
+if (mySelectTop10Btn) {
+  mySelectTop10Btn.onclick = () => {
+    document.querySelectorAll('.my-egg-chk').forEach(chk => {
+      const isTop10 = TOP_10_EGG_LIST.includes(chk.value);
+      chk.checked = isTop10;
+      if (isTop10) {
+        chk.closest('.my-egg-card')?.classList.add('selected');
+      } else {
+        chk.closest('.my-egg-card')?.classList.remove('selected');
+      }
+    });
+    updateSelectedCount();
+  };
+}
+
+if (myClearEggsBtn) {
+  myClearEggsBtn.onclick = () => {
+    document.querySelectorAll('.my-egg-chk').forEach(chk => {
+      chk.checked = false;
+      chk.closest('.my-egg-card')?.classList.remove('selected');
+    });
+    updateSelectedCount();
+  };
+}
+
+// 監聽個人推播模式切換
 document.addEventListener('change', (e) => {
   if (e.target && e.target.name === 'myFilterMode') {
     if (e.target.value === 'custom') {
-      myCustomRaritiesWrap.classList.remove('hidden');
+      if (myCustomEggsWrap) myCustomEggsWrap.classList.remove('hidden');
     } else {
-      myCustomRaritiesWrap.classList.add('hidden');
+      if (myCustomEggsWrap) myCustomEggsWrap.classList.add('hidden');
     }
   }
 });
+
+// 載入我的操作歷史日誌
+async function loadMyLogs() {
+  if (!myLogsTimeline) return;
+  myLogsTimeline.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:20px;">載入日誌中...</div>';
+
+  try {
+    const res = await fetch('/api/auth/my-logs', {
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (data.success && Array.isArray(data.logs)) {
+      if (myLogsCountBadge) myLogsCountBadge.textContent = data.logs.length;
+      if (data.logs.length === 0) {
+        myLogsTimeline.innerHTML = '';
+        if (myLogsEmptyNotice) myLogsEmptyNotice.classList.remove('hidden');
+        return;
+      }
+
+      if (myLogsEmptyNotice) myLogsEmptyNotice.classList.add('hidden');
+      myLogsTimeline.innerHTML = data.logs.map(log => {
+        const timeStr = formatDateTime(log.timestamp);
+        const sourceClass = `source-${log.source || 'telegram'}`;
+        const sourceText = log.source === 'web' ? '🌐 網頁' : (log.source === 'system' ? '⚙️ 系統' : '📱 Telegram');
+        let icon = '📝';
+        if (log.action === 'toggle_egg') icon = '🥚';
+        else if (log.action === 'apply_preset') icon = '⭐';
+        else if (log.action === 'toggle_enabled') icon = '🔔';
+        else if (log.action === 'web_login') icon = '🔑';
+        else if (log.action === 'vip_grant') icon = '👑';
+
+        return `
+          <div class="log-item">
+            <div class="log-icon-badge">${icon}</div>
+            <div class="log-content">
+              <div class="log-header-row">
+                <span class="log-source-badge ${sourceClass}">${sourceText}</span>
+                <span class="log-time">${timeStr}</span>
+              </div>
+              <div class="log-desc">${log.description}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      myLogsTimeline.innerHTML = `<div style="color:#fb7185; font-size:13px; text-align:center; padding:20px;">無法讀取紀錄: ${data.error || '未授權'}</div>`;
+    }
+  } catch (err) {
+    myLogsTimeline.innerHTML = `<div style="color:#fb7185; font-size:13px; text-align:center; padding:20px;">連線異常: ${err.message}</div>`;
+  }
+}
+
+if (refreshMyLogsBtn) {
+  refreshMyLogsBtn.onclick = () => {
+    loadMyLogs();
+    showToast('🔄 已重新整理個人操作日誌', 'success');
+  };
+}
 
 function closeMySettingsModal() {
   if (mySettingsModal) mySettingsModal.classList.add('hidden');
@@ -1263,7 +1468,7 @@ if (saveMySettingsBtn) {
 
     const enabled = myNotifyToggle.checked;
     const selectedMode = document.querySelector('input[name="myFilterMode"]:checked')?.value || 'all';
-    const checkedRarities = Array.from(document.querySelectorAll('.my-rarity-chk:checked')).map(c => c.value);
+    const checkedEggs = Array.from(document.querySelectorAll('.my-egg-chk:checked')).map(c => c.value);
 
     try {
       const res = await fetch('/api/auth/update-my-settings', {
@@ -1272,7 +1477,7 @@ if (saveMySettingsBtn) {
         body: JSON.stringify({
           enabled,
           filterType: selectedMode,
-          customRarities: checkedRarities
+          customEggNames: checkedEggs
         })
       });
       const data = await res.json();
@@ -1280,7 +1485,7 @@ if (saveMySettingsBtn) {
         currentUser.member = data.member;
         updateAuthUI();
         closeMySettingsModal();
-        showToast('💾 個人推播偏好已儲存並同步至 Telegram！', 'success');
+        showToast('💾 個人推播設定已儲存並同步至 Telegram！', 'success');
       } else {
         showToast('儲存失敗: ' + (data.error || '請重試'), 'error');
       }

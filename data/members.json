@@ -8,10 +8,55 @@
     "enabled": true,
     "filterType": "all",
     "customRarities": [],
-    "customEggNames": [],
+    "customEggNames": [
+      "Cosmic Dragon",
+      "World Burner",
+      "Mutant Shark",
+      "Gargoyle",
+      "Kraken",
+      "Cerberus",
+      "Eternal Lunar Dragon",
+      "Phoenix",
+      "Mosasaurus",
+      "ArchAngel",
+      "Gorilla King",
+      "El Maja",
+      "Ice Dragon",
+      "Lava Dragon",
+      "Oni Tiger",
+      "Pegasus",
+      "Skeleton Horse",
+      "Cosmic Skeleton Boss",
+      "Centaur",
+      "King Snake",
+      "Pure Jellyfish",
+      "Stag",
+      "Yeti",
+      "T-Rex",
+      "Tralaledon",
+      "Kitsune",
+      "Nightflame",
+      "Unicorn"
+    ],
     "createdAt": "2026-09-21T12:04:29.976Z",
-    "updatedAt": "2026-09-21T12:04:29.978Z",
+    "updatedAt": "2026-09-21T12:37:20.889Z",
     "notificationsCount": 0,
-    "notes": "Super Admin (System Owner)"
+    "notes": "Super Admin (System Owner)",
+    "activityLogs": [
+      {
+        "id": "log_1789994240889_nvob",
+        "timestamp": "2026-09-21T12:37:20.889Z",
+        "action": "apply_preset",
+        "description": "套用範本：28種高階神蛋全選",
+        "source": "telegram"
+      },
+      {
+        "id": "log_1789994240884_8uuh",
+        "timestamp": "2026-09-21T12:37:20.884Z",
+        "action": "toggle_egg",
+        "description": "新增追蹤蛋種：Cosmic Dragon",
+        "source": "telegram"
+      }
+    ]
   }
 }

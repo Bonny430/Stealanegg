@@ -10,6 +10,65 @@ const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const ALL_RARITIES = ['Secret', 'Eternal', 'Divine', 'World Burner', 'Mythical', 'Legendary', 'Rare'];
 const VIP_DEFAULT_RARITIES = ['Secret', 'Eternal', 'Divine', 'World Burner'];
 
+// 28 種官方自然地圖刷新高階神蛋名冊 (精準追蹤核心)
+const HIGH_TIER_EGGS = [
+  { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic' },
+  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons' },
+  { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple' },
+  { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean' },
+  { name: 'Cerberus', rarity: 'Secret', biome: 'Volcano' },
+  { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic' },
+  { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano' },
+  { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric' },
+  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons' },
+  { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple' },
+  { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean' },
+  { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow' },
+  { name: 'Lava Dragon', rarity: 'Eternal', biome: 'Volcano' },
+  { name: 'Oni Tiger', rarity: 'Eternal', biome: 'Cherry Blossom' },
+  { name: 'Pegasus', rarity: 'Eternal', biome: 'Angels & Demons' },
+  { name: 'Skeleton Horse', rarity: 'Eternal', biome: 'Angels & Demons' },
+  { name: 'Cosmic Skeleton Boss', rarity: 'Secret', biome: 'Cosmic' },
+  { name: 'Centaur', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'King Snake', rarity: 'Secret', biome: 'Jungle' },
+  { name: 'Pure Jellyfish', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'Stag', rarity: 'Secret', biome: 'Cherry Blossom' },
+  { name: 'Yeti', rarity: 'Secret', biome: 'Snow' },
+  { name: 'T-Rex', rarity: 'Secret', biome: 'Prehistoric' },
+  { name: 'Tralaledon', rarity: 'Secret', biome: 'Prehistoric' },
+  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom' },
+  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple' },
+  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic' }
+];
+
+const TOP_10_EGG_NAMES = [
+  'Cosmic Dragon',
+  'World Burner',
+  'Mutant Shark',
+  'Gargoyle',
+  'Kraken',
+  'Cerberus',
+  'Eternal Lunar Dragon',
+  'Phoenix',
+  'Mosasaurus',
+  'ArchAngel'
+];
+
+const ALL_HIGH_TIER_NAMES = HIGH_TIER_EGGS.map(e => e.name);
+
+const BIOME_LABELS = {
+  'All': '🌐 全部 (28種)',
+  'Cosmic': '🪐 宇宙',
+  'Titan Temple': '🏛️ 泰坦',
+  'Volcano': '🌋 火山',
+  'Abyss Ocean': '🌊 深海',
+  'Angels & Demons': '👼 天使惡魔',
+  'Prehistoric': '🦖 史前',
+  'Cherry Blossom': '🌸 櫻花',
+  'Snow': '❄️ 冰雪'
+};
+
 class MemberService {
   constructor() {
     this.members = new Map();
@@ -38,6 +97,12 @@ class MemberService {
         const raw = fs.readFileSync(MEMBERS_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         for (const [id, m] of Object.entries(parsed)) {
+          if (!Array.isArray(m.customEggNames) || m.customEggNames.length === 0) {
+            m.customEggNames = [...ALL_HIGH_TIER_NAMES];
+          }
+          if (!Array.isArray(m.activityLogs)) {
+            m.activityLogs = [];
+          }
           this.members.set(String(id), m);
         }
         console.log(`[MemberService] 已載入 ${this.members.size} 位會員`);
@@ -121,7 +186,8 @@ class MemberService {
           member: {
             ...member,
             customRarities: member.customRarities || [],
-            customEggNames: member.customEggNames || []
+            customEggNames: member.customEggNames || [],
+            activityLogs: (member.activityLogs || []).slice(0, 20)
           }
         })
       });
@@ -142,12 +208,21 @@ class MemberService {
           if (!m.chatId) continue;
           const id = String(m.chatId);
           if (!this.members.has(id)) {
+            if (!Array.isArray(m.customEggNames) || m.customEggNames.length === 0) {
+              m.customEggNames = [...ALL_HIGH_TIER_NAMES];
+            }
+            if (!Array.isArray(m.activityLogs)) m.activityLogs = [];
             this.members.set(id, m);
           } else {
             // 合併雲端與本地，以最新更新者為準
             const local = this.members.get(id);
             if (m.updatedAt && (!local.updatedAt || new Date(m.updatedAt) > new Date(local.updatedAt))) {
-              this.members.set(id, { ...local, ...m });
+              this.members.set(id, {
+                ...local,
+                ...m,
+                customEggNames: Array.isArray(m.customEggNames) && m.customEggNames.length > 0 ? m.customEggNames : local.customEggNames,
+                activityLogs: Array.isArray(local.activityLogs) && local.activityLogs.length > 0 ? local.activityLogs : (m.activityLogs || [])
+              });
             }
           }
         }
@@ -176,7 +251,8 @@ class MemberService {
         enabled: true,
         filterType: 'all', // 'all' | 'rare_only' | 'custom'
         customRarities: isSuperAdmin ? [...ALL_RARITIES] : [...VIP_DEFAULT_RARITIES],
-        customEggNames: [],
+        customEggNames: [...ALL_HIGH_TIER_NAMES],
+        activityLogs: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         notificationsCount: 0,
@@ -192,12 +268,47 @@ class MemberService {
         member.tier = 'admin';
         member.expireAt = '2099-12-31T23:59:59.999Z';
       }
+      if (!Array.isArray(member.customEggNames) || member.customEggNames.length === 0) {
+        member.customEggNames = [...ALL_HIGH_TIER_NAMES];
+      }
+      if (!Array.isArray(member.activityLogs)) {
+        member.activityLogs = [];
+      }
       member.updatedAt = new Date().toISOString();
     }
 
     this.saveLocal();
     this.syncMemberToSheet(member).catch(() => {});
     return member;
+  }
+
+  // 記錄使用者歷史操作行為 Log (保留最近 50 筆)
+  logMemberAction(chatId, action, description, source = 'telegram') {
+    const id = String(chatId);
+    let member = this.members.get(id);
+    if (!member) member = this.registerMember(id);
+
+    if (!Array.isArray(member.activityLogs)) {
+      member.activityLogs = [];
+    }
+
+    const logEntry = {
+      id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      timestamp: new Date().toISOString(),
+      action,
+      description,
+      source
+    };
+
+    member.activityLogs.unshift(logEntry);
+    if (member.activityLogs.length > 50) {
+      member.activityLogs = member.activityLogs.slice(0, 50);
+    }
+
+    member.updatedAt = new Date().toISOString();
+    this.saveLocal();
+    this.syncMemberToSheet(member).catch(() => {});
+    return logEntry;
   }
 
   // 檢查是否具備有效 VIP / 管理員權限
@@ -236,18 +347,21 @@ class MemberService {
     member.updatedAt = new Date().toISOString();
     if (notes) member.notes = notes;
 
+    const dateStr = new Date(newExpire).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+    this.logMemberAction(id, 'vip_grant', `開通 VIP 尊爵特權 (${days} 天，至 ${dateStr})`, 'system');
+
     this.saveLocal();
     this.syncMemberToSheet(member).catch(() => {});
 
     // 發送開通祝賀私訊給用戶
-    const dateStr = new Date(newExpire).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
     const msg = `🎉【VIP 尊爵會員開通通知】\n\n` +
       `恭喜您！管理員已為您開通 Steal An Egg VIP 特權！\n` +
       `• 開通天數：${days} 天\n` +
       `• 到期時間：${dateStr} (台灣時間)\n` +
       `• 尊爵特權：\n` +
       `  ✨ 秒級即時接收 Secret、Eternal、Divine 稀有蛋私訊！\n` +
-      `  ✨ 支援輸入 /filter 自訂您專屬的蛋種過濾選單！\n\n` +
+      `  ✨ 支援輸入 /filter 自訂 28 種高階神蛋專屬過濾選單！\n` +
+      `  ✨ 支援輸入 /logs 查看個人操作軌跡紀錄！\n\n` +
       `感謝您的支持，祝您每次都能搶到心儀的神級蛋！🥚🔥`;
 
     await this.sendTelegramMessage(id, msg).catch(() => {});
@@ -264,19 +378,21 @@ class MemberService {
     member.tier = 'free';
     member.expireAt = null;
     member.updatedAt = new Date().toISOString();
+    this.logMemberAction(id, 'vip_revoke', 'VIP 會員身分變更為免費會員', 'system');
     this.saveLocal();
     this.syncMemberToSheet(member).catch(() => {});
     return member;
   }
 
   // 切換推播開關
-  toggleEnabled(chatId) {
+  toggleEnabled(chatId, source = 'telegram') {
     const id = String(chatId);
     let member = this.members.get(id);
     if (!member) member = this.registerMember(id);
 
     member.enabled = !member.enabled;
     member.updatedAt = new Date().toISOString();
+    this.logMemberAction(id, 'toggle_enabled', `推播通知狀態切換為【${member.enabled ? '開啟' : '暫停'}】`, source);
     this.saveLocal();
     this.syncMemberToSheet(member).catch(() => {});
     return member;
@@ -302,8 +418,6 @@ class MemberService {
   shouldNotify(member, eggInfo) {
     if (!member || member.enabled === false) return false;
 
-    const isVip = this.isVipActive(member);
-
     // 1. 全部接收模式
     if (member.filterType === 'all') {
       return true;
@@ -315,14 +429,24 @@ class MemberService {
       return rareRarities.includes(eggInfo.rarity);
     }
 
-    // 3. 自訂條件模式
+    // 3. 自訂精準蛋種模式 (以自選蛋種名冊為核心)
     if (member.filterType === 'custom') {
+      const eggNameLower = (eggInfo.name || '').toLowerCase().trim();
+
+      // 若已有自選蛋名清單，以蛋種精準匹配為唯一標準
+      if (Array.isArray(member.customEggNames)) {
+        if (member.customEggNames.length === 0) return false;
+        return member.customEggNames.some(target => {
+          const targetLower = target.toLowerCase().trim();
+          return eggNameLower.includes(targetLower) || targetLower.includes(eggNameLower);
+        });
+      }
+
+      // 舊版過渡：若尚未設定蛋名清單，相容稀有度勾選
       if (Array.isArray(member.customRarities) && member.customRarities.includes(eggInfo.rarity)) {
         return true;
       }
-      if (Array.isArray(member.customEggNames) && member.customEggNames.some(name => eggInfo.name.toLowerCase().includes(name.toLowerCase()))) {
-        return true;
-      }
+
       return false;
     }
 
@@ -500,6 +624,8 @@ class MemberService {
     this.sessions.set(token, session);
     this.saveSessions();
 
+    this.logMemberAction(id, 'web_login', '從監控儀表板 OTP 驗證碼登入成功', 'web');
+
     return {
       success: true,
       token,
@@ -531,6 +657,8 @@ class MemberService {
 
     this.sessions.set(token, session);
     this.saveSessions();
+
+    this.logMemberAction(this.superAdminChatId, 'admin_login', '使用 Super Admin 金鑰登入儀表板', 'web');
 
     return {
       success: true,
@@ -585,12 +713,28 @@ class MemberService {
     let member = this.members.get(id);
     if (!member) return null;
 
-    if (typeof enabled === 'boolean') member.enabled = enabled;
-    if (filterType) member.filterType = filterType;
-    if (Array.isArray(customRarities)) member.customRarities = customRarities;
-    if (Array.isArray(customEggNames)) member.customEggNames = customEggNames;
+    const changes = [];
+    if (typeof enabled === 'boolean' && member.enabled !== enabled) {
+      member.enabled = enabled;
+      changes.push(`推播提醒${enabled ? '開啟' : '暫停'}`);
+    }
+    if (filterType && member.filterType !== filterType) {
+      member.filterType = filterType;
+      const typeLabel = filterType === 'all' ? '全部接收' : (filterType === 'rare_only' ? '僅稀有蛋' : '自選蛋種');
+      changes.push(`模式設為【${typeLabel}】`);
+    }
+    if (Array.isArray(customRarities)) {
+      member.customRarities = customRarities;
+    }
+    if (Array.isArray(customEggNames)) {
+      member.customEggNames = customEggNames;
+      changes.push(`追蹤 ${customEggNames.length} 款蛋`);
+    }
 
     member.updatedAt = new Date().toISOString();
+    const desc = changes.length > 0 ? `在網頁更新偏好：${changes.join('、')}` : '在網頁儲存個人推播偏好';
+    this.logMemberAction(id, 'web_settings', desc, 'web');
+
     this.saveLocal();
     this.syncMemberToSheet(member).catch(() => {});
     return this.getSanitizedMember(member);
@@ -610,8 +754,9 @@ class MemberService {
       enabled: m.enabled !== false,
       filterType: m.filterType || 'all',
       customRarities: m.customRarities || [],
-      customEggNames: m.customEggNames || [],
-      notificationsCount: m.notificationsCount || 0
+      customEggNames: m.customEggNames || [...ALL_HIGH_TIER_NAMES],
+      notificationsCount: m.notificationsCount || 0,
+      activityLogs: (m.activityLogs || []).slice(0, 50)
     };
   }
 
@@ -733,12 +878,14 @@ class MemberService {
       const tierBadge = isSuperAdmin ? '👑 系統主管理員' : (isVip ? '🌟 VIP 尊爵會員' : '⚪ 一般免費會員');
       const expireStr = isSuperAdmin ? '永久有效' : (member.expireAt ? new Date(member.expireAt).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '未開通 (免費方案)');
       const alertStatus = member.enabled !== false ? '🔔 即時接收中' : '🔕 已暫停推播';
+      const trackedCount = (member.customEggNames || []).length;
 
       const welcomeHtml = `👋 <b>您好，${firstName}！歡迎使用 Steal An Egg 蛋掉落監控系統！</b>\n\n` +
         `📋 <b>您的會員帳號資訊：</b>\n` +
         `• <b>會員 ID：</b> <code>${chatId}</code>\n` +
         `• <b>會員等級：</b> ${tierBadge}\n` +
         `• <b>推播狀態：</b> ${alertStatus}\n` +
+        `• <b>追蹤蛋種：</b> ${member.filterType === 'all' ? '全部蛋種 (無過濾)' : (member.filterType === 'rare_only' ? '僅 VIP 稀有蛋' : `${trackedCount} / 28 種高階神蛋`)}\n` +
         `• <b>VIP 到期日：</b> ${expireStr}\n\n` +
         `⚡ <b>點擊下方快捷按鈕開始體驗：</b>`;
 
@@ -750,10 +897,13 @@ class MemberService {
           ],
           [
             { text: member.enabled !== false ? '🔕 暫停推播' : '🔔 開啟推播', callback_data: 'menu_toggle' },
-            { text: '📊 掉落預測分析', callback_data: 'menu_predict' }
+            { text: '📜 我的操作紀錄', callback_data: 'menu_logs' }
           ],
           [
-            { text: '🥚 最新 5 筆掉落紀錄', callback_data: 'menu_last' },
+            { text: '📊 掉落預測分析', callback_data: 'menu_predict' },
+            { text: '🥚 最新 5 筆掉落', callback_data: 'menu_last' }
+          ],
+          [
             { text: '🌐 開啟監控儀表板', url: 'https://stealanegg.onrender.com/' }
           ]
         ]
@@ -771,15 +921,26 @@ class MemberService {
 
     // /toggle 指令
     if (text === '/toggle') {
-      this.toggleEnabled(chatId);
+      this.toggleEnabled(chatId, 'telegram');
       const newStatus = member.enabled ? '🔔 推播已【開啟】！您將會即時接收蛋掉落私訊提醒。' : '🔕 推播已【暫停】！您將不會受到私訊打擾。';
       await this.sendTelegramMessage(chatId, newStatus);
       return;
     }
 
-    // /filter 指令
-    if (text === '/filter') {
-      await this.sendFilterKeyboard(chatId, member);
+    // /logs 或 /history 指令 (使用者操作日誌)
+    if (text === '/logs' || text === '/history' || text === '/log') {
+      await this.sendMemberLogs(chatId);
+      return;
+    }
+
+    // /filter 指令 (精準蛋種過濾，支援 /filter 與 /filter <關鍵字>)
+    if (text.startsWith('/filter')) {
+      const query = text.replace(/^\/filter/i, '').trim();
+      if (query) {
+        await this.sendEggSearchResults(chatId, member, query);
+      } else {
+        await this.sendEggFilterMenu(chatId, 0, 'All');
+      }
       return;
     }
 
@@ -800,7 +961,9 @@ class MemberService {
       const helpText = `📖 <b>Steal An Egg 機器人操作指南</b>\n\n` +
         `• <code>/start</code> - 重啟歡迎選單與帳號註冊\n` +
         `• <code>/me</code> - 檢視個人會員卡、VIP 到期日與推播設定\n` +
-        `• <code>/filter</code> - 自選想要接收的蛋種稀有度 (Secret/Eternal/Divine)\n` +
+        `• <code>/filter</code> - 自選想要接收的 28 款高階自然刷新神蛋 (支援地區、分頁與快速範本)\n` +
+        `• <code>/filter &lt;關鍵字&gt;</code> - 快速搜尋並勾選特定蛋種 (例：<code>/filter dragon</code>, <code>/filter ocean</code>)\n` +
+        `• <code>/logs</code> - 查看您最近的歷史操作日誌 (追蹤調整、範本套用、推播開關)\n` +
         `• <code>/toggle</code> - 一鍵開啟 / 暫停推播通知\n` +
         `• <code>/predict</code> - 查看下一輪出蛋時間預測與平均週期\n` +
         `• <code>/last</code> - 查看最近 5 顆掉落的稀有蛋紀錄\n\n` +
@@ -896,34 +1059,142 @@ class MemberService {
 
     // 2. 切換推播開關
     if (data === 'menu_toggle') {
-      this.toggleEnabled(chatId);
+      this.toggleEnabled(chatId, 'telegram');
       await this.answerCallback(cb.id, member.enabled ? '🔔 已開啟推播' : '🔕 已暫停推播');
       await this.sendMemberCard(chatId, member, messageId);
       return;
     }
 
-    // 3. 打開過濾設定選單
+    // 3. 打開蛋種過濾設定選單
     if (data === 'menu_filter') {
-      await this.answerCallback(cb.id, '過濾選單');
-      await this.sendFilterKeyboard(chatId, member, messageId);
+      await this.answerCallback(cb.id, '載入蛋種過濾選單');
+      await this.sendEggFilterMenu(chatId, 0, 'All', messageId);
       return;
     }
 
-    // 4. 預測資訊
+    // 4. 查看個人歷史操作紀錄 (Activity Log)
+    if (data === 'menu_logs') {
+      await this.answerCallback(cb.id, '載入操作紀錄');
+      await this.sendMemberLogs(chatId, messageId);
+      return;
+    }
+
+    // 5. 預測資訊
     if (data === 'menu_predict') {
       await this.answerCallback(cb.id, '計算週期分析中...');
       await this.sendPredictionInfo(chatId);
       return;
     }
 
-    // 5. 最新掉落
+    // 6. 最新掉落
     if (data === 'menu_last') {
       await this.answerCallback(cb.id, '讀取歷史掉落...');
       await this.sendLastDrops(chatId);
       return;
     }
 
-    // 6. 切換單一稀有度勾選狀態 (cb_rarity:<name>)
+    // 7. 切換單顆蛋種勾選 (egg_toggle:<eggName>:<page>:<biome>)
+    if (data.startsWith('egg_toggle:')) {
+      const parts = data.split(':');
+      const eggName = parts[1];
+      const page = parseInt(parts[2], 10) || 0;
+      const biome = parts[3] || 'All';
+
+      if (!Array.isArray(member.customEggNames)) {
+        member.customEggNames = [...ALL_HIGH_TIER_NAMES];
+      }
+      member.filterType = 'custom';
+
+      const exists = member.customEggNames.includes(eggName);
+      if (exists) {
+        member.customEggNames = member.customEggNames.filter(n => n !== eggName);
+      } else {
+        member.customEggNames.push(eggName);
+      }
+
+      this.logMemberAction(chatId, 'toggle_egg', `${exists ? '取消' : '新增'}追蹤蛋種：${eggName}`, 'telegram');
+      this.saveLocal();
+      this.syncMemberToSheet(member).catch(() => {});
+
+      await this.answerCallback(cb.id, `${exists ? '⬜ 已取消' : '✅ 已開啟'}：${eggName}`);
+      await this.sendEggFilterMenu(chatId, page, biome, messageId);
+      return;
+    }
+
+    // 8. 搜尋結果中的蛋種切換 (egg_search_toggle:<eggName>:<query>)
+    if (data.startsWith('egg_search_toggle:')) {
+      const parts = data.split(':');
+      const eggName = parts[1];
+      const query = decodeURIComponent(parts[2] || '');
+
+      if (!Array.isArray(member.customEggNames)) {
+        member.customEggNames = [...ALL_HIGH_TIER_NAMES];
+      }
+      member.filterType = 'custom';
+
+      const exists = member.customEggNames.includes(eggName);
+      if (exists) {
+        member.customEggNames = member.customEggNames.filter(n => n !== eggName);
+      } else {
+        member.customEggNames.push(eggName);
+      }
+
+      this.logMemberAction(chatId, 'toggle_egg', `${exists ? '取消' : '新增'}追蹤蛋種：${eggName}`, 'telegram');
+      this.saveLocal();
+      this.syncMemberToSheet(member).catch(() => {});
+
+      await this.answerCallback(cb.id, `${exists ? '⬜ 已取消' : '✅ 已開啟'}：${eggName}`);
+      await this.sendEggSearchResults(chatId, member, query, messageId);
+      return;
+    }
+
+    // 9. 蛋種過濾快捷範本 (egg_preset:<preset>:<page>:<biome>)
+    if (data.startsWith('egg_preset:')) {
+      const parts = data.split(':');
+      const preset = parts[1];
+      const page = parseInt(parts[2], 10) || 0;
+      const biome = parts[3] || 'All';
+
+      member.filterType = 'custom';
+      if (preset === 'high28') {
+        member.customEggNames = [...ALL_HIGH_TIER_NAMES];
+        this.logMemberAction(chatId, 'apply_preset', '套用範本：28種高階神蛋全選', 'telegram');
+        await this.answerCallback(cb.id, '⭐ 已全選 28 種高階神蛋！');
+      } else if (preset === 'top10') {
+        member.customEggNames = [...TOP_10_EGG_NAMES];
+        this.logMemberAction(chatId, 'apply_preset', '套用範本：Top 10 神級蛋清單', 'telegram');
+        await this.answerCallback(cb.id, '🔥 已勾選 Top 10 神級蛋！');
+      } else if (preset === 'clear') {
+        member.customEggNames = [];
+        this.logMemberAction(chatId, 'apply_preset', '清空所有自選追蹤蛋種', 'telegram');
+        await this.answerCallback(cb.id, '🗑️ 已清空追蹤清單');
+      }
+
+      this.saveLocal();
+      this.syncMemberToSheet(member).catch(() => {});
+      await this.sendEggFilterMenu(chatId, page, biome, messageId);
+      return;
+    }
+
+    // 10. 切換地區分類 (egg_biome:<biome>)
+    if (data.startsWith('egg_biome:')) {
+      const biome = data.replace('egg_biome:', '');
+      await this.answerCallback(cb.id, `切換分區：${BIOME_LABELS[biome] || biome}`);
+      await this.sendEggFilterMenu(chatId, 0, biome, messageId);
+      return;
+    }
+
+    // 11. 切換分頁 (egg_page:<page>:<biome>)
+    if (data.startsWith('egg_page:')) {
+      const parts = data.split(':');
+      const page = parseInt(parts[1], 10) || 0;
+      const biome = parts[2] || 'All';
+      await this.answerCallback(cb.id);
+      await this.sendEggFilterMenu(chatId, page, biome, messageId);
+      return;
+    }
+
+    // 12. 兼容舊版稀有度切換 (rarity_toggle:<name>)
     if (data.startsWith('rarity_toggle:')) {
       const rarity = data.replace('rarity_toggle:', '');
       member.filterType = 'custom';
@@ -935,37 +1206,18 @@ class MemberService {
         member.customRarities.push(rarity);
       }
 
+      this.logMemberAction(chatId, 'toggle_rarity', `切換稀有度：${rarity}`, 'telegram');
       this.saveLocal();
       this.syncMemberToSheet(member).catch(() => {});
 
       await this.answerCallback(cb.id, `已切換 ${rarity}`);
-      await this.sendFilterKeyboard(chatId, member, messageId);
+      await this.sendEggFilterMenu(chatId, 0, 'All', messageId);
       return;
     }
 
-    // 7. 過濾快捷範本
-    if (data === 'preset_all') {
-      member.filterType = 'all';
-      this.saveLocal();
-      this.syncMemberToSheet(member).catch(() => {});
-      await this.answerCallback(cb.id, '已設定接收全部蛋種');
-      await this.sendFilterKeyboard(chatId, member, messageId);
-      return;
-    }
-
-    if (data === 'preset_rare') {
-      member.filterType = 'rare_only';
-      member.customRarities = [...VIP_DEFAULT_RARITIES];
-      this.saveLocal();
-      this.syncMemberToSheet(member).catch(() => {});
-      await this.answerCallback(cb.id, '已設定僅接收稀有蛋 (Secret / Eternal / Divine)');
-      await this.sendFilterKeyboard(chatId, member, messageId);
-      return;
-    }
-
+    // 13. 關閉選單
     if (data === 'menu_close') {
       await this.answerCallback(cb.id, '選單已關閉');
-      // 可以只更新訊息為已關閉
       await this.editMessageText(chatId, messageId, '<i>(選單已收合，隨時輸入 /start 或 /me 重新開啟)</i>', { reply_markup: { inline_keyboard: [] } });
       return;
     }
@@ -977,7 +1229,12 @@ class MemberService {
     const isVip = this.isVipActive(member);
     const tierBadge = isSuperAdmin ? '👑 系統主管理員 (Admin)' : (isVip ? '🌟 VIP 尊爵會員' : '⚪ 一般免費會員 (Free)');
     const expireText = isSuperAdmin ? '永久有效' : (member.expireAt ? new Date(member.expireAt).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '未開通 (免費方案)');
-    const filterText = member.filterType === 'all' ? '全部蛋種 (無過濾)' : (member.filterType === 'rare_only' ? '僅 VIP 稀有蛋' : `自訂 (${(member.customRarities || []).join(', ') || '尚未挑選'})`);
+    const trackedCount = (member.customEggNames || []).length;
+    const filterText = member.filterType === 'all'
+      ? '全部蛋種 (無過濾)'
+      : (member.filterType === 'rare_only'
+          ? '僅 VIP 稀有蛋'
+          : `精選蛋種 (${trackedCount} / 28 種)`);
 
     const cardHtml = `💳 <b>【Steal An Egg 個人會員中心】</b>\n\n` +
       `• <b>會員暱稱：</b> ${member.firstName} (@${member.username || '未設定'})\n` +
@@ -986,7 +1243,8 @@ class MemberService {
       `• <b>VIP 到期日：</b> ${expireText}\n` +
       `• <b>推播提醒：</b> ${member.enabled !== false ? '🔔 即時接收中' : '🔕 已暫停推播'}\n` +
       `• <b>過濾設定：</b> ${filterText}\n` +
-      `• <b>累計快訊：</b> 已接收 ${member.notificationsCount || 0} 則掉落通知\n\n` +
+      `• <b>累計快訊：</b> 已接收 ${member.notificationsCount || 0} 則掉落通知\n` +
+      `• <b>操作紀錄：</b> 累計 ${(member.activityLogs || []).length} 筆歷史足跡\n\n` +
       (!isVip && !isSuperAdmin ? `💡 <i>提示：VIP 會員享有 1 對 1 私訊推播神級 Secret 蛋與專屬關鍵字通知！請聯繫管理員開通。</i>` : '');
 
     const keyboard = {
@@ -996,10 +1254,11 @@ class MemberService {
           { text: '⚙️ 調整蛋種過濾', callback_data: 'menu_filter' }
         ],
         [
-          { text: '📊 週期預測', callback_data: 'menu_predict' },
-          { text: '🥚 最近掉落', callback_data: 'menu_last' }
+          { text: '📜 我的操作紀錄', callback_data: 'menu_logs' },
+          { text: '📊 週期預測', callback_data: 'menu_predict' }
         ],
         [
+          { text: '🥚 最近掉落', callback_data: 'menu_last' },
           { text: '🌐 開啟監控儀表板', url: 'https://stealanegg.onrender.com/' }
         ]
       ]
@@ -1012,51 +1271,238 @@ class MemberService {
     }
   }
 
-  // 發送或編輯過濾按鈕選單
-  async sendFilterKeyboard(chatId, member, messageId = null) {
-    const selected = member.customRarities || [];
-    const currentMode = member.filterType || 'all';
+  // 發送或編輯蛋種過濾選單 (具備地區分類、分頁、與即時勾選)
+  async sendEggFilterMenu(chatId, page = 0, biome = 'All', messageId = null) {
+    const member = this.members.get(String(chatId)) || this.registerMember(chatId);
+    if (!Array.isArray(member.customEggNames)) {
+      member.customEggNames = [...ALL_HIGH_TIER_NAMES];
+    }
+    const selectedEggs = member.customEggNames;
 
-    let filterDesc = `⚙️ <b>【自訂蛋種推播過濾設定】</b>\n\n` +
-      `當前接收模式：<b>${currentMode === 'all' ? '🔔 全部接收 (包含所有蛋)' : (currentMode === 'rare_only' ? '👑 僅 VIP 稀有蛋' : '🎯 自訂勾選清單')}</b>\n\n` +
-      `點擊下方按鈕即可切換想要即時接收的稀有度：`;
+    // 依地區篩選
+    const filteredEggs = biome === 'All'
+      ? HIGH_TIER_EGGS
+      : HIGH_TIER_EGGS.filter(e => e.biome === biome);
 
-    const rarityButtons = [];
-    for (let i = 0; i < ALL_RARITIES.length; i += 2) {
-      const r1 = ALL_RARITIES[i];
-      const r2 = ALL_RARITIES[i + 1];
-      const isR1On = currentMode === 'all' || (currentMode === 'rare_only' && VIP_DEFAULT_RARITIES.includes(r1)) || (currentMode === 'custom' && selected.includes(r1));
-      
+    const PAGE_SIZE = 6;
+    const totalPages = Math.max(1, Math.ceil(filteredEggs.length / PAGE_SIZE));
+    const currentPage = Math.min(Math.max(0, page), totalPages - 1);
+    const pageEggs = filteredEggs.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+    const modeBadge = member.filterType === 'all'
+      ? '🔔 全部接收 (不限蛋種)'
+      : (member.filterType === 'rare_only' ? '👑 僅 VIP 稀有蛋' : '🎯 自選精準蛋種');
+
+    const biomeLabel = BIOME_LABELS[biome] || biome;
+
+    let text = `⚙️ <b>【Telegram 蛋種精準推播設定】</b>\n\n` +
+      `• <b>接收模式：</b> ${modeBadge}\n` +
+      `• <b>追蹤數量：</b> <b>${selectedEggs.length} / 28 款高階神蛋</b>\n` +
+      `• <b>當前分區：</b> <b>${biomeLabel}</b> (共 ${filteredEggs.length} 款，第 ${currentPage + 1}/${totalPages} 頁)\n\n` +
+      `👇 <i>點擊下方蛋名按鈕切換【✅ 追蹤 / ⬜ 忽略】：</i>\n` +
+      `💡 <i>小撇步：可直接輸入 <code>/filter &lt;關鍵字&gt;</code> 搜尋（例：<code>/filter dragon</code>）</i>`;
+
+    // 1. 範本快捷行
+    const presetRow = [
+      { text: '⭐ 28種全選', callback_data: `egg_preset:high28:${currentPage}:${biome}` },
+      { text: '🔥 Top 10 神蛋', callback_data: `egg_preset:top10:${currentPage}:${biome}` },
+      { text: '🗑️ 清空清單', callback_data: `egg_preset:clear:${currentPage}:${biome}` }
+    ];
+
+    // 2. 地區快捷分類按鈕 (3 列，每列 3 顆)
+    const biomesList = [
+      ['All', 'Cosmic', 'Titan Temple'],
+      ['Volcano', 'Abyss Ocean', 'Angels & Demons'],
+      ['Prehistoric', 'Cherry Blossom', 'Snow']
+    ];
+    const biomeButtons = biomesList.map(row => {
+      return row.map(bKey => {
+        const isActive = biome === bKey;
+        const shortName = {
+          'All': '🌐 全部',
+          'Cosmic': '🪐 宇宙',
+          'Titan Temple': '🏛️ 泰坦',
+          'Volcano': '🌋 火山',
+          'Abyss Ocean': '🌊 深海',
+          'Angels & Demons': '👼 天使惡魔',
+          'Prehistoric': '🦖 史前',
+          'Cherry Blossom': '🌸 櫻花',
+          'Snow': '❄️ 冰雪'
+        }[bKey] || bKey;
+
+        return {
+          text: isActive ? `🔘 ${shortName}` : shortName,
+          callback_data: `egg_biome:${bKey}`
+        };
+      });
+    });
+
+    // 3. 蛋種網格 (2 列 x 3 行 = 6 顆)
+    const eggRows = [];
+    for (let i = 0; i < pageEggs.length; i += 2) {
+      const e1 = pageEggs[i];
+      const e2 = pageEggs[i + 1];
+      const is1On = selectedEggs.includes(e1.name);
       const row = [
-        { text: `${isR1On ? '✅' : '⬜'} ${r1}`, callback_data: `rarity_toggle:${r1}` }
+        { text: `${is1On ? '✅' : '⬜'} ${e1.name}`, callback_data: `egg_toggle:${e1.name}:${currentPage}:${biome}` }
       ];
-      if (r2) {
-        const isR2On = currentMode === 'all' || (currentMode === 'rare_only' && VIP_DEFAULT_RARITIES.includes(r2)) || (currentMode === 'custom' && selected.includes(r2));
-        row.push({ text: `${isR2On ? '✅' : '⬜'} ${r2}`, callback_data: `rarity_toggle:${r2}` });
+      if (e2) {
+        const is2On = selectedEggs.includes(e2.name);
+        row.push({
+          text: `${is2On ? '✅' : '⬜'} ${e2.name}`,
+          callback_data: `egg_toggle:${e2.name}:${currentPage}:${biome}`
+        });
       }
-      rarityButtons.push(row);
+      eggRows.push(row);
     }
 
-    const presetButtons = [
-      [
-        { text: currentMode === 'all' ? '🔘 全部接收' : '🔔 全部接收', callback_data: 'preset_all' },
-        { text: currentMode === 'rare_only' ? '🔘 僅 VIP 稀有蛋' : '👑 僅 VIP 稀有蛋', callback_data: 'preset_rare' }
-      ],
-      [
-        { text: '⬅️ 返回會員卡', callback_data: 'menu_me' },
-        { text: '❌ 關閉選單', callback_data: 'menu_close' }
-      ]
+    // 4. 分頁控制行
+    const prevPage = (currentPage - 1 + totalPages) % totalPages;
+    const nextPage = (currentPage + 1) % totalPages;
+    const navRow = [
+      { text: '◀️ 上一頁', callback_data: `egg_page:${prevPage}:${biome}` },
+      { text: `📄 ${currentPage + 1} / ${totalPages}`, callback_data: `egg_page:${currentPage}:${biome}` },
+      { text: '下一頁 ▶️', callback_data: `egg_page:${nextPage}:${biome}` }
+    ];
+
+    // 5. 底部動作行
+    const footerRow = [
+      { text: '📜 我的操作紀錄', callback_data: 'menu_logs' },
+      { text: '👤 會員中心', callback_data: 'menu_me' },
+      { text: '❌ 關閉', callback_data: 'menu_close' }
     ];
 
     const keyboard = {
-      inline_keyboard: [...rarityButtons, ...presetButtons]
+      inline_keyboard: [
+        presetRow,
+        ...biomeButtons,
+        ...eggRows,
+        navRow,
+        footerRow
+      ]
     };
 
     if (messageId) {
-      await this.editMessageText(chatId, messageId, filterDesc, { reply_markup: keyboard });
+      await this.editMessageText(chatId, messageId, text, { reply_markup: keyboard });
     } else {
-      await this.sendTelegramMessage(chatId, filterDesc, { reply_markup: keyboard });
+      await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
     }
+  }
+
+  // 關鍵字搜尋蛋種結果視圖
+  async sendEggSearchResults(chatId, member, query, messageId = null) {
+    const qLower = query.toLowerCase();
+    const matched = HIGH_TIER_EGGS.filter(e =>
+      e.name.toLowerCase().includes(qLower) ||
+      e.rarity.toLowerCase().includes(qLower) ||
+      e.biome.toLowerCase().includes(qLower)
+    );
+
+    let text = `🔍 <b>【蛋種搜尋結果】關鍵字：「${query}」</b>\n\n`;
+    if (matched.length === 0) {
+      text += `找不到符合名稱、稀有度或地區的高階蛋。\n建議搜尋：<code>dragon</code>, <code>cosmic</code>, <code>ocean</code>, <code>volcano</code>\n\n` +
+        `點擊下方按鈕瀏覽完整清單：`;
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: '⚙️ 返回完整蛋種選單', callback_data: 'menu_filter' }],
+          [{ text: '❌ 關閉', callback_data: 'menu_close' }]
+        ]
+      };
+      if (messageId) {
+        return this.editMessageText(chatId, messageId, text, { reply_markup: keyboard });
+      }
+      return this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
+    }
+
+    text += `找到 <b>${matched.length}</b> 款相符高階神蛋，點擊切換勾選：\n`;
+    const selected = member.customEggNames || [];
+
+    const eggButtons = [];
+    for (let i = 0; i < matched.length; i += 2) {
+      const e1 = matched[i];
+      const e2 = matched[i + 1];
+      const is1On = selected.includes(e1.name);
+      const row = [
+        { text: `${is1On ? '✅' : '⬜'} ${e1.name}`, callback_data: `egg_search_toggle:${e1.name}:${encodeURIComponent(query)}` }
+      ];
+      if (e2) {
+        const is2On = selected.includes(e2.name);
+        row.push({ text: `${is2On ? '✅' : '⬜'} ${e2.name}`, callback_data: `egg_search_toggle:${e2.name}:${encodeURIComponent(query)}` });
+      }
+      eggButtons.push(row);
+    }
+
+    const keyboard = {
+      inline_keyboard: [
+        ...eggButtons,
+        [
+          { text: '⚙️ 返回完整選單', callback_data: 'menu_filter' },
+          { text: '📜 我的操作紀錄', callback_data: 'menu_logs' }
+        ],
+        [
+          { text: '❌ 關閉', callback_data: 'menu_close' }
+        ]
+      ]
+    };
+
+    if (messageId) {
+      await this.editMessageText(chatId, messageId, text, { reply_markup: keyboard });
+    } else {
+      await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
+    }
+  }
+
+  // 檢視個人操作歷史日誌 (Activity Log)
+  async sendMemberLogs(chatId, messageId = null) {
+    const member = this.members.get(String(chatId)) || this.registerMember(chatId);
+    const logs = member.activityLogs || [];
+
+    let text = `📜 <b>【個人歷史操作日誌】</b>\n` +
+      `帳號：<code>${chatId}</code> (${member.firstName})\n\n`;
+
+    if (logs.length === 0) {
+      text += `<i>目前尚無任何操作紀錄。\n當您調整蛋種勾選、套用範本、切換推播或於網頁登入時，系統將自動為您保存足跡！</i>\n\n`;
+    } else {
+      text += `<b>最近 ${Math.min(logs.length, 10)} 筆操作明細：</b>\n\n`;
+      const recent = logs.slice(0, 10);
+      recent.forEach((log, idx) => {
+        const time = new Date(log.timestamp).toLocaleString('zh-TW', {
+          timeZone: 'Asia/Taipei',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const sourceIcon = log.source === 'web' ? '🌐 [網頁]' : (log.source === 'system' ? '⚙️ [系統]' : '📱 [TG]');
+        text += `${idx + 1}. <b>${time}</b> ${sourceIcon}\n   ${log.description}\n\n`;
+      });
+      text += `💡 <i>系統保存最新 50 筆紀錄。網頁儀表板個人設定亦可即時查看！</i>`;
+    }
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '⚙️ 調整蛋種設定', callback_data: 'menu_filter' },
+          { text: '👤 會員中心', callback_data: 'menu_me' }
+        ],
+        [
+          { text: '❌ 關閉', callback_data: 'menu_close' }
+        ]
+      ]
+    };
+
+    if (messageId) {
+      await this.editMessageText(chatId, messageId, text, { reply_markup: keyboard });
+    } else {
+      await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
+    }
+  }
+
+  // 兼容舊版呼叫
+  async sendFilterKeyboard(chatId, member, messageId = null) {
+    return this.sendEggFilterMenu(chatId, 0, 'All', messageId);
   }
 
   // 查詢週期預測

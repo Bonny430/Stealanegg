@@ -106,12 +106,41 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Discord 用戶端實例
+// Discord 用戶端實例與狀態追蹤
+let discordState = {
+  status: 'connecting',
+  lastError: null,
+  lastDisconnectedAt: null,
+  lastConnectedAt: null
+};
+
 const client = new Client({ checkUpdate: false });
 
 client.on('ready', () => {
+  discordState.status = 'online';
+  discordState.lastConnectedAt = new Date().toISOString();
+  discordState.lastError = null;
   console.log(`[Discord] 小號已連線上線，登入身分：${client.user.tag}`);
   console.log(`[Discord] 監聽目標頻道清單：${Array.from(MONITORED_CHANNELS).join(', ')}`);
+});
+
+client.on('invalidated', () => {
+  discordState.status = 'invalid_token';
+  discordState.lastError = 'Discord Session 已失效 (401 Unauthorized / Token Revoked)';
+  discordState.lastDisconnectedAt = new Date().toISOString();
+  console.error('[Discord] 警告：Session 遭 Discord 伺服器終止，Token 已失效！');
+});
+
+client.on('shardDisconnect', (event) => {
+  discordState.status = 'disconnected';
+  discordState.lastError = `Gateway 連線中斷 (Code: ${event?.code || 'unknown'})`;
+  discordState.lastDisconnectedAt = new Date().toISOString();
+  console.warn('[Discord] Gateway 連線中斷:', event);
+});
+
+client.on('error', (err) => {
+  discordState.lastError = err.message;
+  console.error('[Discord] 發生錯誤:', err.message);
 });
 
 // 啟動時從 Google Sheet 載入推播過濾設定
@@ -596,9 +625,10 @@ client.on('messageCreate', async (message) => {
 
 // 1. 伺服器與小號連線狀態 (支援多頻道監聽與交叉比對)
 app.get('/api/status', async (req, res) => {
+  const isWsConnected = Boolean(client.user && client.ws && client.ws.status === 0);
   let channelDetails = [];
   try {
-    if (client.isReady()) {
+    if (isWsConnected) {
       for (const chId of MONITORED_CHANNELS) {
         const known = KNOWN_CHANNELS[chId];
         const ch = await client.channels.fetch(chId).catch(() => null);
@@ -620,11 +650,13 @@ app.get('/api/status', async (req, res) => {
   const activeChannelNames = channelDetails.filter(c => c.accessible).map(c => `#${c.name}`);
 
   res.json({
-    online: client.isReady(),
+    online: isWsConnected,
     user: client.user ? client.user.tag : null,
+    discordStatus: isWsConnected ? 'online' : discordState.status,
+    lastError: discordState.lastError || (!isWsConnected ? 'Discord Token 已失效或 Gateway 斷線 (401 Unauthorized)' : null),
     channelCount: MONITORED_CHANNELS.size,
     accessibleCount: channelDetails.filter(c => c.accessible).length,
-    channelName: activeChannelNames.join(' & ') || 'egg-notifier',
+    channelName: activeChannelNames.join(' & ') || '無連線頻道',
     monitoredChannels: channelDetails,
     crossCheckStats,
     uptime: Math.round(process.uptime())
@@ -836,6 +868,54 @@ app.get('/api/sync-status', (req, res) => {
   res.json(syncStatus);
 });
 
+// 9. 線上更新 Discord Token (無需重啟 Render 即可立即重新連線)
+app.post('/api/update-token', async (req, res) => {
+  const { token } = req.body;
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: '請提供有效的 Discord Token' });
+  }
+
+  const cleanToken = token.trim();
+  try {
+    console.log('[Discord] 收到更新 Token 請求，嘗試重新連線...');
+    if (client.isReady()) {
+      client.destroy();
+    }
+    await client.login(cleanToken);
+    process.env.USER_TOKEN = cleanToken;
+    discordState.status = 'online';
+    discordState.lastError = null;
+    discordState.lastConnectedAt = new Date().toISOString();
+
+    if (fs.existsSync(envPath)) {
+      try {
+        let content = fs.readFileSync(envPath, 'utf8');
+        if (content.includes('USER_TOKEN=')) {
+          content = content.replace(/USER_TOKEN=.*/, `USER_TOKEN=${cleanToken}`);
+        } else {
+          content += `\nUSER_TOKEN=${cleanToken}`;
+        }
+        fs.writeFileSync(envPath, content, 'utf8');
+      } catch (_) {}
+    }
+
+    console.log(`[Discord] 成功以新 Token 登入：${client.user.tag}`);
+    res.json({
+      success: true,
+      message: `連線成功！登入身分：${client.user.tag}`,
+      user: client.user.tag
+    });
+  } catch (err) {
+    discordState.status = 'invalid_token';
+    discordState.lastError = `登入失敗: ${err.message}`;
+    console.error('[Discord] 新 Token 登入失敗:', err.message);
+    res.status(400).json({
+      success: false,
+      error: `Token 驗證失敗: ${err.message}`
+    });
+  }
+});
+
 // 啟動 Express
 app.listen(PORT, async () => {
   console.log(`[Web] 儀表板伺服器運行於 Port ${PORT}`);
@@ -848,5 +928,7 @@ app.listen(PORT, async () => {
 
 // 登入 Discord 小號
 client.login(USER_TOKEN).catch(err => {
+  discordState.status = 'invalid_token';
+  discordState.lastError = `登入失敗: ${err.message}`;
   console.error('[Discord] 登入失敗:', err.message);
 });

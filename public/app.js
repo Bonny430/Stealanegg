@@ -49,6 +49,17 @@ const channelsGrid = document.getElementById('channelsGrid');
 const latestCrossVerification = document.getElementById('latestCrossVerification');
 const latestCrossVerificationText = document.getElementById('latestCrossVerificationText');
 
+// 斷線橫幅與 Token 更新 Modal DOM 元素
+const offlineAlertBanner = document.getElementById('offlineAlertBanner');
+const offlineAlertDesc = document.getElementById('offlineAlertDesc');
+const openTokenModalBtn = document.getElementById('openTokenModalBtn');
+const tokenModal = document.getElementById('tokenModal');
+const closeTokenModalBtn = document.getElementById('closeTokenModalBtn');
+const cancelTokenModalBtn = document.getElementById('cancelTokenModalBtn');
+const submitTokenBtn = document.getElementById('submitTokenBtn');
+const discordTokenInput = document.getElementById('discordTokenInput');
+const tokenUpdateError = document.getElementById('tokenUpdateError');
+
 // Toast 提示
 function showToast(message, type = 'success') {
   toast.textContent = message;
@@ -100,6 +111,72 @@ function updateCountdown() {
   countdownTimer.style.color = '';
 }
 
+// Modal 控制邏輯
+function openTokenModal() {
+  if (!tokenModal) return;
+  tokenModal.classList.remove('hidden');
+  if (discordTokenInput) {
+    discordTokenInput.value = '';
+    discordTokenInput.focus();
+  }
+  if (tokenUpdateError) {
+    tokenUpdateError.textContent = '';
+    tokenUpdateError.classList.add('hidden');
+  }
+}
+
+function closeTokenModal() {
+  if (tokenModal) tokenModal.classList.add('hidden');
+}
+
+if (openTokenModalBtn) openTokenModalBtn.onclick = openTokenModal;
+if (closeTokenModalBtn) closeTokenModalBtn.onclick = closeTokenModal;
+if (cancelTokenModalBtn) cancelTokenModalBtn.onclick = closeTokenModal;
+
+if (submitTokenBtn) {
+  submitTokenBtn.onclick = async () => {
+    const token = discordTokenInput ? discordTokenInput.value.trim() : '';
+    if (!token) {
+      if (tokenUpdateError) {
+        tokenUpdateError.textContent = '請先貼上有效的 Discord Token！';
+        tokenUpdateError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    submitTokenBtn.disabled = true;
+    submitTokenBtn.textContent = '驗證連線中...';
+    if (tokenUpdateError) tokenUpdateError.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/update-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        showToast(`🎉 連線成功！身分：${result.user || 'Discord 小號'}`, 'success');
+        closeTokenModal();
+        await loadStatus();
+      } else {
+        if (tokenUpdateError) {
+          tokenUpdateError.textContent = result.error || 'Token 驗證失敗，請檢查代碼是否正確';
+          tokenUpdateError.classList.remove('hidden');
+        }
+      }
+    } catch (e) {
+      if (tokenUpdateError) {
+        tokenUpdateError.textContent = `請求失敗: ${e.message}`;
+        tokenUpdateError.classList.remove('hidden');
+      }
+    } finally {
+      submitTokenBtn.disabled = false;
+      submitTokenBtn.innerHTML = '<span>🚀 驗證並連線</span>';
+    }
+  };
+}
+
 // 載入機器人狀態 (支援多頻道交叉比對)
 async function loadStatus() {
   try {
@@ -107,10 +184,21 @@ async function loadStatus() {
     const data = await res.json();
     if (data.online) {
       botStatusBadge.className = 'status-badge';
+      botStatusBadge.style.cursor = 'default';
+      botStatusBadge.onclick = null;
       botStatusText.textContent = `多源監聽中 (${data.accessibleCount || data.channelCount} 頻道)`;
+      if (offlineAlertBanner) offlineAlertBanner.classList.add('hidden');
     } else {
       botStatusBadge.className = 'status-badge error';
-      botStatusText.textContent = '小號離線中';
+      botStatusBadge.style.cursor = 'pointer';
+      botStatusBadge.onclick = openTokenModal;
+      botStatusText.textContent = '小號離線 (點此更新 Token)';
+      if (offlineAlertBanner) {
+        offlineAlertBanner.classList.remove('hidden');
+        if (offlineAlertDesc && data.lastError) {
+          offlineAlertDesc.textContent = `${data.lastError}，目前無法接收伺服器出蛋通知。請更新 Token 以恢復自動推播。`;
+        }
+      }
     }
 
     // 渲染多頻道監控卡片
@@ -170,6 +258,7 @@ async function loadStatus() {
   } catch (err) {
     botStatusBadge.className = 'status-badge error';
     botStatusText.textContent = '後端無回應';
+    if (offlineAlertBanner) offlineAlertBanner.classList.remove('hidden');
   }
 }
 

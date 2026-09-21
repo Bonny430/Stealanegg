@@ -36,8 +36,21 @@
         <button id="refreshBtn" class="btn btn-icon" title="手動重新整理">
           🔄
         </button>
-      </div>
     </header>
+
+    <!-- 斷線 / Token 失效警告橫幅 -->
+    <div id="offlineAlertBanner" class="alert-banner error hidden">
+      <div class="alert-content">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-text">
+          <strong id="offlineAlertTitle">Discord 小號連線中斷</strong>
+          <span id="offlineAlertDesc">Discord Token 已失效 (401 Unauthorized)，目前無法接收伺服器出蛋通知。</span>
+        </div>
+      </div>
+      <button id="openTokenModalBtn" class="btn btn-warning btn-sm">
+        <span>🔑 更新 Token</span>
+      </button>
+    </div>
 
     <!-- 預測與統計卡片區域 -->
     <section class="prediction-grid">
@@ -227,6 +240,42 @@
 
   <!-- Toast 提示訊息 -->
   <div id="toast" class="toast hidden"></div>
+
+  <!-- Token 更新 Modal -->
+  <div id="tokenModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔑 更新 Discord 小號 Token</h3>
+        <button id="closeTokenModalBtn" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          當前 Discord 小號 Token 已失效，請貼上新的 Authorization Token，系統將<strong>立即驗證並上線</strong>（無需重啟 Render 服務）：
+        </p>
+        <div class="token-help-guide">
+          <strong>📖 如何取得 Token：</strong>
+          <ol>
+            <li>在電腦瀏覽器登入 Discord 網頁版 (<code>https://discord.com/app</code>)</li>
+            <li>按 <code>F12</code> 打開開發者工具，點擊 <code>Network</code> (網路) 分頁</li>
+            <li>在上方 Filter 框輸入 <code>messages</code> 或 <code>science</code></li>
+            <li>點擊任一請求，在 <code>Request Headers</code> 找到 <code>authorization</code></li>
+            <li>複製整串代碼（約 72 個字元）貼在下方</li>
+          </ol>
+        </div>
+        <div class="form-group" style="margin-top: 14px;">
+          <label for="discordTokenInput" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#f8fafc;">新的 Discord Token：</label>
+          <input type="password" id="discordTokenInput" class="text-input" placeholder="貼上新的 Token..." style="width:100%; box-sizing:border-box;">
+        </div>
+        <div id="tokenUpdateError" class="modal-error hidden" style="margin-top: 10px; color:#fb7185; font-size:13px;"></div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
+        <button id="cancelTokenModalBtn" class="btn btn-secondary">取消</button>
+        <button id="submitTokenBtn" class="btn btn-success">
+          <span>🚀 驗證並連線</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

@@ -69,6 +69,27 @@
       </button>
     </div>
 
+    <!-- ⚡ 即時掉落跑馬燈 / 動態即時串流 (Live Event Ticker) -->
+    <div class="card live-ticker-card" id="liveTickerCard">
+      <div class="live-ticker-header">
+        <div class="live-indicator-group">
+          <span class="live-dot" id="liveStatusDot"></span>
+          <span class="live-label" id="liveStatusLabel">LIVE 即時出蛋串流</span>
+        </div>
+        <div class="live-controls">
+          <button type="button" id="toggleSoundBtn" class="btn-ticker" title="開啟/關閉出蛋提示音">
+            <span id="soundBtnIcon">🔇</span> <span id="soundBtnLabel">提示音: 關</span>
+          </button>
+          <button type="button" id="toggleTickerPauseBtn" class="btn-ticker" title="暫停/繼續即時更新">
+            <span id="pauseBtnIcon">⏸️</span> <span id="pauseBtnLabel">即時</span>
+          </button>
+        </div>
+      </div>
+      <div class="live-ticker-stream" id="liveTickerStream">
+        <div class="ticker-loading">⚡ 連線即時雷達中...</div>
+      </div>
+    </div>
+
     <!-- 預測與統計卡片區域 -->
     <section class="prediction-grid">
       <!-- 倒數預測主卡 -->

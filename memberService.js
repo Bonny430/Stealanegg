@@ -174,11 +174,69 @@ class MemberService {
     }
   }
 
-  // 向 Google Sheet 同步單一會員 (安全守衛：保護蛋掉落試算表不被污染)
+  // 向 Google Sheet 同步單一會員 (零丟失架構：寫入獨立 Members 分頁)
   async syncMemberToSheet(member) {
-    // 經診斷：Google Apps Script 預設接收端為掉落專用工作表，發送非掉落之會員資料會觸發預設回退寫入「未知」蛋紀錄。
-    // 會員資料目前已在伺服器端 data/members.json 保持完整持久化儲存與即時讀寫，此處安全略過以確保大數據純淨。
-    return;
+    if (!this.sheetApiUrl || !member) return;
+    try {
+      const payload = {
+        action: 'save_member',
+        member: {
+          chatId: String(member.chatId),
+          username: member.username || '',
+          firstName: member.firstName || '',
+          tier: member.tier || 'free',
+          expireAt: member.expireAt || '',
+          enabled: Boolean(member.enabled !== false),
+          filterType: member.filterType || 'custom',
+          customRarities: member.customRarities || [],
+          customEggNames: member.customEggNames || [],
+          activityLogs: (member.activityLogs || []).slice(0, 30),
+          notificationsCount: member.notificationsCount || 0,
+          notes: member.notes || '',
+          updatedAt: member.updatedAt || new Date().toISOString()
+        }
+      };
+      await fetch(this.sheetApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('[MemberService] 雲端同步會員至 Google Sheet 失敗:', err.message);
+    }
+  }
+
+  // 批次同步所有會員至 Google Sheet
+  async syncAllMembersToSheet() {
+    if (!this.sheetApiUrl) return;
+    try {
+      const list = Array.from(this.members.values()).map(m => ({
+        chatId: String(m.chatId),
+        username: m.username || '',
+        firstName: m.firstName || '',
+        tier: m.tier || 'free',
+        expireAt: m.expireAt || '',
+        enabled: Boolean(m.enabled !== false),
+        filterType: m.filterType || 'custom',
+        customRarities: m.customRarities || [],
+        customEggNames: m.customEggNames || [],
+        activityLogs: (m.activityLogs || []).slice(0, 30),
+        notificationsCount: m.notificationsCount || 0,
+        notes: m.notes || '',
+        updatedAt: m.updatedAt || new Date().toISOString()
+      }));
+      await fetch(this.sheetApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_members',
+          members: list
+        })
+      });
+      console.log(`[MemberService] 已成功備份全體 ${list.length} 位會員設定至 Google Sheet`);
+    } catch (err) {
+      console.warn('[MemberService] 批次同步會員至 Google Sheet 失敗:', err.message);
+    }
   }
 
   // 從 Google Sheet 載入會員

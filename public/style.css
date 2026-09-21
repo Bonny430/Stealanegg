@@ -2302,3 +2302,363 @@ input:checked + .slider:before {
   padding: 0 10px;
 }
 
+/* ===================================================
+   ⚡ Live Event Ticker (即時掉落串流跑馬燈)
+   =================================================== */
+.live-ticker-card {
+  margin-bottom: 20px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(16, 21, 31, 0.95), rgba(12, 15, 23, 0.95));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.live-ticker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.live-indicator-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 12px #10b981;
+  animation: livePulse 1.8s infinite ease-in-out;
+}
+
+.live-dot.paused {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: none;
+}
+
+@keyframes livePulse {
+  0%, 100% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; filter: brightness(1.3); }
+}
+
+.live-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+.live-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-ticker {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #cbd5e1;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-ticker:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.btn-ticker.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.live-ticker-stream {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.live-ticker-stream::-webkit-scrollbar {
+  height: 4px;
+}
+.live-ticker-stream::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.ticker-loading {
+  font-size: 12px;
+  color: #64748b;
+  padding: 6px 0;
+}
+
+.ticker-drop-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: #f1f5f9;
+  animation: slideFadeIn 0.4s ease-out;
+  transition: all 0.2s;
+}
+
+.ticker-drop-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ticker-drop-pill.glow-divine {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.08);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+}
+
+.ticker-drop-pill.glow-eternal {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.ticker-drop-pill.glow-secret {
+  border-color: rgba(192, 132, 252, 0.4);
+  background: rgba(192, 132, 252, 0.08);
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.2);
+}
+
+@keyframes slideFadeIn {
+  from { opacity: 0; transform: translateX(-15px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.ticker-egg-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+.ticker-egg-name {
+  font-weight: 700;
+  color: #fff;
+}
+
+.ticker-time-ago {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ===================================================
+   📊 Cycle Timeline Bar (掉落週期波段視覺化)
+   =================================================== */
+.cycle-timeline-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 16px auto;
+  padding: 14px 18px 20px;
+  background: rgba(16, 21, 31, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.cycle-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.timeline-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-now-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
+.timeline-now-badge.overdue {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  animation: pulseOverdue 1.5s infinite;
+}
+
+@keyframes pulseOverdue {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+
+.cycle-timeline-track-wrap {
+  position: relative;
+  padding: 10px 4px 34px;
+}
+
+.cycle-timeline-track {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  position: relative;
+  display: flex;
+  overflow: visible;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.track-segment {
+  height: 100%;
+  position: relative;
+}
+
+.track-segment.seg-accumulate {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.5));
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.track-segment.seg-peak {
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.5), rgba(16, 185, 129, 0.6));
+}
+
+.track-segment.seg-median {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.6), rgba(245, 158, 11, 0.6));
+}
+
+.track-segment.seg-overdue {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.6), rgba(239, 68, 68, 0.8));
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.track-marker {
+  position: absolute;
+  top: -4px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.marker-tick {
+  width: 2px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 1px;
+}
+
+.marker-label {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.marker-label b {
+  color: #f1f5f9;
+}
+
+/* NOW 指針 */
+.track-now-pointer {
+  position: absolute;
+  top: -12px;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: left 0.5s ease-out;
+}
+
+.pointer-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pointer-glow {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8, 0 0 20px rgba(56, 189, 248, 0.6);
+  border: 2px solid #fff;
+  animation: pointerPulse 1.6s infinite ease-in-out;
+}
+
+@keyframes pointerPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+
+.pointer-text {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(8, 11, 18, 0.9);
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  white-space: nowrap;
+}
+
+.track-now-pointer.pointer-overdue .pointer-glow {
+  background: #ef4444;
+  box-shadow: 0 0 12px #ef4444, 0 0 24px rgba(239, 68, 68, 0.8);
+}
+
+.track-now-pointer.pointer-overdue .pointer-text {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* 稀有度 Badge 柔光 */
+.db-table-badge.divine {
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.25);
+}
+
+.db-table-badge.eternal {
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+.db-table-badge.secret {
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.25);
+}
+

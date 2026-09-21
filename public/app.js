@@ -49,6 +49,161 @@ const channelsGrid = document.getElementById('channelsGrid');
 const latestCrossVerification = document.getElementById('latestCrossVerification');
 const latestCrossVerificationText = document.getElementById('latestCrossVerificationText');
 
+// 即時掉落串流 (Live Ticker) & 提示音元素
+const liveTickerCard = document.getElementById('liveTickerCard');
+const liveStatusDot = document.getElementById('liveStatusDot');
+const liveStatusLabel = document.getElementById('liveStatusLabel');
+const liveTickerStream = document.getElementById('liveTickerStream');
+const toggleSoundBtn = document.getElementById('toggleSoundBtn');
+const soundBtnIcon = document.getElementById('soundBtnIcon');
+const soundBtnLabel = document.getElementById('soundBtnLabel');
+const toggleTickerPauseBtn = document.getElementById('toggleTickerPauseBtn');
+const pauseBtnIcon = document.getElementById('pauseBtnIcon');
+const pauseBtnLabel = document.getElementById('pauseBtnLabel');
+
+let isTickerPaused = false;
+let audioCtx = null;
+let soundAlertEnabled = localStorage.getItem('egg_sound_enabled') === 'true';
+let lastKnownNewestTimestamp = null;
+
+// Web Audio API 提示音系統 (合成水晶音和弦，零外鏈依賴)
+function playDropSound(isHighTier = false) {
+  if (!soundAlertEnabled) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = isHighTier ? 'triangle' : 'sine';
+    if (isHighTier) {
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+      osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.28); // D6
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.6);
+    } else {
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    }
+  } catch (err) {
+    console.warn('[Audio] 提示音播放失敗:', err.message);
+  }
+}
+
+function updateSoundBtnUI() {
+  if (!toggleSoundBtn) return;
+  if (soundAlertEnabled) {
+    toggleSoundBtn.classList.add('active');
+    if (soundBtnIcon) soundBtnIcon.textContent = '🔔';
+    if (soundBtnLabel) soundBtnLabel.textContent = '提示音: 開';
+  } else {
+    toggleSoundBtn.classList.remove('active');
+    if (soundBtnIcon) soundBtnIcon.textContent = '🔇';
+    if (soundBtnLabel) soundBtnLabel.textContent = '提示音: 關';
+  }
+}
+
+function getRelativeTimeAgo(isoStr) {
+  if (!isoStr) return '';
+  const diffSec = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+  if (isNaN(diffSec) || diffSec < 0) return '剛剛';
+  if (diffSec < 60) return `${diffSec}秒前`;
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min}分前`;
+  const hr = Math.floor(min / 60);
+  return `${hr}小時前`;
+}
+
+function updateLiveTicker(rows) {
+  if (!liveTickerStream || isTickerPaused || !Array.isArray(rows) || rows.length === 0) return;
+  
+  const topRows = rows.slice(0, 8);
+  const newestTime = new Date(topRows[0]?.timestamp || topRows[0]?.twTime).getTime();
+  
+  if (lastKnownNewestTimestamp !== null && newestTime > lastKnownNewestTimestamp) {
+    const newestEgg = topRows[0];
+    const isHigh = ['divine', 'eternal', 'secret', 'mythic'].includes((newestEgg.rarity || '').toLowerCase());
+    playDropSound(isHigh);
+    showToast(`⚡ 全服即時出蛋：[${newestEgg.rarity}] ${newestEgg.name} (${newestEgg.biome || '未知'})`, 'info');
+  }
+  if (!isNaN(newestTime)) {
+    lastKnownNewestTimestamp = newestTime;
+  }
+
+  liveTickerStream.innerHTML = topRows.map(r => {
+    const eggImg = getEggImage(r.name);
+    const rar = (r.rarity || '').toLowerCase();
+    let glowClass = '';
+    if (rar === 'divine') glowClass = 'glow-divine';
+    else if (rar === 'eternal') glowClass = 'glow-eternal';
+    else if (rar === 'secret') glowClass = 'glow-secret';
+
+    const tAgo = getRelativeTimeAgo(r.timestamp);
+
+    return `
+      <div class="ticker-drop-pill ${glowClass}">
+        <img src="${eggImg}" class="ticker-egg-img" referrerpolicy="no-referrer" onerror="this.src='https://cdn.discordapp.com/emojis/1547091103537438741.png'">
+        <span class="ticker-egg-name">${escapeHtml(r.name)}</span>
+        <span class="db-table-badge ${rar}">${r.rarity || 'Normal'}</span>
+        <span class="ticker-time-ago">${tAgo}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function initLiveTickerControls() {
+  updateSoundBtnUI();
+
+  if (toggleSoundBtn) {
+    toggleSoundBtn.onclick = () => {
+      soundAlertEnabled = !soundAlertEnabled;
+      localStorage.setItem('egg_sound_enabled', String(soundAlertEnabled));
+      updateSoundBtnUI();
+      if (soundAlertEnabled) {
+        playDropSound(true);
+        showToast('🔔 出蛋提示音已開啟 (神聖/永恆/秘密出蛋時清脆提醒)', 'success');
+      } else {
+        showToast('🔇 出蛋提示音已關閉', 'info');
+      }
+    };
+  }
+
+  if (toggleTickerPauseBtn) {
+    toggleTickerPauseBtn.onclick = () => {
+      isTickerPaused = !isTickerPaused;
+      if (isTickerPaused) {
+        if (liveStatusDot) liveStatusDot.classList.add('paused');
+        if (liveStatusLabel) liveStatusLabel.textContent = 'PAUSED 已暫停';
+        if (pauseBtnIcon) pauseBtnIcon.textContent = '▶️';
+        if (pauseBtnLabel) pauseBtnLabel.textContent = '繼續';
+        showToast('⏸️ 即時串流已暫停更新', 'info');
+      } else {
+        if (liveStatusDot) liveStatusDot.classList.remove('paused');
+        if (liveStatusLabel) liveStatusLabel.textContent = 'LIVE 即時出蛋串流';
+        if (pauseBtnIcon) pauseBtnIcon.textContent = '⏸️';
+        if (pauseBtnLabel) pauseBtnLabel.textContent = '即時';
+        loadHistory(true);
+        showToast('▶️ 即時串流已恢復更新', 'success');
+      }
+    };
+  }
+}
+
 // 斷線橫幅與 Token 更新 Modal DOM 元素
 const offlineAlertBanner = document.getElementById('offlineAlertBanner');
 const offlineAlertDesc = document.getElementById('offlineAlertDesc');
@@ -360,6 +515,11 @@ async function loadEggPredictions() {
 async function initEggPredictor() {
   if (!eggPredictorSelect) return;
 
+  const savedEgg = localStorage.getItem('egg_pred_selected');
+  if (savedEgg) {
+    currentSelectedPredictionEgg = savedEgg;
+  }
+
   // 填入下拉選單 (依生態與稀有度排序，神聖/永恆置頂)
   eggPredictorSelect.innerHTML = HIGH_TIER_EGGS_META.map(meta => {
     return `<option value="${meta.name}">[${meta.biome}] ${meta.name} (${meta.rarity})</option>`;
@@ -369,6 +529,7 @@ async function initEggPredictor() {
 
   eggPredictorSelect.addEventListener('change', (e) => {
     currentSelectedPredictionEgg = e.target.value;
+    localStorage.setItem('egg_pred_selected', currentSelectedPredictionEgg);
     updateQuickPillsActive(currentSelectedPredictionEgg);
     renderEggPrediction(currentSelectedPredictionEgg);
   });
@@ -379,6 +540,7 @@ async function initEggPredictor() {
         const egg = pill.getAttribute('data-egg');
         if (egg) {
           currentSelectedPredictionEgg = egg;
+          localStorage.setItem('egg_pred_selected', currentSelectedPredictionEgg);
           if (eggPredictorSelect) eggPredictorSelect.value = egg;
           updateQuickPillsActive(egg);
           renderEggPrediction(egg);
@@ -439,7 +601,28 @@ function renderEggPrediction(eggName) {
   }
 
   const statusClass = `status-${p.status || 'accumulating'}`;
-  const progressFillClass = isOverdue ? 'overdue-fill' : '';
+
+  // 計算 Cycle Timeline 指針與標記數據
+  const p25 = p.burstIntervalMin || Math.round(p.avgIntervalMin * 0.35);
+  const p50 = p.medianIntervalMin || p.avgIntervalMin;
+  const p75 = p.valleyIntervalMin || Math.round(p.avgIntervalMin * 1.6);
+  const m = p.minutesSinceLast !== null ? p.minutesSinceLast : 0;
+
+  let timelinePercent = 0;
+  if (p.minutesSinceLast === null) {
+    timelinePercent = 10;
+  } else if (m <= p25) {
+    timelinePercent = (m / Math.max(1, p25)) * 25;
+  } else if (m <= p50) {
+    timelinePercent = 25 + ((m - p25) / Math.max(1, p50 - p25)) * 25;
+  } else if (m <= p75) {
+    timelinePercent = 50 + ((m - p50) / Math.max(1, p75 - p50)) * 25;
+  } else {
+    const overdueExtra = m - p75;
+    const extraMax = Math.max(30, p75 * 0.5);
+    timelinePercent = Math.min(98, 75 + (overdueExtra / extraMax) * 23);
+  }
+  timelinePercent = Math.max(4, Math.min(96, timelinePercent));
 
   eggPredictorResult.innerHTML = `
     <div class="egg-pred-top-row">
@@ -465,14 +648,42 @@ function renderEggPrediction(eggName) {
       </div>
       ${estTimeHtml}
       <div class="egg-pred-est-sub">${estSubText}</div>
-      <div class="egg-pred-progress-wrap">
-        <div class="egg-pred-progress-track">
-          <div class="egg-pred-progress-fill ${progressFillClass}" style="width: ${p.progressPercent}%;"></div>
+
+      <!-- 📊 Cycle Timeline Bar (掉落週期波段視覺化) -->
+      <div class="cycle-timeline-container">
+        <div class="cycle-timeline-header">
+          <span class="timeline-title">📊 掉落週期波段視覺化 (Cycle Timeline)</span>
+          <span class="timeline-now-badge ${isOverdue ? 'overdue' : ''}">
+            ${p.minutesSinceLast !== null ? `距上次: ${p.minutesSinceLast} 分鐘 (${p.phaseText || p.statusText})` : '尚無近期現身紀錄'}
+          </span>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:#64748b;">
-          <span>週期起始</span>
-          <span>進度 ${p.progressPercent}%</span>
-          <span>預期出蛋窗口</span>
+        <div class="cycle-timeline-track-wrap">
+          <div class="cycle-timeline-track">
+            <div class="track-segment seg-accumulate" style="width: 25%;" title="蓄積期 (0 ~ P25)"></div>
+            <div class="track-segment seg-peak" style="width: 25%;" title="高峰爆發期 (P25 ~ P50)"></div>
+            <div class="track-segment seg-median" style="width: 25%;" title="常態窗口期 (P50 ~ P75)"></div>
+            <div class="track-segment seg-overdue" style="width: 25%;" title="逾期高爆率期 (> P75)"></div>
+
+            <div class="track-marker" style="left: 25%;">
+              <div class="marker-tick"></div>
+              <div class="marker-label">P25 高峰<br><b>${p25}m</b></div>
+            </div>
+            <div class="track-marker" style="left: 50%;">
+              <div class="marker-tick"></div>
+              <div class="marker-label">P50 中位<br><b>${p50}m</b></div>
+            </div>
+            <div class="track-marker" style="left: 75%;">
+              <div class="marker-tick"></div>
+              <div class="marker-label">P75 低谷<br><b>${p75}m</b></div>
+            </div>
+
+            <div class="track-now-pointer ${isOverdue ? 'pointer-overdue' : ''}" style="left: ${timelinePercent}%;">
+              <div class="pointer-pin">
+                <span class="pointer-glow"></span>
+                <span class="pointer-text">NOW ${m > 0 ? `(${m}m)` : ''}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -589,6 +800,7 @@ async function loadHistory(isBackground = false) {
 
       renderDbTable(data.rows);
       updateDbPagination();
+      updateLiveTicker(data.rows);
     } else {
       tableBody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color:#64748b;">暫無符合條件的掉落紀錄</td></tr>`;
       updateDbPagination();
@@ -682,7 +894,7 @@ function updateDbPagination() {
   if (lastBtn) lastBtn.disabled = (dbState.page >= dbState.totalPages);
 }
 
-// 初始化全服歷史資料庫瀏覽器監聽器
+// 初始化全服歷史資料庫瀏覽器監聽器 (零丟失持久化)
 function initDbExplorer() {
   const searchInput = document.getElementById('dbSearchInput');
   const biomeSelect = document.getElementById('dbBiomeSelect');
@@ -690,7 +902,42 @@ function initDbExplorer() {
   const limitSelect = document.getElementById('dbLimitSelect');
   const refreshBtn = document.getElementById('refreshDbBtn');
 
-  // 搜尋防抖
+  // 從 localStorage 恢復使用者自訂篩選狀態
+  const savedSearch = localStorage.getItem('egg_db_search');
+  if (savedSearch !== null) {
+    dbState.search = savedSearch;
+    if (searchInput) searchInput.value = savedSearch;
+  }
+
+  const savedBiome = localStorage.getItem('egg_db_biome');
+  if (savedBiome !== null) {
+    dbState.biome = savedBiome;
+    if (biomeSelect) biomeSelect.value = savedBiome;
+  }
+
+  const savedSort = localStorage.getItem('egg_db_sort');
+  if (savedSort !== null) {
+    dbState.sort = savedSort;
+    if (sortSelect) sortSelect.value = savedSort;
+  }
+
+  const savedLimit = localStorage.getItem('egg_db_limit');
+  if (savedLimit !== null) {
+    dbState.limit = parseInt(savedLimit) || 50;
+    if (limitSelect) limitSelect.value = savedLimit;
+  }
+
+  const savedRarity = localStorage.getItem('egg_db_rarity');
+  const pills = document.querySelectorAll('.rarity-pill');
+  if (savedRarity !== null) {
+    dbState.rarity = savedRarity;
+    pills.forEach(p => {
+      if (p.getAttribute('data-rarity') === savedRarity) p.classList.add('active');
+      else p.classList.remove('active');
+    });
+  }
+
+  // 搜尋防抖與保存
   let searchTimer = null;
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -698,6 +945,7 @@ function initDbExplorer() {
       searchTimer = setTimeout(() => {
         dbState.search = e.target.value.trim();
         dbState.page = 1;
+        localStorage.setItem('egg_db_search', dbState.search);
         loadHistory();
       }, 300);
     });
@@ -707,6 +955,7 @@ function initDbExplorer() {
     biomeSelect.addEventListener('change', (e) => {
       dbState.biome = e.target.value;
       dbState.page = 1;
+      localStorage.setItem('egg_db_biome', dbState.biome);
       loadHistory();
     });
   }
@@ -715,6 +964,7 @@ function initDbExplorer() {
     sortSelect.addEventListener('change', (e) => {
       dbState.sort = e.target.value;
       dbState.page = 1;
+      localStorage.setItem('egg_db_sort', dbState.sort);
       loadHistory();
     });
   }
@@ -723,6 +973,7 @@ function initDbExplorer() {
     limitSelect.addEventListener('change', (e) => {
       dbState.limit = parseInt(e.target.value) || 50;
       dbState.page = 1;
+      localStorage.setItem('egg_db_limit', String(dbState.limit));
       loadHistory();
     });
   }
@@ -734,14 +985,14 @@ function initDbExplorer() {
     });
   }
 
-  // 稀有度膠囊點擊
-  const pills = document.querySelectorAll('.rarity-pill');
+  // 稀有度膠囊點擊與保存
   pills.forEach(p => {
     p.addEventListener('click', () => {
       pills.forEach(x => x.classList.remove('active'));
       p.classList.add('active');
       dbState.rarity = p.getAttribute('data-rarity') || 'all';
       dbState.page = 1;
+      localStorage.setItem('egg_db_rarity', dbState.rarity);
       loadHistory();
     });
   });
@@ -801,30 +1052,54 @@ function updateSelectedCountBadge() {
   }
 }
 
-let selectedSpawnType = 'all';
-let selectedBiome = 'all';
+let selectedSpawnType = localStorage.getItem('egg_catalog_spawn_type') || 'all';
+let selectedBiome = localStorage.getItem('egg_catalog_biome') || 'all';
 
-// 初始化機制與地區篩選按鈕事件
+// 初始化機制與地區篩選按鈕事件 (零丟失持久化)
 function initFilterBars() {
   const spawnChips = document.querySelectorAll('#spawnTypeChips .filter-chip');
+  if (selectedSpawnType) {
+    spawnChips.forEach(c => {
+      if (c.getAttribute('data-spawn-type') === selectedSpawnType) c.classList.add('active');
+      else c.classList.remove('active');
+    });
+  }
   spawnChips.forEach(chip => {
     chip.onclick = () => {
       spawnChips.forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       selectedSpawnType = chip.getAttribute('data-spawn-type') || 'all';
+      localStorage.setItem('egg_catalog_spawn_type', selectedSpawnType);
       renderEggsGrid();
     };
   });
 
   const biomeChips = document.querySelectorAll('#biomeChips .filter-chip');
+  if (selectedBiome) {
+    biomeChips.forEach(c => {
+      if (c.getAttribute('data-biome') === selectedBiome) c.classList.add('active');
+      else c.classList.remove('active');
+    });
+  }
   biomeChips.forEach(chip => {
     chip.onclick = () => {
       biomeChips.forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       selectedBiome = chip.getAttribute('data-biome') || 'all';
+      localStorage.setItem('egg_catalog_biome', selectedBiome);
       renderEggsGrid();
     };
   });
+
+  if (eggSearchInput) {
+    const savedSearch = localStorage.getItem('egg_catalog_search');
+    if (savedSearch) {
+      eggSearchInput.value = savedSearch;
+    }
+    eggSearchInput.addEventListener('input', () => {
+      localStorage.setItem('egg_catalog_search', eggSearchInput.value);
+    });
+  }
 }
 
 // 渲染蛋清單卡片
@@ -1966,6 +2241,7 @@ if (saveMySettingsBtn) {
 
 // 初始化
 window.addEventListener('DOMContentLoaded', async () => {
+  initLiveTickerControls();
   initFilterBars();
   initDbExplorer();
   await loadStatus();

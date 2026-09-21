@@ -768,6 +768,94 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
   }
 }
 
+// 管理員即時警報通知 (Token 失效、連線中斷逾時等)
+let disconnectWarningTimeout = null;
+
+function sendAdminAlert(title, message) {
+  if (!TELEGRAM_BOT_TOKEN) return;
+  const adminChatId = '8670104462'; // 系統超級管理員
+  const timeStr = formatTaipeiDateTime(new Date());
+  const alertText = `🚨【Steal An Egg 系統監控警報】\n\n` +
+    `📌 警報項目：${title}\n` +
+    `⚠️ 詳細說明：${message}\n` +
+    `⏰ 發生時間：${timeStr} (台灣時間)\n\n` +
+    `🛠️ 處置建議：\n` +
+    `• 若為 Token 失效，請於儀表板手動更新有效小號 Token\n` +
+    `• 系統自癒 Watchdog 將持續嘗試自動重新連線與回補\n` +
+    `🔗 儀表板控制台：https://stealanegg.onrender.com/`;
+
+  fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: adminChatId, text: alertText })
+  }).catch(err => {
+    console.error('[Admin Alert] 發送警報失敗:', err.message);
+  });
+}
+
+// 自動回補斷線與重啟期間遺漏的蛋掉落 (保證資料零遺漏)
+async function backfillRecentMissedDrops() {
+  if (!client || !client.user) return;
+  console.log('[Auto-Backfill] 連線已就緒，開始檢查斷線期間是否有遺漏掉落...');
+  try {
+    const collectedDrops = [];
+    const recentCachedKeys = new Set();
+    const rowsToCheck = (cachedRows || []).slice(-150);
+    for (const r of rowsToCheck) {
+      const t = new Date(r[0]).getTime();
+      const n = (r[1] || '').trim().toLowerCase();
+      recentCachedKeys.add(`${Math.round(t / 20000)}_${n}`);
+    }
+
+    for (const chId of MONITORED_CHANNELS) {
+      try {
+        const channel = await client.channels.fetch(chId).catch(() => null);
+        if (!channel || !channel.isText()) continue;
+        const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+        if (!messages) continue;
+
+        for (const [id, msg] of messages) {
+          const isAA = /Admin Abuse|管理員濫用|Admin Spawned|Staff Spawned|\bAA\b/i.test(msg.content + (msg.embeds[0]?.title || ''));
+          if (isAA) continue;
+          const egg = extractEggInfo(msg.embeds, msg.content, msg.createdAt, {
+            channelId: chId,
+            channelName: channel.name,
+            guildName: channel.guild?.name || 'Discord'
+          });
+          if (!egg) continue;
+          const t = new Date(egg.timestamp).getTime();
+          const n = egg.name.toLowerCase();
+          const key = `${Math.round(t / 20000)}_${n}`;
+          if (!recentCachedKeys.has(key)) {
+            recentCachedKeys.add(key);
+            collectedDrops.push({
+              ...egg,
+              channelName: channel.name
+            });
+            console.log(`[Auto-Backfill] 補回掉落: [${egg.timestamp}] ${egg.name} (${egg.rarity}) @ ${egg.location}`);
+          }
+        }
+      } catch (chErr) {
+        // 忽略單一頻道存取受限
+      }
+    }
+
+    if (collectedDrops.length > 0) {
+      collectedDrops.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      console.log(`[Auto-Backfill] 正在將 ${collectedDrops.length} 筆斷線遺漏掉落寫入 Google Sheet...`);
+      for (const d of collectedDrops) {
+        await recordEggDrop(d).catch(() => {});
+        addEggToMemoryCache(d);
+      }
+      console.log(`[Auto-Backfill] 補錄完成！已更新記憶體快取與 Google Sheet (${collectedDrops.length} 筆)`);
+    } else {
+      console.log('[Auto-Backfill] 斷線期間無遺漏掉落，資料庫已是最新！');
+    }
+  } catch (err) {
+    console.error('[Auto-Backfill] 執行異常:', err.message);
+  }
+}
+
 // 動態建立或切換 Discord 客戶端
 function createDiscordClient(token) {
   return new Promise((resolve, reject) => {
@@ -781,9 +869,20 @@ function createDiscordClient(token) {
       discordState.status = 'online';
       discordState.lastConnectedAt = new Date().toISOString();
       discordState.lastError = null;
+      if (disconnectWarningTimeout) {
+        clearTimeout(disconnectWarningTimeout);
+        disconnectWarningTimeout = null;
+      }
       console.log(`[Discord] 小號已連線上線，登入身分：${client.user.tag}`);
       console.log(`[Discord] 監聽目標頻道清單：${Array.from(MONITORED_CHANNELS).join(', ')}`);
       resolve(client);
+
+      // 上線後自動執行斷線回補
+      setTimeout(() => {
+        backfillRecentMissedDrops().catch(err => {
+          console.error('[Discord] 上線回補異常:', err.message);
+        });
+      }, 3000);
     });
 
     client.on('invalidated', () => {
@@ -791,6 +890,9 @@ function createDiscordClient(token) {
       discordState.lastError = 'Discord Session 已失效 (401 Unauthorized / Token Revoked)';
       discordState.lastDisconnectedAt = new Date().toISOString();
       console.error('[Discord] 警告：Session 遭 Discord 伺服器終止，Token 已失效！');
+
+      // 立即發送 Telegram 警報給超級管理員
+      sendAdminAlert('Discord 小號 Token 失效 (401)', '監控小號的 Session 遭 Discord 伺服器註銷，已無法接收蛋掉落通知！請盡速登入更新有效 Token。');
     });
 
     client.on('shardDisconnect', (event) => {
@@ -798,6 +900,16 @@ function createDiscordClient(token) {
       discordState.lastError = `Gateway 連線中斷 (Code: ${event?.code || 'unknown'})`;
       discordState.lastDisconnectedAt = new Date().toISOString();
       console.warn('[Discord] Gateway 連線中斷:', event);
+
+      // 若斷線超過 2 分鐘尚未恢復，發送警報
+      if (!disconnectWarningTimeout) {
+        disconnectWarningTimeout = setTimeout(() => {
+          const isConnected = Boolean(client && client.ws && client.ws.status === 0);
+          if (!isConnected) {
+            sendAdminAlert('Discord 連線中斷逾 2 分鐘', `Gateway 斷線代碼 ${event?.code || 'unknown'}，連線中斷已逾 120 秒。自癒 Watchdog 正在嘗試重連中。`);
+          }
+        }, 120000);
+      }
     });
 
     client.on('error', (err) => {
@@ -811,9 +923,28 @@ function createDiscordClient(token) {
       discordState.status = 'invalid_token';
       discordState.lastError = `登入失敗: ${err.message}`;
       console.error('[Discord] 登入失敗:', err.message);
+      sendAdminAlert('Discord 登入失敗', `使用目前的 Token 無法登入 Discord 小號：${err.message}`);
       reject(err);
     });
   });
+}
+
+// Discord 自癒 Watchdog 心跳監視器 (每 30 秒自動偵測並自癒)
+function startDiscordWatchdog() {
+  setInterval(async () => {
+    const isConnected = Boolean(client && client.ws && client.ws.status === 0);
+    if (!isConnected && discordState.status !== 'reconnecting' && discordState.status !== 'invalid_token') {
+      console.warn(`[Watchdog] 偵測到 Discord 非連線狀態 (status: ${discordState.status}，WS: ${client?.ws?.status})，啟動自動修復程序...`);
+      discordState.status = 'reconnecting';
+      try {
+        await createDiscordClient(USER_TOKEN);
+        console.log('[Watchdog] Discord 自動自癒重連成功！');
+      } catch (err) {
+        console.error('[Watchdog] 自癒重連失敗:', err.message);
+        discordState.status = 'disconnected';
+      }
+    }
+  }, 30000);
 }
 
 // 監聽 Discord 訊息事件處理器
@@ -909,21 +1040,12 @@ async function handleDiscordMessage(message) {
     minutesLeft
   };
 
-  // 立即觸發推播 (主頻道與所有會員 1對1 私訊)，一有訊息立刻送達！
-  sendTelegramNotification(eggInfo, combinedText, fastPrediction, {
-    channelName,
-    server: serverName,
-    isCrossVerified,
-    delaySec,
-    shouldSendMainChannel
-  }).catch(err => {
-    console.error('[Telegram] 發送失敗:', err.message);
-  });
-
-  // 5. 【錄入資料庫的才是交叉比對：去重防重疊，保護 Google Sheet 與週期統計模型純淨】
+  // 4. 【交叉比對與單次極速推播機制】
+  // 用戶核心要求：第二交叉比對不需在 Telegram 傳兩次，只要傳第一次最快的，以節省時間！
+  // 錄入資料庫的才是交叉比對：去重防重疊，保護 Google Sheet 與週期統計模型純淨
   if (existingEvent) {
-    // 交叉比對成功！此掉落事件已由先前的頻道通報並錄入資料庫，略過資料庫寫入
-    console.log(`⚡ [交叉比對驗證] 蛋種 [${eggInfo.name}] 在頻道 #${channelName} (${serverName}) 亦回報掉落！比對有效 (時差: +${deltaSec}s，第一來源: #${existingEvent.firstChannelName})。推播已即時送達，資料庫已自動去重！`);
+    // 交叉比對成功！此掉落事件已由先前的頻道通報，並已完成首發 Telegram 推播與資料庫登記
+    console.log(`⚡ [交叉比對驗證] 蛋種 [${eggInfo.name}] 在頻道 #${channelName} (${serverName}) 亦回報掉落！比對有效 (時差: +${deltaSec}s，第一來源: #${existingEvent.firstChannelName})。略過第二次重複 Telegram 推播，資料庫已自動去重！`);
 
     crossCheckStats.crossVerifiedCount++;
     crossCheckStats.recentVerifications.unshift({
@@ -938,7 +1060,7 @@ async function handleDiscordMessage(message) {
       crossCheckStats.recentVerifications.pop();
     }
   } else {
-    // 該次掉落的第一通報來源：登記至活躍事件，並錄入資料庫與快取
+    // 該次掉落的第一最快通報來源：登記至活躍事件，並觸發首發 Telegram 推播與資料庫寫入
     activeDropEvents.set(eventKey, {
       eggInfo,
       firstDetectedAt: now,
@@ -948,7 +1070,18 @@ async function handleDiscordMessage(message) {
     });
     crossCheckStats.totalDropsDetected++;
 
-    console.log(`[發現蛋掉落] 來源: #${channelName} (${serverName}) | 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location} -> 錄入 Google Sheet 資料庫`);
+    console.log(`[發現蛋掉落] 來源: #${channelName} (${serverName}) | 名稱: ${eggInfo.name} | 稀有度: ${eggInfo.rarity} | 地點: ${eggInfo.location} -> 首次最快偵測，立即極速推播 Telegram 並錄入 Google Sheet`);
+
+    // 立即觸發推播 (首發最快通報，主頻道與所有會員 1對1 私訊)，一有訊息立刻送達！
+    sendTelegramNotification(eggInfo, combinedText, fastPrediction, {
+      channelName,
+      server: serverName,
+      isCrossVerified: false,
+      delaySec: null,
+      shouldSendMainChannel
+    }).catch(err => {
+      console.error('[Telegram] 發送失敗:', err.message);
+    });
 
     // 背景非同步記錄至 Google Sheet 資料庫 (附帶首發來源頻道資訊)
     recordEggDrop({
@@ -1523,6 +1656,9 @@ app.listen(PORT, async () => {
     }
   });
   memberService.startTelegramPoller();
+
+  // 啟動 Discord 連線自癒 Watchdog (每 30 秒自動偵測並自癒)
+  startDiscordWatchdog();
 
   // 每 10 分鐘在背景靜態校驗 Google Sheet 快取
   setInterval(refreshCacheFromSheet, 10 * 60 * 1000);

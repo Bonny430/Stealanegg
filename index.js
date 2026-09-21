@@ -878,6 +878,7 @@ async function handleDiscordMessage(message) {
 
   const isCrossVerified = Boolean(existingEvent);
   const deltaSec = isCrossVerified ? ((now - existingEvent.firstDetectedAt) / 1000).toFixed(1) : null;
+  const delaySec = deltaSec;
 
   // 4. 【一有訊息就推播：極速發送 TELEGRAM 推播，絕不被交叉比對延遲或阻擋】
   let shouldSendMainChannel = true;

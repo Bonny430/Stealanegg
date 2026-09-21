@@ -36,6 +36,23 @@
         <button id="refreshBtn" class="btn btn-icon" title="手動重新整理">
           🔄
         </button>
+
+        <!-- 會員登入 / 個人身分膠囊 -->
+        <div class="user-auth-area">
+          <button id="openLoginModalBtn" class="btn btn-primary btn-sm">
+            <span>🔑 會員登入</span>
+          </button>
+          <div id="userProfileBadge" class="user-profile-badge hidden">
+            <span class="user-avatar" id="userAvatarEmoji">👤</span>
+            <div class="user-info-text">
+              <span class="user-name" id="userDisplayName">會員</span>
+              <span class="tier-badge free" id="userRoleBadge">Free</span>
+            </div>
+            <button id="openMySettingsBtn" class="btn-icon-subtle" title="個人推播設定">⚙️</button>
+            <button id="logoutBtn" class="btn-icon-subtle" title="登出">🚪</button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <!-- 斷線 / Token 失效警告橫幅 -->
@@ -398,6 +415,140 @@
         <button id="cancelTokenModalBtn" class="btn btn-secondary">取消</button>
         <button id="submitTokenBtn" class="btn btn-success">
           <span>🚀 驗證並連線</span>
+        </button>
+      </div>
+  </div>
+
+  <!-- 登入 Modal -->
+  <div id="loginModal" class="modal-backdrop hidden">
+    <div class="modal-card login-modal-card">
+      <div class="modal-header">
+        <h3>🔐 會員 / 管理員登入</h3>
+        <button id="closeLoginModalBtn" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 登入 Tab 切換 -->
+        <div class="login-tabs">
+          <button class="login-tab active" id="tabTelegramBtn">📱 Telegram 驗證碼登入</button>
+          <button class="login-tab" id="tabAdminBtn">👑 管理員金鑰登入</button>
+        </div>
+
+        <!-- Tab 1: Telegram OTP 登入 -->
+        <div id="telegramTabContent" class="tab-content active">
+          <p class="login-instruction" style="font-size:13px; color:#94a3b8; margin: 12px 0 16px;">
+            免記密碼！輸入您的 Telegram Chat ID，機器人 <code>@Stealanegg3love24bot</code> 將會發送 6 位數驗證碼至您的手機私訊：
+          </p>
+          
+          <div class="form-group">
+            <label for="loginChatIdInput" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#f8fafc;">Telegram Chat ID：</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="loginChatIdInput" class="text-input" placeholder="例如: 8670104462" style="flex:1;">
+              <button id="sendOtpBtn" class="btn btn-secondary">
+                <span>獲取驗證碼</span>
+              </button>
+            </div>
+            <small class="form-hint" style="display:block; margin-top:6px; color:#64748b; font-size:11px;">
+              不知道 Chat ID？請在 Telegram 私訊 <a href="https://t.me/Stealanegg3love24bot" target="_blank" style="color:#38bdf8;">@Stealanegg3love24bot</a> 輸入 <code>/start</code> 即可查看。
+            </small>
+          </div>
+
+          <!-- 步驟 2: 輸入 6 位數驗證碼 -->
+          <div id="otpInputGroup" class="form-group hidden" style="margin-top: 16px;">
+            <label for="loginOtpInput" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#f8fafc;">6 位數動態驗證碼：</label>
+            <input type="text" id="loginOtpInput" class="text-input otp-input" placeholder="000000" maxlength="6" style="width: 100%; text-align: center; letter-spacing: 8px; font-size: 20px; font-weight: bold;">
+            <div id="otpCooldownNotice" style="margin-top:6px; color:#10b981; font-size:12px;">✅ 驗證碼已發送至 Telegram，5 分鐘內有效</div>
+          </div>
+
+          <div id="loginErrorMsg" class="modal-error hidden" style="margin-top:10px; color:#fb7185; font-size:13px;"></div>
+
+          <div class="modal-footer" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="cancelLoginBtn" class="btn btn-secondary">取消</button>
+            <button id="submitOtpLoginBtn" class="btn btn-primary" disabled>
+              <span>🚀 確認登入</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 2: 管理員金鑰登入 -->
+        <div id="adminTabContent" class="tab-content hidden">
+          <p class="login-instruction" style="font-size:13px; color:#94a3b8; margin: 12px 0 16px;">
+            輸入伺服器管理金鑰，直接以 Super Admin 權限登入解鎖所有後台功能：
+          </p>
+          <div class="form-group">
+            <label for="loginAdminKeyInput" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#f8fafc;">管理金鑰 (Admin Secret Key)：</label>
+            <input type="password" id="loginAdminKeyInput" class="text-input" placeholder="輸入管理金鑰..." style="width: 100%;">
+          </div>
+          <div id="adminLoginErrorMsg" class="modal-error hidden" style="margin-top:10px; color:#fb7185; font-size:13px;"></div>
+          <div class="modal-footer" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="cancelAdminLoginBtn" class="btn btn-secondary">取消</button>
+            <button id="submitAdminLoginBtn" class="btn btn-success">
+              <span>👑 管理員登入</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 個人偏好設定 Modal -->
+  <div id="mySettingsModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ 個人會員推播與偏好設定</h3>
+        <button id="closeMySettingsModalBtn" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="my-profile-summary" style="background:rgba(255,255,255,0.03); padding:12px 16px; border-radius:12px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span style="color:#94a3b8; font-size:13px;">會員身分：</span>
+            <span id="myProfileTierBadge" class="tier-badge free">Free</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span style="color:#94a3b8; font-size:13px;">VIP 到期日：</span>
+            <span id="myProfileExpireText" style="color:#f8fafc; font-size:13px; font-weight:600;">--</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:#94a3b8; font-size:13px;">Telegram ID：</span>
+            <code id="myProfileChatId" style="color:#38bdf8;">--</code>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="switch-label" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+            <span style="font-weight: 600; font-size:14px; color:#f8fafc;">🔔 接收 Telegram 即時推播提醒</span>
+            <label class="switch">
+              <input type="checkbox" id="myNotifyToggle" checked>
+              <span class="slider round"></span>
+            </label>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-top: 18px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size:14px; color:#f8fafc;">🎯 個人推播接收模式：</label>
+          <div class="filter-radio-group" style="display:flex; flex-direction:column; gap:8px;">
+            <label class="radio-card" style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:8px; cursor:pointer;">
+              <input type="radio" name="myFilterMode" value="all" checked>
+              <span style="font-size:13px;">🔔 <b>全部蛋種接收</b> (接收所有公開蛋掉落)</span>
+            </label>
+            <label class="radio-card" style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:8px; cursor:pointer;">
+              <input type="radio" name="myFilterMode" value="rare_only">
+              <span style="font-size:13px;">👑 <b>僅接收 VIP 稀有蛋</b> (Secret / Eternal / Divine / World Burner)</span>
+            </label>
+            <label class="radio-card" style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:8px; cursor:pointer;">
+              <input type="radio" name="myFilterMode" value="custom">
+              <span style="font-size:13px;">🎯 <b>自訂稀有度</b> (手動勾選下方項目)</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="myCustomRaritiesWrap" class="rarity-checkbox-grid hidden" style="margin-top: 12px; display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px;">
+          <!-- 動態載入稀有度多選按鈕 -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+        <button id="closeMySettingsBtn2" class="btn btn-secondary">關閉</button>
+        <button id="saveMySettingsBtn" class="btn btn-success">
+          <span>💾 儲存個人偏好</span>
         </button>
       </div>
     </div>

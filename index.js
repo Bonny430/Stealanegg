@@ -911,6 +911,9 @@ app.get('/api/sync-status', (req, res) => {
 
 // 9. 線上更新 Discord Token (無需重啟 Render 即可立即重新連線)
 app.post('/api/update-token', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ success: false, error: '未授權的操作，請先以管理員身分登入' });
+  }
   const { token } = req.body;
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ error: '請提供有效的 Discord Token' });
@@ -950,7 +953,85 @@ app.post('/api/update-token', async (req, res) => {
   }
 });
 
-// 10. 會員管理系統 API
+// 管理員身分鑑權輔助函式
+function checkIsAdmin(req) {
+  const isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
+  if (isLocal) return true;
+  const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
+  if (authHeader) {
+    const session = memberService.validateSession(authHeader);
+    if (session.valid && session.isAdmin) return true;
+  }
+  const adminKey = req.body?.adminKey || req.query?.adminKey;
+  const serverKey = process.env.ADMIN_KEY || 'stealanegg2026';
+  if (adminKey && adminKey === serverKey) return true;
+  return false;
+}
+
+// ==================== 10. 會員與身分認證系統 API ====================
+
+// 請求登入驗證碼 (OTP)
+app.post('/api/auth/request-otp', async (req, res) => {
+  const { chatId } = req.body;
+  if (!chatId) return res.status(400).json({ success: false, error: '缺少 Telegram Chat ID' });
+  const result = await memberService.generateLoginOtp(chatId);
+  if (!result.success) return res.status(400).json(result);
+  res.json(result);
+});
+
+// 驗證碼登入
+app.post('/api/auth/login-otp', (req, res) => {
+  const { chatId, code } = req.body;
+  if (!chatId || !code) return res.status(400).json({ success: false, error: '請輸入 Chat ID 與 6 位數驗證碼' });
+  const result = memberService.verifyLoginOtp(chatId, code);
+  if (!result.success) return res.status(400).json(result);
+  res.json(result);
+});
+
+// 管理員金鑰直接登入
+app.post('/api/auth/login-admin', (req, res) => {
+  const { adminKey } = req.body;
+  const result = memberService.loginAdmin(adminKey);
+  if (!result.success) return res.status(403).json(result);
+  res.json(result);
+});
+
+// 取得當前登入者資訊
+app.get('/api/auth/me', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
+  const session = memberService.validateSession(authHeader);
+  if (!session.valid) {
+    return res.status(401).json({ success: false, authenticated: false, error: session.error || '未登入或 Session 已失效' });
+  }
+  res.json({
+    success: true,
+    authenticated: true,
+    chatId: session.chatId,
+    role: session.role,
+    isAdmin: session.isAdmin,
+    member: session.member
+  });
+});
+
+// 登出 Session
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
+  memberService.logoutSession(authHeader);
+  res.json({ success: true, message: '已成功登出' });
+});
+
+// 登入會員在網頁自訂個人偏好
+app.post('/api/auth/update-my-settings', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
+  const session = memberService.validateSession(authHeader);
+  if (!session.valid) {
+    return res.status(401).json({ success: false, error: '請先登入後再進行個人化設定' });
+  }
+  const updated = memberService.updateMySettings(session.chatId, req.body);
+  res.json({ success: true, member: updated });
+});
+
+// 會員名冊與狀態 API
 app.get('/api/members', (req, res) => {
   res.json({
     success: true,
@@ -960,12 +1041,10 @@ app.get('/api/members', (req, res) => {
 });
 
 app.post('/api/members/set-vip', async (req, res) => {
-  const { chatId, days, notes, adminKey } = req.body;
-  const serverKey = process.env.ADMIN_KEY || 'stealanegg2026';
-  const isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
-  if (!isLocal && adminKey !== serverKey) {
-    return res.status(403).json({ success: false, error: '未授權的管理操作' });
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ success: false, error: '未授權的管理操作，請先以管理員身分登入' });
   }
+  const { chatId, days, notes } = req.body;
   if (!chatId) {
     return res.status(400).json({ success: false, error: '缺少會員 Chat ID' });
   }
@@ -978,12 +1057,10 @@ app.post('/api/members/set-vip', async (req, res) => {
 });
 
 app.post('/api/members/revoke-vip', (req, res) => {
-  const { chatId, adminKey } = req.body;
-  const serverKey = process.env.ADMIN_KEY || 'stealanegg2026';
-  const isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
-  if (!isLocal && adminKey !== serverKey) {
-    return res.status(403).json({ success: false, error: '未授權的管理操作' });
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ success: false, error: '未授權的管理操作，請先以管理員身分登入' });
   }
+  const { chatId } = req.body;
   const member = memberService.revokeVip(chatId);
   res.json({ success: true, member });
 });

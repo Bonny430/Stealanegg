@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const MEMBERS_FILE = path.join(DATA_DIR, 'members.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 
 // 支援的稀有度清單供按鈕切換
 const ALL_RARITIES = ['Secret', 'Eternal', 'Divine', 'World Burner', 'Mythical', 'Legendary', 'Rare'];
@@ -11,6 +13,8 @@ const VIP_DEFAULT_RARITIES = ['Secret', 'Eternal', 'Divine', 'World Burner'];
 class MemberService {
   constructor() {
     this.members = new Map();
+    this.otpStore = new Map(); // chatId -> { code, expireAt, lastSentAt }
+    this.sessions = new Map(); // token -> { token, chatId, role, createdAt, expireAt }
     this.superAdminChatId = process.env.TELEGRAM_CHAT_ID ? String(process.env.TELEGRAM_CHAT_ID) : '8670104462';
     this.botToken = process.env.TELEGRAM_BOT_TOKEN;
     this.sheetApiUrl = process.env.GOOGLE_SHEET_API_URL || 'https://script.google.com/macros/s/AKfycbxuLJ-ngjNo0JnQi9qmNBveGHW7KnnJRDfKW7WUEDXHmbB2949IWJmle8OiHp15InvB/exec';
@@ -23,7 +27,7 @@ class MemberService {
     this.statsProvider = provider;
   }
 
-  // 初始化並載入會員
+  // 初始化並載入會員與 Session
   init() {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -42,6 +46,23 @@ class MemberService {
       }
     }
 
+    // 載入持久化 Session
+    if (fs.existsSync(SESSIONS_FILE)) {
+      try {
+        const raw = fs.readFileSync(SESSIONS_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        const now = Date.now();
+        for (const [tok, sess] of Object.entries(parsed)) {
+          if (sess.expireAt && new Date(sess.expireAt).getTime() > now) {
+            this.sessions.set(tok, sess);
+          }
+        }
+        console.log(`[MemberService] 已恢復 ${this.sessions.size} 個活躍 Session`);
+      } catch (err) {
+        console.warn('[MemberService] 讀取 sessions.json 失敗:', err.message);
+      }
+    }
+
     // 確保 Super Admin 存在
     if (this.superAdminChatId && !this.members.has(this.superAdminChatId)) {
       this.registerMember(this.superAdminChatId, {
@@ -57,6 +78,22 @@ class MemberService {
     this.syncFromSheet().catch(err => {
       console.warn('[MemberService] Google Sheet 同步略過或稍後重試:', err.message);
     });
+  }
+
+  // 儲存 Session 到本地檔案
+  saveSessions() {
+    try {
+      const obj = {};
+      const now = Date.now();
+      for (const [tok, sess] of this.sessions.entries()) {
+        if (sess.expireAt && new Date(sess.expireAt).getTime() > now) {
+          obj[tok] = sess;
+        }
+      }
+      fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('[MemberService] 儲存 sessions.json 失敗:', err.message);
+    }
   }
 
   // 儲存到本地檔案
@@ -365,6 +402,217 @@ class MemberService {
       updatedAt: m.updatedAt,
       notes: m.notes
     }));
+  }
+
+  // ================= 儀表板登入與 Session 認證模組 =================
+
+  // 1. 產生 6 位數登入驗證碼 (OTP)
+  async generateLoginOtp(chatId) {
+    const id = String(chatId).trim();
+    if (!id || !/^-?\d+$/.test(id)) {
+      return { success: false, error: '請輸入有效的 Telegram Chat ID (數字)' };
+    }
+
+    // 檢查發送冷卻時間 (30 秒)
+    const existing = this.otpStore.get(id);
+    const now = Date.now();
+    if (existing && existing.lastSentAt && (now - existing.lastSentAt < 30000)) {
+      const waitSec = Math.ceil((30000 - (now - existing.lastSentAt)) / 1000);
+      return { success: false, error: `發送過於頻繁，請等待 ${waitSec} 秒後再試` };
+    }
+
+    // 確保會員存在，若新用戶則自動登記
+    let member = this.members.get(id);
+    if (!member) {
+      member = this.registerMember(id, { notes: '網頁驗證碼登入自動註冊' });
+    }
+
+    // 產生 6 位隨機數字
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expireAt = now + 5 * 60 * 1000; // 5 分鐘有效
+
+    this.otpStore.set(id, {
+      code,
+      expireAt,
+      lastSentAt: now
+    });
+
+    // 透過 Telegram 機器人發送私訊
+    const msg = `🔐 <b>【Steal An Egg 儀表板登入驗證碼】</b>\n\n` +
+      `您剛剛在監控儀表板申請了登入驗證碼：\n\n` +
+      `👉 <code>${code}</code> 👈\n\n` +
+      `• <b>有效時間：</b> 5 分鐘\n` +
+      `• <b>安全提醒：</b> 請勿將此驗證碼透露給他人。如非您本人操作，請忽略此訊息。`;
+
+    try {
+      const tgRes = await this.sendTelegramMessage(id, msg);
+      if (tgRes && tgRes.ok) {
+        return { success: true, message: '驗證碼已發送至您的 Telegram 私訊！', expireSeconds: 300 };
+      } else {
+        return {
+          success: false,
+          error: '驗證碼發送失敗，請確認您已在 Telegram 私訊過 @Stealanegg3love24bot 並點擊過 /start！'
+        };
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: `Telegram 發送異常: ${err.message}`
+      };
+    }
+  }
+
+  // 2. 驗證 OTP 並建立 Session
+  verifyLoginOtp(chatId, inputCode) {
+    const id = String(chatId).trim();
+    const code = String(inputCode).trim();
+
+    const otpData = this.otpStore.get(id);
+    if (!otpData) {
+      return { success: false, error: '尚未發送驗證碼或驗證碼已過期，請重新獲取' };
+    }
+
+    if (Date.now() > otpData.expireAt) {
+      this.otpStore.delete(id);
+      return { success: false, error: '驗證碼已逾時 (超過5分鐘)，請重新獲取' };
+    }
+
+    if (otpData.code !== code) {
+      return { success: false, error: '驗證碼錯誤，請仔細核對 6 位數字' };
+    }
+
+    // 驗證成功，清除 OTP
+    this.otpStore.delete(id);
+
+    // 簽發 Session Token
+    const token = crypto.randomBytes(32).toString('hex');
+    const isSuperAdmin = id === this.superAdminChatId;
+    const member = this.members.get(id) || this.registerMember(id);
+
+    const session = {
+      token,
+      chatId: id,
+      role: isSuperAdmin ? 'admin' : (this.isVipActive(member) ? 'vip' : 'member'),
+      createdAt: new Date().toISOString(),
+      expireAt: new Date(Date.now() + 30 * 86400000).toISOString() // 30 天有效
+    };
+
+    this.sessions.set(token, session);
+    this.saveSessions();
+
+    return {
+      success: true,
+      token,
+      member: this.getSanitizedMember(member)
+    };
+  }
+
+  // 3. 管理員金鑰登入
+  loginAdmin(adminKey) {
+    const serverKey = process.env.ADMIN_KEY || 'stealanegg2026';
+    if (!adminKey || String(adminKey).trim() !== serverKey) {
+      return { success: false, error: '管理金鑰錯誤，拒絕登入' };
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const adminMember = this.members.get(this.superAdminChatId) || this.registerMember(this.superAdminChatId, {
+      username: 'admin',
+      firstName: 'Super Admin',
+      tier: 'admin'
+    });
+
+    const session = {
+      token,
+      chatId: this.superAdminChatId,
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+      expireAt: new Date(Date.now() + 30 * 86400000).toISOString()
+    };
+
+    this.sessions.set(token, session);
+    this.saveSessions();
+
+    return {
+      success: true,
+      token,
+      member: this.getSanitizedMember(adminMember)
+    };
+  }
+
+  // 4. 校驗 Session Token
+  validateSession(token) {
+    if (!token) return { valid: false };
+    const cleanTok = String(token).trim().replace(/^Bearer\s+/i, '');
+    const session = this.sessions.get(cleanTok);
+    if (!session) return { valid: false };
+
+    if (session.expireAt && new Date(session.expireAt).getTime() < Date.now()) {
+      this.sessions.delete(cleanTok);
+      this.saveSessions();
+      return { valid: false, error: 'Session 已過期，請重新登入' };
+    }
+
+    const member = this.members.get(session.chatId);
+    if (!member) return { valid: false };
+
+    // 動態更新當前角色狀態
+    const isSuperAdmin = session.chatId === this.superAdminChatId || member.tier === 'admin';
+    const isVip = this.isVipActive(member);
+    session.role = isSuperAdmin ? 'admin' : (isVip ? 'vip' : 'member');
+
+    return {
+      valid: true,
+      token: cleanTok,
+      chatId: session.chatId,
+      role: session.role,
+      isAdmin: isSuperAdmin,
+      member: this.getSanitizedMember(member)
+    };
+  }
+
+  // 5. 登出 Session
+  logoutSession(token) {
+    if (!token) return true;
+    const cleanTok = String(token).trim().replace(/^Bearer\s+/i, '');
+    this.sessions.delete(cleanTok);
+    this.saveSessions();
+    return true;
+  }
+
+  // 6. 登入會員在網頁自訂個人偏好
+  updateMySettings(chatId, { enabled, filterType, customRarities, customEggNames }) {
+    const id = String(chatId);
+    let member = this.members.get(id);
+    if (!member) return null;
+
+    if (typeof enabled === 'boolean') member.enabled = enabled;
+    if (filterType) member.filterType = filterType;
+    if (Array.isArray(customRarities)) member.customRarities = customRarities;
+    if (Array.isArray(customEggNames)) member.customEggNames = customEggNames;
+
+    member.updatedAt = new Date().toISOString();
+    this.saveLocal();
+    this.syncMemberToSheet(member).catch(() => {});
+    return this.getSanitizedMember(member);
+  }
+
+  // 取得安全的會員公開資料
+  getSanitizedMember(m) {
+    if (!m) return null;
+    return {
+      chatId: m.chatId,
+      username: m.username,
+      firstName: m.firstName,
+      tier: m.tier,
+      isVip: this.isVipActive(m),
+      isAdmin: m.tier === 'admin' || m.chatId === this.superAdminChatId,
+      expireAt: m.expireAt,
+      enabled: m.enabled !== false,
+      filterType: m.filterType || 'all',
+      customRarities: m.customRarities || [],
+      customEggNames: m.customEggNames || [],
+      notificationsCount: m.notificationsCount || 0
+    };
   }
 
   // ================= Telegram API 調用封裝 =================

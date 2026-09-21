@@ -843,6 +843,456 @@ if (submitGrantVipBtn) {
   };
 }
 
+// ==================== 會員登入與身分認證前台邏輯 ====================
+
+const AUTH_TOKEN_KEY = 'sae_auth_token';
+let currentUser = null;
+
+function getAuthToken() {
+  return localStorage.getItem(AUTH_TOKEN_KEY) || '';
+}
+
+function setAuthToken(token) {
+  if (token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+  }
+}
+
+function getAuthHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// UI 元素綁定
+const openLoginModalBtn = document.getElementById('openLoginModalBtn');
+const userProfileBadge = document.getElementById('userProfileBadge');
+const userDisplayName = document.getElementById('userDisplayName');
+const userRoleBadge = document.getElementById('userRoleBadge');
+const openMySettingsBtn = document.getElementById('openMySettingsBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const loginModal = document.getElementById('loginModal');
+const closeLoginModalBtn = document.getElementById('closeLoginModalBtn');
+const cancelLoginBtn = document.getElementById('cancelLoginBtn');
+const tabTelegramBtn = document.getElementById('tabTelegramBtn');
+const tabAdminBtn = document.getElementById('tabAdminBtn');
+const telegramTabContent = document.getElementById('telegramTabContent');
+const adminTabContent = document.getElementById('adminTabContent');
+
+const loginChatIdInput = document.getElementById('loginChatIdInput');
+const sendOtpBtn = document.getElementById('sendOtpBtn');
+const otpInputGroup = document.getElementById('otpInputGroup');
+const loginOtpInput = document.getElementById('loginOtpInput');
+const submitOtpLoginBtn = document.getElementById('submitOtpLoginBtn');
+const loginErrorMsg = document.getElementById('loginErrorMsg');
+
+const loginAdminKeyInput = document.getElementById('loginAdminKeyInput');
+const submitAdminLoginBtn = document.getElementById('submitAdminLoginBtn');
+const cancelAdminLoginBtn = document.getElementById('cancelAdminLoginBtn');
+const adminLoginErrorMsg = document.getElementById('adminLoginErrorMsg');
+
+// 個人偏好 Modal 元素
+const mySettingsModal = document.getElementById('mySettingsModal');
+const closeMySettingsModalBtn = document.getElementById('closeMySettingsModalBtn');
+const closeMySettingsBtn2 = document.getElementById('closeMySettingsBtn2');
+const saveMySettingsBtn = document.getElementById('saveMySettingsBtn');
+const myProfileTierBadge = document.getElementById('myProfileTierBadge');
+const myProfileExpireText = document.getElementById('myProfileExpireText');
+const myProfileChatId = document.getElementById('myProfileChatId');
+const myNotifyToggle = document.getElementById('myNotifyToggle');
+const myCustomRaritiesWrap = document.getElementById('myCustomRaritiesWrap');
+
+// 檢查登入狀態
+async function checkAuthStatus() {
+  const token = getAuthToken();
+  if (!token) {
+    currentUser = null;
+    updateAuthUI();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.member) {
+        currentUser = data;
+        updateAuthUI();
+        return;
+      }
+    }
+  } catch (_) {}
+
+  // 驗證失敗則清除無效 Token
+  setAuthToken('');
+  currentUser = null;
+  updateAuthUI();
+}
+
+// 根據登入狀態更新畫面
+function updateAuthUI() {
+  if (currentUser && currentUser.member) {
+    const m = currentUser.member;
+    if (openLoginModalBtn) openLoginModalBtn.classList.add('hidden');
+    if (userProfileBadge) userProfileBadge.classList.remove('hidden');
+
+    if (userDisplayName) {
+      userDisplayName.textContent = m.firstName || m.username || m.chatId;
+    }
+
+    if (userRoleBadge) {
+      const tierClass = m.tier === 'admin' ? 'admin' : (m.isVip ? 'vip' : 'free');
+      const tierText = m.tier === 'admin' ? '👑 Admin' : (m.isVip ? '🌟 VIP' : '⚪ Free');
+      userRoleBadge.className = `tier-badge ${tierClass}`;
+      userRoleBadge.textContent = tierText;
+    }
+
+    // 若為管理員，自動填入金鑰並解鎖後台
+    if (currentUser.isAdmin && adminKeyInput && !adminKeyInput.value) {
+      adminKeyInput.value = 'stealanegg2026';
+    }
+  } else {
+    if (openLoginModalBtn) openLoginModalBtn.classList.remove('hidden');
+    if (userProfileBadge) userProfileBadge.classList.add('hidden');
+  }
+}
+
+// 登入彈窗開啟與關閉
+if (openLoginModalBtn) {
+  openLoginModalBtn.onclick = () => {
+    loginModal.classList.remove('hidden');
+    loginErrorMsg.classList.add('hidden');
+    adminLoginErrorMsg.classList.add('hidden');
+    if (loginChatIdInput) loginChatIdInput.focus();
+  };
+}
+
+function closeLoginModal() {
+  if (loginModal) loginModal.classList.add('hidden');
+  if (loginOtpInput) loginOtpInput.value = '';
+}
+
+if (closeLoginModalBtn) closeLoginModalBtn.onclick = closeLoginModal;
+if (cancelLoginBtn) cancelLoginBtn.onclick = closeLoginModal;
+if (cancelAdminLoginBtn) cancelAdminLoginBtn.onclick = closeLoginModal;
+
+// 登入 Tab 切換
+if (tabTelegramBtn && tabAdminBtn) {
+  tabTelegramBtn.onclick = () => {
+    tabTelegramBtn.classList.add('active');
+    tabAdminBtn.classList.remove('active');
+    telegramTabContent.classList.remove('hidden');
+    adminTabContent.classList.add('hidden');
+  };
+
+  tabAdminBtn.onclick = () => {
+    tabAdminBtn.classList.add('active');
+    tabTelegramBtn.classList.remove('active');
+    adminTabContent.classList.remove('hidden');
+    telegramTabContent.classList.add('hidden');
+    if (loginAdminKeyInput) loginAdminKeyInput.focus();
+  };
+}
+
+// 發送 OTP
+let otpCooldownTimer = null;
+if (sendOtpBtn) {
+  sendOtpBtn.onclick = async () => {
+    const chatId = loginChatIdInput.value.trim();
+    if (!chatId) {
+      loginErrorMsg.textContent = '請先輸入 Telegram Chat ID';
+      loginErrorMsg.classList.remove('hidden');
+      return;
+    }
+
+    sendOtpBtn.disabled = true;
+    sendOtpBtn.textContent = '發送中...';
+    loginErrorMsg.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✅ 驗證碼已發送至您的 Telegram 私訊！', 'success');
+        otpInputGroup.classList.remove('hidden');
+        if (submitOtpLoginBtn) submitOtpLoginBtn.disabled = false;
+        if (loginOtpInput) loginOtpInput.focus();
+
+        // 倒數計時冷卻 (30秒)
+        let cd = 30;
+        sendOtpBtn.textContent = `重新發送 (${cd}s)`;
+        if (otpCooldownTimer) clearInterval(otpCooldownTimer);
+        otpCooldownTimer = setInterval(() => {
+          cd--;
+          if (cd <= 0) {
+            clearInterval(otpCooldownTimer);
+            sendOtpBtn.disabled = false;
+            sendOtpBtn.textContent = '獲取驗證碼';
+          } else {
+            sendOtpBtn.textContent = `重新發送 (${cd}s)`;
+          }
+        }, 1000);
+      } else {
+        loginErrorMsg.textContent = data.error || '發送失敗，請確認您已在 Telegram 私訊過 @Stealanegg3love24bot 並點擊過 /start';
+        loginErrorMsg.classList.remove('hidden');
+        sendOtpBtn.disabled = false;
+        sendOtpBtn.textContent = '獲取驗證碼';
+      }
+    } catch (err) {
+      loginErrorMsg.textContent = '連線伺服器異常: ' + err.message;
+      loginErrorMsg.classList.remove('hidden');
+      sendOtpBtn.disabled = false;
+      sendOtpBtn.textContent = '獲取驗證碼';
+    }
+  };
+}
+
+// 監聽 OTP 輸入框 (輸入滿 6 碼自動解鎖)
+if (loginOtpInput) {
+  loginOtpInput.addEventListener('input', () => {
+    const val = loginOtpInput.value.trim();
+    if (submitOtpLoginBtn) {
+      submitOtpLoginBtn.disabled = val.length < 6;
+    }
+  });
+}
+
+// 提交 OTP 登入
+if (submitOtpLoginBtn) {
+  submitOtpLoginBtn.onclick = async () => {
+    const chatId = loginChatIdInput.value.trim();
+    const code = loginOtpInput.value.trim();
+    if (!chatId || !code) {
+      loginErrorMsg.textContent = '請輸入 6 位數驗證碼';
+      loginErrorMsg.classList.remove('hidden');
+      return;
+    }
+
+    submitOtpLoginBtn.disabled = true;
+    submitOtpLoginBtn.textContent = '驗證登入中...';
+    loginErrorMsg.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, code })
+      });
+      const data = await res.json();
+      if (data.success && data.token) {
+        setAuthToken(data.token);
+        currentUser = { authenticated: true, chatId: data.member.chatId, role: data.member.tier, isAdmin: data.member.isAdmin, member: data.member };
+        updateAuthUI();
+        closeLoginModal();
+        showToast(`🎉 歡迎回來，${data.member.firstName || '玩家'}！已成功登入！`, 'success');
+        loadMemberStats();
+      } else {
+        loginErrorMsg.textContent = data.error || '驗證碼錯誤或已過期';
+        loginErrorMsg.classList.remove('hidden');
+      }
+    } catch (err) {
+      loginErrorMsg.textContent = '登入失敗: ' + err.message;
+      loginErrorMsg.classList.remove('hidden');
+    } finally {
+      submitOtpLoginBtn.disabled = false;
+      submitOtpLoginBtn.textContent = '🚀 確認登入';
+    }
+  };
+}
+
+// 管理員金鑰登入
+if (submitAdminLoginBtn) {
+  submitAdminLoginBtn.onclick = async () => {
+    const adminKey = loginAdminKeyInput.value.trim();
+    if (!adminKey) {
+      adminLoginErrorMsg.textContent = '請輸入管理金鑰';
+      adminLoginErrorMsg.classList.remove('hidden');
+      return;
+    }
+
+    submitAdminLoginBtn.disabled = true;
+    submitAdminLoginBtn.textContent = '登入中...';
+    adminLoginErrorMsg.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/login-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminKey })
+      });
+      const data = await res.json();
+      if (data.success && data.token) {
+        setAuthToken(data.token);
+        currentUser = { authenticated: true, chatId: data.member.chatId, role: 'admin', isAdmin: true, member: data.member };
+        updateAuthUI();
+        closeLoginModal();
+        showToast('👑 管理員身分已驗證，已解鎖全部後台權限！', 'success');
+        loadMemberStats();
+        // 自動展開管理員名冊
+        if (adminPanelWrapper) {
+          adminPanelWrapper.classList.remove('hidden');
+          loadMembersList();
+        }
+      } else {
+        adminLoginErrorMsg.textContent = data.error || '管理金鑰錯誤';
+        adminLoginErrorMsg.classList.remove('hidden');
+      }
+    } catch (err) {
+      adminLoginErrorMsg.textContent = '登入失敗: ' + err.message;
+      adminLoginErrorMsg.classList.remove('hidden');
+    } finally {
+      submitAdminLoginBtn.disabled = false;
+      submitAdminLoginBtn.textContent = '👑 管理員登入';
+    }
+  };
+}
+
+// 登出
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    if (!confirm('確定要登出嗎？')) return;
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+    } catch (_) {}
+    setAuthToken('');
+    currentUser = null;
+    updateAuthUI();
+    showToast('👋 您已成功登出', 'success');
+  };
+}
+
+// 個人偏好設定 Modal
+const RARITY_LIST = ['Secret', 'Eternal', 'Divine', 'World Burner', 'Mythical', 'Legendary', 'Rare'];
+
+if (openMySettingsBtn) {
+  openMySettingsBtn.onclick = () => {
+    if (!currentUser || !currentUser.member) {
+      showToast('請先登入會員', 'error');
+      return;
+    }
+    const m = currentUser.member;
+
+    if (myProfileTierBadge) {
+      const tierClass = m.tier === 'admin' ? 'admin' : (m.isVip ? 'vip' : 'free');
+      const tierText = m.tier === 'admin' ? '👑 Admin' : (m.isVip ? '🌟 VIP' : '⚪ Free');
+      myProfileTierBadge.className = `tier-badge ${tierClass}`;
+      myProfileTierBadge.textContent = tierText;
+    }
+
+    if (myProfileExpireText) {
+      myProfileExpireText.textContent = m.tier === 'admin' ? '永久有效' : (m.expireAt ? new Date(m.expireAt).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '未開通 (免費方案)');
+    }
+
+    if (myProfileChatId) {
+      myProfileChatId.textContent = m.chatId;
+    }
+
+    if (myNotifyToggle) {
+      myNotifyToggle.checked = m.enabled !== false;
+    }
+
+    // 模式選擇
+    const currentMode = m.filterType || 'all';
+    const radios = document.querySelectorAll('input[name="myFilterMode"]');
+    radios.forEach(r => {
+      r.checked = r.value === currentMode;
+    });
+
+    renderMyCustomRarities(m.customRarities || []);
+
+    if (currentMode === 'custom') {
+      myCustomRaritiesWrap.classList.remove('hidden');
+    } else {
+      myCustomRaritiesWrap.classList.add('hidden');
+    }
+
+    mySettingsModal.classList.remove('hidden');
+  };
+}
+
+function renderMyCustomRarities(selected = []) {
+  if (!myCustomRaritiesWrap) return;
+  myCustomRaritiesWrap.innerHTML = RARITY_LIST.map(r => {
+    const isChecked = selected.includes(r);
+    return `
+      <label class="rarity-checkbox-item">
+        <input type="checkbox" value="${r}" ${isChecked ? 'checked' : ''} class="my-rarity-chk">
+        <span>${r}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+// 監聽模式 Radio 切換
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.name === 'myFilterMode') {
+    if (e.target.value === 'custom') {
+      myCustomRaritiesWrap.classList.remove('hidden');
+    } else {
+      myCustomRaritiesWrap.classList.add('hidden');
+    }
+  }
+});
+
+function closeMySettingsModal() {
+  if (mySettingsModal) mySettingsModal.classList.add('hidden');
+}
+
+if (closeMySettingsModalBtn) closeMySettingsModalBtn.onclick = closeMySettingsModal;
+if (closeMySettingsBtn2) closeMySettingsBtn2.onclick = closeMySettingsModal;
+
+if (saveMySettingsBtn) {
+  saveMySettingsBtn.onclick = async () => {
+    saveMySettingsBtn.disabled = true;
+    saveMySettingsBtn.textContent = '儲存中...';
+
+    const enabled = myNotifyToggle.checked;
+    const selectedMode = document.querySelector('input[name="myFilterMode"]:checked')?.value || 'all';
+    const checkedRarities = Array.from(document.querySelectorAll('.my-rarity-chk:checked')).map(c => c.value);
+
+    try {
+      const res = await fetch('/api/auth/update-my-settings', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          enabled,
+          filterType: selectedMode,
+          customRarities: checkedRarities
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.member) {
+        currentUser.member = data.member;
+        updateAuthUI();
+        closeMySettingsModal();
+        showToast('💾 個人推播偏好已儲存並同步至 Telegram！', 'success');
+      } else {
+        showToast('儲存失敗: ' + (data.error || '請重試'), 'error');
+      }
+    } catch (err) {
+      showToast('連線失敗: ' + err.message, 'error');
+    } finally {
+      saveMySettingsBtn.disabled = false;
+      saveMySettingsBtn.innerHTML = '<span>💾 儲存個人偏好</span>';
+    }
+  };
+}
+
 // 初始化
 window.addEventListener('DOMContentLoaded', async () => {
   initFilterBars();
@@ -852,6 +1302,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadPrediction();
   await loadHistory();
   await loadMemberStats();
+  await checkAuthStatus();
 
   // 每秒更新倒數
   countdownInterval = setInterval(updateCountdown, 1000);

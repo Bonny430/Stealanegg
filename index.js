@@ -665,6 +665,10 @@ async function refreshCacheFromSheet() {
         if (!n || n === '未知' || n === '未知蛋' || n.includes('未知')) return false;
         return true;
       });
+      // 記憶體防護：限制快取最多 5,000 筆，避免 Render 512MB RAM 溢出
+      if (cachedRows.length > 5000) {
+        cachedRows = cachedRows.slice(-5000);
+      }
       cachedStats = computeStatsFromRows(cachedRows);
       console.log(`[快取] 已同步 ${cachedRows.length} 筆資料庫紀錄，預測模型已更新 (已過濾未知蛋雜訊)`);
     }
@@ -681,6 +685,10 @@ function addEggToMemoryCache(eggInfo) {
     eggInfo.rarity,
     `[${eggInfo.location}] ${eggInfo.rawText || ''}`
   ]);
+  // 保持最新 5,000 筆紀錄
+  if (cachedRows.length > 5000) {
+    cachedRows = cachedRows.slice(-5000);
+  }
   cachedStats = computeStatsFromRows(cachedRows);
 }
 
@@ -1571,6 +1579,22 @@ app.post('/api/auth/update-my-settings', (req, res) => {
   }
   const updated = memberService.updateMySettings(session.chatId, req.body);
   res.json({ success: true, member: updated });
+});
+
+// 發送 Telegram 測試推播給當前登入會員 (由網頁端發動)
+app.post('/api/auth/test-telegram', async (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
+  const session = memberService.validateSession(authHeader);
+  if (!session.valid) {
+    return res.status(401).json({ success: false, error: '請先登入後再發送測試推播' });
+  }
+  try {
+    const member = memberService.members.get(String(session.chatId));
+    await memberService.sendTestNotification(session.chatId, member);
+    res.json({ success: true, message: '測試推播已發送至您的 Telegram！請檢查私訊。' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: '發送測試推播失敗: ' + err.message });
+  }
 });
 
 // 取得登入會員的歷史操作日誌

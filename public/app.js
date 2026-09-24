@@ -2239,11 +2239,524 @@ if (saveMySettingsBtn) {
   };
 }
 
+// 測試發送 Telegram 推播按鈕
+const sendTestTelegramBtn = document.getElementById('sendTestTelegramBtn');
+if (sendTestTelegramBtn) {
+  sendTestTelegramBtn.onclick = async () => {
+    sendTestTelegramBtn.disabled = true;
+    const origHtml = sendTestTelegramBtn.innerHTML;
+    sendTestTelegramBtn.innerHTML = '<span>⏳ 發送中...</span>';
+    try {
+      const res = await fetch('/api/auth/test-telegram', {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('🧪 ' + (data.message || '測試推播已發送至您的 Telegram！'), 'success');
+      } else {
+        showToast('發送失敗: ' + (data.error || '請重試'), 'error');
+      }
+    } catch (err) {
+      showToast('連線失敗: ' + err.message, 'error');
+    } finally {
+      sendTestTelegramBtn.disabled = false;
+      sendTestTelegramBtn.innerHTML = origHtml;
+    }
+  };
+}
+
+// ==================== 💎 寵物鑽石產能與價值試算器 ====================
+const PET_CALC_DATA = [
+  // Divine 階級 (神聖寵物 - 優先最新最高階區塊)
+  {
+    name: 'World Burner',
+    icon: '🔥',
+    rarity: 'Divine',
+    biome: 'Angels & Demons',
+    baseRate: 5000000000,
+    speedReq: '20B 速度',
+    tier: '👑 EX 級神寵 (God Tier)',
+    tradeValue: '約 1.2M ~ 1.8M 鑽石 / $50+',
+    proTips: '產自「Angels & Demons」暗黑模式！搭配 Spirit Bloom / Rainbow 變異可達到全服頂尖產能，是合成 Aetheron 的必備核心。'
+  },
+  {
+    name: 'ArchAngel',
+    icon: '👼',
+    rarity: 'Divine',
+    biome: 'Angels & Demons',
+    baseRate: 4500000000,
+    speedReq: '20B 速度',
+    tier: '👑 EX 級神寵 (God Tier)',
+    tradeValue: '約 1.0M ~ 1.5M 鑽石',
+    proTips: '產自「Angels & Demons」天使模式！極高基底產能，外觀華麗且極具收藏與掛機價值。'
+  },
+  {
+    name: 'Nightflame',
+    icon: '🖤',
+    rarity: 'Divine',
+    biome: 'Titan Temple',
+    baseRate: 3000000000,
+    speedReq: '5B 速度',
+    tier: '🔥 S+ 頂級 (Ultra Rare)',
+    tradeValue: '約 750k ~ 1.0M 鑽石',
+    proTips: '產自「Titan Temple」神廟深處，僅次於天使更新的最高階神聖寵物，升級與變異回報極高。'
+  },
+  {
+    name: 'Kitsune',
+    icon: '🌸',
+    rarity: 'Divine',
+    biome: 'Cherry Blossom',
+    baseRate: 2000000000,
+    speedReq: '1.5B 速度',
+    tier: '🔥 S+ 頂級 (Ultra Rare)',
+    tradeValue: '約 500k ~ 800k 鑽石',
+    proTips: '九尾狐神聖寵，在櫻花保溫箱 (Sakura Incubator) 孵化有機會直接出 Spirit Bloom 變異！'
+  },
+  {
+    name: 'Unicorn',
+    icon: '🦄',
+    rarity: 'Divine',
+    biome: 'Cosmic',
+    baseRate: 1500000000,
+    speedReq: '1B 速度',
+    tier: '⭐ S 級 (High End)',
+    tradeValue: '約 350k ~ 500k 鑽石',
+    proTips: '太空宇宙區塊神聖寵物，穩定出蛋且自帶神聖光環，是新手邁向神級的重要門檻。'
+  },
+
+  // Eternal 階級 (永恆寵物 - 優先最新最高階區塊)
+  {
+    name: 'Skeleton Horse',
+    icon: '🐎',
+    rarity: 'Eternal',
+    biome: 'Angels & Demons',
+    baseRate: 950000000,
+    speedReq: '20B 速度',
+    tier: '⭐ S 級 (High End)',
+    tradeValue: '約 250k ~ 400k 鑽石',
+    proTips: '天使與惡魔地圖的頂級永恆寵物，體重普遍偏重，容易洗出高收益數值。'
+  },
+  {
+    name: 'Pegasus',
+    icon: '🪽',
+    rarity: 'Eternal',
+    biome: 'Angels & Demons',
+    baseRate: 900000000,
+    speedReq: '20B 速度',
+    tier: '⭐ S 級 (High End)',
+    tradeValue: '約 220k ~ 350k 鑽石',
+    proTips: '天馬神翼，極高飛行速度加成與穩定產能。'
+  },
+  {
+    name: 'Gorilla King',
+    icon: '🦍',
+    rarity: 'Eternal',
+    biome: 'Titan Temple',
+    baseRate: 800000000,
+    speedReq: '5B 速度',
+    tier: '⭐ S 級 (High End)',
+    tradeValue: '約 200k ~ 300k 鑽石',
+    proTips: '泰坦神廟守門神，基礎體型龐大，重量系數優於一般寵物。'
+  },
+  {
+    name: 'Eternal Lunar Dragon',
+    icon: '🌙',
+    rarity: 'Eternal',
+    biome: 'Cosmic',
+    baseRate: 650000000,
+    speedReq: '1B 速度',
+    tier: '💎 A+ 級 (Excellent)',
+    tradeValue: '約 150k ~ 250k 鑽石',
+    proTips: '永恆月龍，夜間或太空區掛機效益顯著，市場流通量大。'
+  },
+  {
+    name: 'Phoenix',
+    icon: '🦅',
+    rarity: 'Eternal',
+    biome: 'Volcano',
+    baseRate: 450000000,
+    speedReq: '500M 速度',
+    tier: '💎 A+ 級 (Excellent)',
+    tradeValue: '約 100k ~ 180k 鑽石',
+    proTips: '火山不死鳥，重生火焰特效，融合時極易保留高階火系變異。'
+  },
+  {
+    name: 'El Maja',
+    icon: '🐠',
+    rarity: 'Eternal',
+    biome: 'Abyss Ocean',
+    baseRate: 350000000,
+    speedReq: '200M 速度',
+    tier: '💎 A 級 (Good)',
+    tradeValue: '約 80k ~ 140k 鑽石',
+    proTips: '深海巨魚，適合掛機深海生態採集。'
+  },
+  {
+    name: 'Mosasaurus',
+    icon: '🦖',
+    rarity: 'Eternal',
+    biome: 'Prehistoric',
+    baseRate: 250000000,
+    speedReq: '80M 速度',
+    tier: '💎 A 級 (Good)',
+    tradeValue: '約 60k ~ 100k 鑽石',
+    proTips: '遠古滄龍，新手進階永恆的首選。'
+  },
+  {
+    name: 'Ice Dragon',
+    icon: '❄️',
+    rarity: 'Eternal',
+    biome: 'Snow',
+    baseRate: 180000000,
+    speedReq: '30M 速度',
+    tier: '🔹 B+ 級 (Solid)',
+    tradeValue: '約 40k ~ 70k 鑽石',
+    proTips: '雪地永恆冰龍，穩健過渡用寵物。'
+  },
+  {
+    name: 'Lava Dragon',
+    icon: '🌋',
+    rarity: 'Eternal',
+    biome: 'Volcano',
+    baseRate: 150000000,
+    speedReq: '500M 速度',
+    tier: '🔹 B+ 級 (Solid)',
+    tradeValue: '約 35k ~ 60k 鑽石',
+    proTips: '熔岩巨龍，適合中期玩家組隊融合。'
+  },
+  {
+    name: 'Oni Tiger',
+    icon: '🐯',
+    rarity: 'Eternal',
+    biome: 'Cherry Blossom',
+    baseRate: 120000000,
+    speedReq: '1.5B 速度',
+    tier: '🔹 B 級 (Entry)',
+    tradeValue: '約 30k ~ 50k 鑽石',
+    proTips: '櫻花鬼虎，入門級永恆寵物。'
+  },
+
+  // Secret 隱藏頂級 (玩家常問的重點寵物)
+  {
+    name: 'Gargoyle',
+    icon: '🗿',
+    rarity: 'Secret',
+    biome: 'Angels & Demons',
+    baseRate: 750000000,
+    speedReq: '20B 速度',
+    tier: '⭐ S 級 (High End)',
+    tradeValue: '約 180k ~ 280k 鑽石',
+    proTips: '天使地圖隱藏秘密寵物，石像鬼防禦與產能均屬一流水準。'
+  },
+  {
+    name: 'Cosmic Dragon',
+    icon: '🪐',
+    rarity: 'Secret',
+    biome: 'Cosmic',
+    baseRate: 500000000,
+    speedReq: '1B 速度',
+    tier: '💎 A+ 級 (Excellent)',
+    tradeValue: '約 120k ~ 200k 鑽石',
+    proTips: '全遊戲人氣最高的秘密龍種之一，外觀極度炫酷。'
+  },
+  {
+    name: 'Mutant Shark',
+    icon: '🦈',
+    rarity: 'Secret',
+    biome: 'Titan Temple',
+    baseRate: 400000000,
+    speedReq: '5B 速度',
+    tier: '💎 A 級 (Good)',
+    tradeValue: '約 90k ~ 150k 鑽石',
+    proTips: '泰坦神廟突變巨鯊，基礎攻擊與產能雙高。'
+  },
+  {
+    name: 'Kraken',
+    icon: '🐙',
+    rarity: 'Secret',
+    biome: 'Abyss Ocean',
+    baseRate: 280000000,
+    speedReq: '200M 速度',
+    tier: '💎 A 級 (Good)',
+    tradeValue: '約 70k ~ 120k 鑽石',
+    proTips: '深海霸主克拉肯，八爪觸手極具標誌性。'
+  },
+  {
+    name: 'Cerberus',
+    icon: '🐕',
+    rarity: 'Secret',
+    biome: 'Volcano',
+    baseRate: 180000000,
+    speedReq: '500M 速度',
+    tier: '🔹 B+ 級 (Solid)',
+    tradeValue: '約 40k ~ 80k 鑽石',
+    proTips: '地獄三頭犬，經典火山秘密神寵。'
+  }
+];
+
+const MUTATIONS_LIST = [
+  { id: 'spirit_bloom', name: 'Spirit Bloom', mult: 3.0, icon: '🌸', radiant: true, note: '櫻花保溫箱 3.0x' },
+  { id: 'monstrous', name: 'Monstrous', mult: 3.0, icon: '👾', radiant: true, note: '怪物寶箱 3.0x' },
+  { id: 'rainbow', name: 'Rainbow', mult: 2.5, icon: '🌈', radiant: true, note: '彩虹融合 2.5x' },
+  { id: 'ascended', name: 'Ascended', mult: 2.5, icon: '⚡', radiant: false, note: '昇華聖堂 2.5x' },
+  { id: 'golden', name: 'Golden', mult: 2.0, icon: '👑', radiant: false, note: '黃金變異 2.0x' },
+  { id: 'bloom', name: 'Bloom', mult: 1.5, icon: '🌺', radiant: false, note: '初階綻放 1.5x' },
+  { id: 'shiny', name: 'Shiny', mult: 1.5, icon: '✨', radiant: false, note: '閃亮光澤 1.5x' },
+  { id: 'silver', name: 'Silver', mult: 1.25, icon: '🥈', radiant: false, note: '白銀變異 1.25x' },
+  { id: 'fractured', name: 'Fractured', mult: 1.1, icon: '💥', radiant: false, note: '首領商店 +10%' },
+  { id: 'giant', name: 'Giant', mult: 1.3, icon: '🪐', radiant: false, note: '重量+25% & 1.3x' },
+  { id: 'radioactive', name: 'Radioactive', mult: 5.0, icon: '☢️', radiant: true, note: '放射性 5.0x' },
+  { id: 'void', name: 'Void', mult: 4.0, icon: '🌌', radiant: true, note: '虛空暗黑 4.0x' }
+];
+
+function formatGameNumber(num) {
+  if (num === null || num === undefined || isNaN(num)) return '0';
+  const abs = Math.abs(num);
+  if (abs >= 1e18) return (num / 1e18).toFixed(2) + ' Qi';
+  if (abs >= 1e15) return (num / 1e15).toFixed(2) + ' Qa';
+  if (abs >= 1e12) return (num / 1e12).toFixed(2) + ' T';
+  if (abs >= 1e9) return (num / 1e9).toFixed(2) + ' B';
+  if (abs >= 1e6) return (num / 1e6).toFixed(2) + ' M';
+  if (abs >= 1e3) return (num / 1e3).toFixed(2) + ' K';
+  return Math.round(num).toLocaleString();
+}
+
+function initPetCalculator() {
+  const select = document.getElementById('calcPetSelect');
+  const slider = document.getElementById('calcWeightSlider');
+  const numberInput = document.getElementById('calcWeightInput');
+  const weightVal = document.getElementById('calcWeightValue');
+  const mutationsGrid = document.getElementById('calcMutationsGrid');
+  const resetBtn = document.getElementById('calcResetBtn');
+  const topConfigBtn = document.getElementById('calcTopConfigBtn');
+  const presetBtns = document.querySelectorAll('.weight-preset-btn');
+  const selectedMutCount = document.getElementById('calcSelectedMutationCount');
+
+  if (!select || !slider || !numberInput) return;
+
+  // 1. 填入寵物下拉選項
+  let groupedHtml = '';
+  const rarities = ['Divine', 'Eternal', 'Secret'];
+  for (const r of rarities) {
+    const list = PET_CALC_DATA.filter(p => p.rarity === r);
+    if (list.length > 0) {
+      groupedHtml += `<optgroup label="🌟 ${r} 階級 (${list.length} 款)">`;
+      for (const p of list) {
+        groupedHtml += `<option value="${p.name}">${p.icon} ${p.name} [${p.biome}]</option>`;
+      }
+      groupedHtml += `</optgroup>`;
+    }
+  }
+  select.innerHTML = groupedHtml;
+  select.value = 'World Burner';
+
+  // 2. 渲染變異屬性 Checkbox 晶片
+  if (mutationsGrid) {
+    mutationsGrid.innerHTML = MUTATIONS_LIST.map(m => `
+      <label class="mutation-chip" data-id="${m.id}">
+        <div class="mutation-chip-left">
+          <input type="checkbox" class="mutation-chip-checkbox" value="${m.id}" data-mult="${m.mult}">
+          <span class="mutation-chip-name">${m.icon} ${m.name}</span>
+        </div>
+        <span class="mutation-chip-mult">${m.mult}x</span>
+      </label>
+    `).join('');
+  }
+
+  // 3. 計算並更新面板
+  function recalculate() {
+    const petName = select.value;
+    const pet = PET_CALC_DATA.find(p => p.name === petName) || PET_CALC_DATA[0];
+
+    let weight = parseFloat(numberInput.value) || 100;
+    if (weight < 1) weight = 1;
+
+    // 檢查已勾選變異
+    const checkedBoxes = Array.from(document.querySelectorAll('.mutation-chip-checkbox:checked'));
+    let hasGiant = false;
+    let totalMult = 1.0;
+    const selectedNames = [];
+
+    checkedBoxes.forEach(chk => {
+      const mult = parseFloat(chk.dataset.mult) || 1.0;
+      totalMult *= mult;
+      const mDef = MUTATIONS_LIST.find(m => m.id === chk.value);
+      if (mDef) selectedNames.push(`${mDef.icon} ${mDef.name} (${mDef.mult}x)`);
+      if (chk.value === 'giant') hasGiant = true;
+
+      // 突顯外觀
+      const parent = chk.closest('.mutation-chip');
+      if (parent) {
+        parent.classList.add('selected');
+        if (mDef && mDef.radiant) parent.classList.add('radiant');
+      }
+    });
+
+    // 移除未勾選外觀
+    document.querySelectorAll('.mutation-chip-checkbox:not(:checked)').forEach(chk => {
+      const parent = chk.closest('.mutation-chip');
+      if (parent) {
+        parent.classList.remove('selected', 'radiant');
+      }
+    });
+
+    // 重量計算 (Giant 額外 +25% 重量加成)
+    const effectiveWeight = hasGiant ? (weight * 1.25) : weight;
+    const weightRatio = effectiveWeight / 100.0;
+
+    // 最終每秒產能
+    const finalPerSec = pet.baseRate * weightRatio * totalMult;
+    const finalPerMin = finalPerSec * 60;
+    const finalPerHour = finalPerSec * 3600;
+    const finalPerDay = finalPerSec * 86400;
+
+    // 更新 DOM 數值
+    if (weightVal) weightVal.textContent = Math.round(weight);
+
+    const rarityBadge = document.getElementById('calcPetRarityBadge');
+    if (rarityBadge) {
+      rarityBadge.textContent = pet.rarity;
+      rarityBadge.className = `calc-badge ${pet.rarity.toLowerCase()}`;
+    }
+
+    const iconEl = document.getElementById('calcPetIcon');
+    if (iconEl) iconEl.textContent = pet.icon;
+
+    const nameEl = document.getElementById('calcResultPetName');
+    if (nameEl) nameEl.textContent = pet.name;
+
+    const rRarityEl = document.getElementById('calcResultRarity');
+    if (rRarityEl) rRarityEl.textContent = pet.rarity;
+
+    const rBiomeEl = document.getElementById('calcResultBiome');
+    if (rBiomeEl) rBiomeEl.textContent = pet.biome;
+
+    const rSpeedEl = document.getElementById('calcResultSpeed');
+    if (rSpeedEl) rSpeedEl.textContent = `⚡ 需 ${pet.speedReq}`;
+
+    const rTierEl = document.getElementById('calcResultTierBadge');
+    if (rTierEl) rTierEl.textContent = pet.tier;
+
+    const perSecText = document.getElementById('calcPerSecText');
+    if (perSecText) perSecText.textContent = `💎 ${formatGameNumber(finalPerSec)} / 秒`;
+
+    const perSecRaw = document.getElementById('calcPerSecRaw');
+    if (perSecRaw) perSecRaw.textContent = `${Math.round(finalPerSec).toLocaleString()} / sec`;
+
+    const perMinText = document.getElementById('calcPerMinText');
+    if (perMinText) perMinText.textContent = `${formatGameNumber(finalPerMin)}`;
+
+    const perHourText = document.getElementById('calcPerHourText');
+    if (perHourText) perHourText.textContent = `${formatGameNumber(finalPerHour)}`;
+
+    const perDayText = document.getElementById('calcPerDayText');
+    if (perDayText) perDayText.textContent = `${formatGameNumber(finalPerDay)}`;
+
+    if (selectedMutCount) {
+      selectedMutCount.textContent = `已選 ${checkedBoxes.length} 種 (${totalMult.toFixed(2)}x)`;
+    }
+
+    // 公式解析
+    const formulaEl = document.getElementById('calcFormulaBreakdown');
+    if (formulaEl) {
+      formulaEl.textContent = `基礎 ${formatGameNumber(pet.baseRate)} × 重量 ${weightRatio.toFixed(2)}x × 變異 ${totalMult.toFixed(2)}x = ${formatGameNumber(finalPerSec)}/s`;
+    }
+
+    const detailsEl = document.getElementById('calcBreakdownDetails');
+    if (detailsEl) {
+      const mutDetailsStr = selectedNames.length > 0 ? selectedNames.join('、') : '無變異 (1.00x)';
+      detailsEl.innerHTML = `
+        • 基礎產能：${formatGameNumber(pet.baseRate)} / 秒 (${pet.rarity} 基準)<br>
+        • 重量係數：${Math.round(weight)}kg ${hasGiant ? '(+25% 巨化後 = ' + Math.round(effectiveWeight) + 'kg)' : ''} → <b>${weightRatio.toFixed(2)}x</b><br>
+        • 變異加成：${mutDetailsStr} → <b>${totalMult.toFixed(2)}x</b>
+      `;
+    }
+
+    // 交易估值與攻略
+    const valPrice = document.getElementById('calcMarketValue');
+    if (valPrice) valPrice.textContent = pet.tradeValue;
+
+    const proTips = document.getElementById('calcProTips');
+    if (proTips) {
+      proTips.innerHTML = `💡 <b>打寶攻略：</b> ${pet.proTips}`;
+    }
+  }
+
+  // 4. 事件監聽綁定
+  select.addEventListener('change', recalculate);
+
+  slider.addEventListener('input', () => {
+    numberInput.value = slider.value;
+    presetBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.weight === slider.value);
+    });
+    recalculate();
+  });
+
+  numberInput.addEventListener('input', () => {
+    slider.value = numberInput.value;
+    presetBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.weight === numberInput.value);
+    });
+    recalculate();
+  });
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      presetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const w = btn.dataset.weight;
+      slider.value = w;
+      numberInput.value = w;
+      recalculate();
+    });
+  });
+
+  if (mutationsGrid) {
+    mutationsGrid.addEventListener('change', recalculate);
+  }
+
+  // 重置按鈕
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      select.value = 'World Burner';
+      slider.value = 100;
+      numberInput.value = 100;
+      presetBtns.forEach(b => b.classList.toggle('active', b.dataset.weight === '100'));
+      document.querySelectorAll('.mutation-chip-checkbox').forEach(chk => {
+        chk.checked = false;
+      });
+      recalculate();
+      showToast('🔄 已重置寵物產能試算器！', 'info');
+    });
+  }
+
+  // 一鍵套用頂配 (Rainbow + Spirit Bloom)
+  if (topConfigBtn) {
+    topConfigBtn.addEventListener('click', () => {
+      select.value = 'World Burner';
+      slider.value = 250;
+      numberInput.value = 250;
+      presetBtns.forEach(b => b.classList.toggle('active', b.dataset.weight === '250'));
+      document.querySelectorAll('.mutation-chip-checkbox').forEach(chk => {
+        chk.checked = (chk.value === 'spirit_bloom' || chk.value === 'rainbow');
+      });
+      recalculate();
+      showToast('👑 已套用頂配：World Burner 250kg + Spirit Bloom + Rainbow！', 'success');
+    });
+  }
+
+  // 初始計算一次
+  recalculate();
+}
+
 // 初始化
 window.addEventListener('DOMContentLoaded', async () => {
   initLiveTickerControls();
   initFilterBars();
   initDbExplorer();
+  initPetCalculator();
   await loadStatus();
   await loadEggsCatalog();
   await loadConfig();

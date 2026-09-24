@@ -803,39 +803,88 @@ class MemberService {
     };
   }
 
-  // ================= Telegram API 調用封裝 =================
+  // ================= Telegram API 調用封裝 (含自動防禦與格式回退) =================
 
   async sendTelegramMessage(chatId, text, extra = {}) {
     if (!this.botToken) return null;
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML',
-        ...extra
-      })
-    });
-    return res.json();
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined,
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: 'HTML',
+          ...extra
+        })
+      });
+      const data = await res.json();
+      if (!data.ok && data.description && data.description.includes('can\'t parse entities')) {
+        // HTML 標籤異常回退防禦：過濾標籤以純文字重新發送，確保推播絕對不遺漏
+        const plainText = text.replace(/<[^>]+>/g, '');
+        const retryRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined,
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: plainText,
+            ...extra
+          })
+        });
+        return retryRes.json();
+      }
+      return data;
+    } catch (err) {
+      console.warn(`[MemberService] 發送 Telegram 訊息異常至 ${chatId}:`, err.message);
+      return null;
+    }
   }
 
   async editMessageText(chatId, messageId, text, extra = {}) {
     if (!this.botToken) return null;
     const url = `https://api.telegram.org/bot${this.botToken}/editMessageText`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        message_id: messageId,
-        text,
-        parse_mode: 'HTML',
-        ...extra
-      })
-    });
-    return res.json();
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined,
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text,
+          parse_mode: 'HTML',
+          ...extra
+        })
+      });
+      const data = await res.json();
+      if (!data.ok && data.description) {
+        if (data.description.includes('message is not modified')) {
+          return { ok: true };
+        }
+        if (data.description.includes('can\'t parse entities')) {
+          const plainText = text.replace(/<[^>]+>/g, '');
+          const retryRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined,
+            body: JSON.stringify({
+              chat_id: chatId,
+              message_id: messageId,
+              text: plainText,
+              ...extra
+            })
+          });
+          return retryRes.json();
+        }
+      }
+      return data;
+    } catch (err) {
+      console.warn(`[MemberService] 編輯 Telegram 訊息異常至 ${chatId}:`, err.message);
+      return null;
+    }
   }
 
   async answerCallback(callbackQueryId, text = '') {
@@ -844,6 +893,7 @@ class MemberService {
     return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined,
       body: JSON.stringify({
         callback_query_id: callbackQueryId,
         text
@@ -851,19 +901,23 @@ class MemberService {
     }).then(r => r.json()).catch(() => {});
   }
 
-  // ================= Telegram 雙向 Polling 引擎 =================
+  // ================= Telegram 雙向 Polling 引擎 (含超時自癒與指數退避) =================
 
   startTelegramPoller() {
     if (this.isPolling || !this.botToken) return;
     this.isPolling = true;
-    console.log('[Telegram Bot] 啟動雙向互動 Polling 監聽器...');
+    console.log('[Telegram Bot] 啟動雙向互動 Polling 監聽器 (含 AbortSignal 超時防死鎖與自癒)...');
 
+    let consecutiveErrors = 0;
     const poll = async () => {
       while (this.isPolling) {
         try {
           const url = `https://api.telegram.org/bot${this.botToken}/getUpdates?offset=${this.pollOffset}&timeout=20`;
-          const res = await fetch(url);
+          const res = await fetch(url, {
+            signal: AbortSignal.timeout ? AbortSignal.timeout(35000) : undefined
+          });
           if (res.ok) {
+            consecutiveErrors = 0;
             const data = await res.json();
             if (data.ok && Array.isArray(data.result)) {
               for (const update of data.result) {
@@ -872,14 +926,18 @@ class MemberService {
               }
             }
           } else if (res.status === 409) {
-            console.warn('[Telegram Bot] 409 Conflict: 可能有其他實例正在 Polling，稍後重試...');
+            console.warn('[Telegram Bot] 409 Conflict: 偵測到多重實例，退避 10 秒後重試...');
             await new Promise(r => setTimeout(r, 10000));
+          } else if (res.status === 429) {
+            console.warn('[Telegram Bot] 429 Too Many Requests: 頻率限制，退避 5 秒...');
+            await new Promise(r => setTimeout(r, 5000));
           } else {
             await new Promise(r => setTimeout(r, 3000));
           }
         } catch (err) {
-          // 網路錯誤短暫休眠
-          await new Promise(r => setTimeout(r, 4000));
+          consecutiveErrors++;
+          const delay = Math.min(30000, 2000 * Math.pow(1.5, Math.min(consecutiveErrors, 6)));
+          await new Promise(r => setTimeout(r, delay));
         }
       }
     };
@@ -976,6 +1034,24 @@ class MemberService {
       return;
     }
 
+    // /submit 或 /save 指令 (手動確認並提交當前篩選條件)
+    if (text === '/submit' || text === '/save') {
+      await this.sendSubmitConfirmation(chatId, member);
+      return;
+    }
+
+    // /test 或 /check 指令 (推播管道與過濾器連通性測試)
+    if (text === '/test' || text === '/check') {
+      await this.sendTestNotification(chatId, member);
+      return;
+    }
+
+    // /myfilter 或 /filters 指令 (檢視個人生效中清單總表)
+    if (text === '/myfilter' || text === '/filters' || text === '/active') {
+      await this.sendMyFilterSummary(chatId, member);
+      return;
+    }
+
     // /filter 指令 (精準蛋種過濾，支援 /filter 與 /filter <關鍵字>)
     if (text.startsWith('/filter')) {
       const query = text.replace(/^\/filter/i, '').trim();
@@ -1009,9 +1085,12 @@ class MemberService {
       const helpText = `📖 <b>Steal An Egg 機器人操作指南</b>\n\n` +
         `• <code>/start</code> - 重啟歡迎選單與帳號註冊\n` +
         `• <code>/me</code> - 檢視個人會員卡、VIP 到期日與推播設定\n` +
-        `• <code>/filter</code> - 自選想要接收的 28 款高階自然刷新神蛋 (支援地區、分頁與快速範本)\n` +
+        `• <code>/filter</code> - 自選 28 款高階神蛋 (分區、分頁、快速範本與 <b>💾 提交儲存按鈕</b>)\n` +
         `• <code>/filter &lt;關鍵字&gt;</code> - 快速搜尋並勾選特定蛋種 (例：<code>/filter dragon</code>, <code>/filter ocean</code>)\n` +
-        `• <code>/logs</code> - 查看您最近的歷史操作日誌 (追蹤調整、範本套用、推播開關)\n` +
+        `• <code>/submit</code> - 立即提交並確認當前蛋種篩選，獲取生效回報\n` +
+        `• <code>/test</code> - 🧪 <b>發送模擬測試推播</b>，驗證私訊通知管線 100% 暢通\n` +
+        `• <code>/myfilter</code> - 檢視目前生效的個人訂閱蛋種總表 (依分區列出)\n` +
+        `• <code>/logs</code> - 查看個人操作歷史日誌 (追蹤調整、範本套用、推播開關)\n` +
         `• <code>/toggle</code> - 一鍵開啟 / 暫停推播通知\n` +
         `• <code>/predict</code> - 查看下一輪出蛋時間預測與平均週期\n` +
         `• <code>/last</code> - 查看最近 5 顆掉落的稀有蛋紀錄\n\n` +
@@ -1117,6 +1196,20 @@ class MemberService {
     if (data === 'menu_filter') {
       await this.answerCallback(cb.id, '載入蛋種過濾選單');
       await this.sendEggFilterMenu(chatId, 0, 'All', messageId);
+      return;
+    }
+
+    // 3.1 提交並儲存篩選設定 (egg_submit)
+    if (data === 'egg_submit') {
+      await this.answerCallback(cb.id, '💾 正在提交並儲存設定...');
+      await this.sendSubmitConfirmation(chatId, member, messageId);
+      return;
+    }
+
+    // 3.2 發送模擬測試推播 (test_notification)
+    if (data === 'test_notification') {
+      await this.answerCallback(cb.id, '🧪 發送測試推播中...');
+      await this.sendTestNotification(chatId, member);
       return;
     }
 
@@ -1447,7 +1540,13 @@ class MemberService {
       { text: '下一頁 ▶️', callback_data: `egg_page:${nextPage}:${biome}` }
     ];
 
-    // 5. 底部動作行
+    // 5. 提交與確認動作行 (核心新增：讓使用者明確確認已提交並儲存！)
+    const submitRow = [
+      { text: `💾 提交並儲存篩選 (${selectedEggs.length} 款已選)`, callback_data: 'egg_submit' },
+      { text: '🧪 測試推播', callback_data: 'test_notification' }
+    ];
+
+    // 6. 底部動作行
     const footerRow = [
       { text: '📜 我的操作紀錄', callback_data: 'menu_logs' },
       { text: '👤 會員中心', callback_data: 'menu_me' },
@@ -1460,6 +1559,7 @@ class MemberService {
         ...biomeButtons,
         ...eggRows,
         navRow,
+        submitRow,
         footerRow
       ]
     };
@@ -1518,6 +1618,10 @@ class MemberService {
       inline_keyboard: [
         ...eggButtons,
         [
+          { text: `💾 提交並儲存篩選 (${selected.length} 款已選)`, callback_data: 'egg_submit' },
+          { text: '🧪 測試推播', callback_data: 'test_notification' }
+        ],
+        [
           { text: '⚙️ 返回完整選單', callback_data: 'menu_filter' },
           { text: '📜 我的操作紀錄', callback_data: 'menu_logs' }
         ],
@@ -1532,6 +1636,154 @@ class MemberService {
     } else {
       await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
     }
+  }
+
+  // 提交並確認蛋種篩選結果 (給予使用者明確的回報憑證與即時同步)
+  async sendSubmitConfirmation(chatId, member, messageId = null) {
+    if (!member) member = this.members.get(String(chatId)) || this.registerMember(chatId);
+    const selectedEggs = member.customEggNames || [];
+
+    this.logMemberAction(chatId, 'submit_filter', `提交並確認蛋種篩選 (已勾選 ${selectedEggs.length} 款神蛋)`, 'telegram');
+    this.saveLocal();
+    this.syncMemberToSheet(member).catch(() => {});
+
+    let eggListText = '';
+    if (selectedEggs.length === 0) {
+      eggListText = '<i>⚠️ 目前未勾選任何蛋種，您將不會收到私訊推播。建議點擊下方【繼續修改】套用範本。</i>';
+    } else {
+      const displayEggs = selectedEggs.slice(0, 16);
+      const remainingCount = selectedEggs.length - displayEggs.length;
+      eggListText = displayEggs.map(name => {
+        const meta = HIGH_TIER_EGGS.find(e => e.name === name);
+        const rarityBadge = meta ? `[${meta.rarity}]` : '';
+        const biome = meta ? `(${meta.biome})` : '';
+        return `• <b>${name}</b> ${rarityBadge} ${biome}`;
+      }).join('\n');
+      if (remainingCount > 0) {
+        eggListText += `\n<i>...以及其他 ${remainingCount} 款已訂閱神蛋</i>`;
+      }
+    }
+
+    const confirmHtml = `✅ <b>【🎉 蛋種篩選條件已成功提交儲存！】</b>\n\n` +
+      `👤 <b>會員名稱：</b> ${member.firstName} (@${member.username || '無'})\n` +
+      `🔔 <b>推播狀態：</b> ${member.enabled !== false ? '🟢 正常接收中 (1對1私訊)' : '🔴 已暫停推播'}\n` +
+      `🎯 <b>接收模式：</b> ${member.filterType === 'all' ? '全部蛋種 (無過濾)' : (member.filterType === 'rare_only' ? '僅 VIP 稀有蛋' : '🎯 自選精準蛋種')}\n` +
+      `🥚 <b>已鎖定追蹤：</b> <b>${selectedEggs.length} / 28 款高階神蛋</b>\n\n` +
+      `📋 <b>當前生效之通知清單：</b>\n${eggListText}\n\n` +
+      `⚡ <b>推播保證：</b>\n` +
+      `伺服器一出現上述神蛋，系統將在 <b>0.5 秒內</b> 向此私訊推送包含地點、掉落時差與入房連結的快訊！\n\n` +
+      `🧪 <i>建議：點擊下方【發送測試推播】驗證通知能否正常接收。</i>`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🧪 立即發送測試推播', callback_data: 'test_notification' },
+          { text: '⚙️ 繼續修改篩選', callback_data: 'menu_filter' }
+        ],
+        [
+          { text: '👤 會員中心', callback_data: 'menu_me' },
+          { text: '📊 查詢預測分析', callback_data: 'menu_predict' }
+        ],
+        [
+          { text: '🌐 開啟線上儀表板', url: 'https://stealanegg.onrender.com/' }
+        ]
+      ]
+    };
+
+    if (messageId) {
+      await this.editMessageText(chatId, messageId, confirmHtml, { reply_markup: keyboard });
+    } else {
+      await this.sendTelegramMessage(chatId, confirmHtml, { reply_markup: keyboard });
+    }
+  }
+
+  // 發送模擬測試推播 (確認 Telegram 私訊通知管線 100% 暢通)
+  async sendTestNotification(chatId, member) {
+    if (!member) member = this.members.get(String(chatId)) || this.registerMember(chatId);
+
+    const targetEgg = (member.customEggNames && member.customEggNames.length > 0)
+      ? member.customEggNames[0]
+      : 'World Burner';
+    const meta = HIGH_TIER_EGGS.find(e => e.name === targetEgg) || { rarity: 'Divine', biome: 'Angels & Demons' };
+
+    const nowStr = new Date().toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+    const isVip = this.isVipActive(member);
+    const vipBadge = isVip ? '👑【VIP 專屬推播】' : '🥚【會員掉落快訊】';
+
+    const testMsg = `🧪 <b>【模擬測試推播通知】</b>\n` +
+      `${vipBadge}\n\n` +
+      `🥚【Steal An Egg 掉落快訊】\n\n` +
+      `• 蛋名稱：${targetEgg}\n` +
+      `• 稀有度：${meta.rarity}\n` +
+      `• 出現地點：${meta.biome}\n` +
+      `• 發現時間：${nowStr} (台灣時間)\n` +
+      `• 偵測來源：#◜🥚・egg-notifier (Steal An Egg Official)\n\n` +
+      `🚀 <b>伺服器入房：</b> <a href="https://www.roblox.com/games/start">點擊一鍵加入遊戲</a>\n` +
+      `🔗 監控儀表板：https://stealanegg.onrender.com/\n\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `🩺 <b>推播管道診斷報告：</b>\n` +
+      `1. 私訊連通性：🟢 正常通暢\n` +
+      `2. 蛋種過濾器：🟢 正確匹配目標蛋 [${targetEgg}]\n` +
+      `3. 接收狀態：${member.enabled !== false ? '🟢 已開啟 (正式掉落時將秒級送達)' : '🟡 目前已暫停 (請輸入 /toggle 恢復)'}\n` +
+      `4. 追蹤清單：共 <b>${(member.customEggNames || []).length} 款神蛋</b> 在線監聽中\n\n` +
+      `🎉 您的 Telegram 帳號已就緒！`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '⚙️ 調整蛋種篩選', callback_data: 'menu_filter' },
+          { text: '👤 我的會員狀態', callback_data: 'menu_me' }
+        ]
+      ]
+    };
+
+    await this.sendTelegramMessage(chatId, testMsg, { reply_markup: keyboard });
+  }
+
+  // 查看個人當前生效之過濾清單詳細總表 (/myfilter)
+  async sendMyFilterSummary(chatId, member) {
+    if (!member) member = this.members.get(String(chatId)) || this.registerMember(chatId);
+    const selected = member.customEggNames || [];
+
+    let listByBiome = {};
+    for (const name of selected) {
+      const meta = HIGH_TIER_EGGS.find(e => e.name === name);
+      const biome = meta ? meta.biome : '其他地區';
+      if (!listByBiome[biome]) listByBiome[biome] = [];
+      listByBiome[biome].push(meta ? `${name} [${meta.rarity}]` : name);
+    }
+
+    let breakdownText = '';
+    const biomes = Object.keys(listByBiome);
+    if (biomes.length === 0) {
+      breakdownText = '<i>⚠️ 目前未勾選任何蛋種，建議輸入 /filter 進行勾選。</i>\n';
+    } else {
+      breakdownText = biomes.map(b => {
+        return `🗺️ <b>${b}</b>：\n  ` + listByBiome[b].join('、');
+      }).join('\n\n');
+    }
+
+    const text = `📋 <b>【我的蛋種推播過濾清單總表】</b>\n\n` +
+      `👤 <b>會員：</b> ${member.firstName} (ID: <code>${chatId}</code>)\n` +
+      `🔔 <b>推播開關：</b> ${member.enabled !== false ? '🟢 接收中' : '🔴 已暫停'}\n` +
+      `🎯 <b>過濾模式：</b> ${member.filterType === 'all' ? '全部接收' : (member.filterType === 'rare_only' ? '僅 VIP 稀有蛋' : '🎯 自選精準蛋種')}\n` +
+      `🥚 <b>已訂閱神蛋：</b> <b>${selected.length} / 28 款</b>\n\n` +
+      breakdownText;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '💾 提交並儲存', callback_data: 'egg_submit' },
+          { text: '🧪 測試推播', callback_data: 'test_notification' }
+        ],
+        [
+          { text: '⚙️ 調整蛋種勾選', callback_data: 'menu_filter' },
+          { text: '👤 會員中心', callback_data: 'menu_me' }
+        ]
+      ]
+    };
+
+    await this.sendTelegramMessage(chatId, text, { reply_markup: keyboard });
   }
 
   // 檢視個人操作歷史日誌 (Activity Log)

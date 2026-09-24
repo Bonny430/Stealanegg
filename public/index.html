@@ -179,6 +179,135 @@
       </div>
     </section>
 
+    <!-- 💎 寵物鑽石產能與價值試算器 (Pet Diamond & Production Calculator) -->
+    <section class="card pet-calc-section" id="petCalculatorSection">
+      <div class="pet-calc-header">
+        <div class="pet-calc-title-group">
+          <div class="card-tag" style="background: linear-gradient(135deg, #10b981, #06b6d4); color:white; margin-bottom:6px;">💎 Pet Diamond & Production Calculator</div>
+          <h2>💎 寵物鑽石產能與價值試算器</h2>
+          <p class="section-desc">支援永恆 (Eternal) 與神聖 (Divine) 高階寵物！自訂體重與多重變異疊加，即時推算每秒鑽石產能、每日收益與市場交易估值。</p>
+        </div>
+        <div class="calc-quick-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="calcResetBtn">🔄 重置計算器</button>
+          <button type="button" class="btn btn-primary btn-sm" id="calcTopConfigBtn">👑 一鍵套用頂配 (Rainbow + Spirit Bloom)</button>
+        </div>
+      </div>
+
+      <div class="pet-calc-grid">
+        <!-- 左側：設定控制面板 -->
+        <div class="pet-calc-controls">
+          <!-- 寵物選擇 -->
+          <div class="calc-form-group">
+            <div class="calc-label-row">
+              <label for="calcPetSelect" class="calc-label">🐾 目標寵物 (優先最新高階區塊)：</label>
+              <span class="calc-badge" id="calcPetRarityBadge">Divine</span>
+            </div>
+            <select id="calcPetSelect" class="select-input calc-select">
+              <!-- 動態載入高階寵物清單 -->
+            </select>
+          </div>
+
+          <!-- 重量設定 (Weight) -->
+          <div class="calc-form-group">
+            <div class="calc-label-row">
+              <label for="calcWeightInput" class="calc-label">⚖️ 寵物重量 (公斤 KG)：</label>
+              <span class="calc-weight-display"><span id="calcWeightValue">100</span> kg</span>
+            </div>
+            <div class="calc-weight-inputs">
+              <input type="range" id="calcWeightSlider" min="10" max="1000" step="5" value="100" class="calc-slider">
+              <input type="number" id="calcWeightInput" min="1" max="10000" value="100" class="input-text calc-number-input">
+            </div>
+            <!-- 快速體重標籤 -->
+            <div class="calc-weight-presets" id="calcWeightPresets">
+              <button type="button" class="weight-preset-btn" data-weight="50">50kg (迷你)</button>
+              <button type="button" class="weight-preset-btn active" data-weight="100">100kg (標準)</button>
+              <button type="button" class="weight-preset-btn" data-weight="250">250kg (重型)</button>
+              <button type="button" class="weight-preset-btn" data-weight="500">500kg (巨型)</button>
+              <button type="button" class="weight-preset-btn" data-weight="1000">1000kg (泰坦)</button>
+            </div>
+          </div>
+
+          <!-- 變異屬性 (可複選 Multi-select) -->
+          <div class="calc-form-group">
+            <div class="calc-label-row">
+              <label class="calc-label">🧬 變異屬性 (可複選疊加)：</label>
+              <span class="calc-mutation-count" id="calcSelectedMutationCount">已選 0 種 (1.00x)</span>
+            </div>
+            <div class="calc-mutations-grid" id="calcMutationsGrid">
+              <!-- 動態生成變異晶片 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：產能與估值展示面板 -->
+        <div class="pet-calc-results" id="calcResultDisplay">
+          <div class="calc-hero-card">
+            <div class="calc-hero-header">
+              <div class="calc-pet-profile">
+                <span class="calc-pet-icon" id="calcPetIcon">🔥</span>
+                <div>
+                  <h3 id="calcResultPetName">World Burner</h3>
+                  <div class="calc-pet-meta">
+                    <span class="calc-tag rarity" id="calcResultRarity">Divine</span>
+                    <span class="calc-tag biome" id="calcResultBiome">Angels & Demons</span>
+                    <span class="calc-tag speed" id="calcResultSpeed">⚡ 需 20B 速度</span>
+                  </div>
+                </div>
+              </div>
+              <div class="calc-tier-badge" id="calcResultTierBadge">👑 EX 級神寵</div>
+            </div>
+
+            <!-- 核心指標：每秒鑽石產能 -->
+            <div class="calc-main-metric">
+              <span class="metric-label">💎 每秒預估鑽石產能 (Production / Sec)</span>
+              <div class="metric-value-huge" id="calcPerSecText">💎 5.00 B / 秒</div>
+              <div class="metric-subtext" id="calcPerSecRaw">5,000,000,000 / sec</div>
+            </div>
+
+            <!-- 次級收益指標 Grid -->
+            <div class="calc-metrics-row">
+              <div class="calc-sub-metric">
+                <span class="sub-label">⏱️ 每分鐘收益</span>
+                <span class="sub-val" id="calcPerMinText">300.00 B</span>
+              </div>
+              <div class="calc-sub-metric">
+                <span class="sub-label">⏳ 每小時收益</span>
+                <span class="sub-val" id="calcPerHourText">18.00 T</span>
+              </div>
+              <div class="calc-sub-metric highlight">
+                <span class="sub-label">📅 每日掛機收益</span>
+                <span class="sub-val" id="calcPerDayText">432.00 T</span>
+              </div>
+            </div>
+
+            <!-- 公式與係數解析 Breakdown -->
+            <div class="calc-breakdown-box">
+              <div class="breakdown-title">📐 計算公式與倍率解析：</div>
+              <div class="breakdown-formula" id="calcFormulaBreakdown">
+                基礎 5.00B × 重量 1.00x × 變異 1.00x = 5.00B/s
+              </div>
+              <div class="breakdown-details" id="calcBreakdownDetails">
+                • 基礎產能：5.00 B / 秒 (Divine 基準)<br>
+                • 體重係數：100kg (1.00x 基準)<br>
+                • 變異加成：未啟用變異 (1.00x)
+              </div>
+            </div>
+
+            <!-- 交易市場估值與攻略提示 -->
+            <div class="calc-valuation-box">
+              <div class="val-header">
+                <span>🏷️ 市場交易估值參考：</span>
+                <span class="val-price" id="calcMarketValue">約 1.2M ~ 1.5M 鑽石 / $50+</span>
+              </div>
+              <p class="val-tips" id="calcProTips">
+                💡 <b>打寶建議：</b> 世界焚燒者產自「Angels & Demons」暗黑模式，體重超過 250kg 搭配 Spirit Bloom / Rainbow 變異即可躋身全服前 1% 戰力！
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 交叉比對頻道監控狀態 -->
     <section class="card channel-monitor-card">
       <div class="channel-monitor-header">
@@ -713,7 +842,10 @@
         </div>
       </div>
 
-      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08);">
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;">
+        <button id="sendTestTelegramBtn" type="button" class="btn btn-secondary" style="margin-right: auto; display: flex; align-items: center; gap: 6px;">
+          <span>🧪 測試 Telegram 推播</span>
+        </button>
         <button id="closeMySettingsBtn2" class="btn btn-secondary">關閉</button>
         <button id="saveMySettingsBtn" class="btn btn-success">
           <span>💾 儲存個人偏好</span>

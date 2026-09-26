@@ -1052,13 +1052,17 @@ class MemberService {
       return;
     }
 
-    // /filter 指令 (精準蛋種過濾，支援 /filter 與 /filter <關鍵字>)
+    // /filter 指令 (精準蛋種過濾，支援 /filter, /filter <稀有度> 與 /filter <關鍵字>)
     if (text.startsWith('/filter')) {
       const query = text.replace(/^\/filter/i, '').trim();
-      if (query) {
-        await this.sendEggSearchResults(chatId, member, query);
+      const qLower = query.toLowerCase();
+      if (!query) {
+        await this.sendEggFilterMenu(chatId, 0, 'All', 'All');
+      } else if (['divine', 'eternal', 'secret'].includes(qLower)) {
+        const rarCap = qLower.charAt(0).toUpperCase() + qLower.slice(1);
+        await this.sendEggFilterMenu(chatId, 0, 'All', rarCap);
       } else {
-        await this.sendEggFilterMenu(chatId, 0, 'All');
+        await this.sendEggSearchResults(chatId, member, query);
       }
       return;
     }
@@ -1287,12 +1291,14 @@ class MemberService {
         member.customEggNames.push(eggName);
       }
 
+      const rarity = parts[4] || 'All';
+
       this.logMemberAction(chatId, 'toggle_egg', `${exists ? '取消' : '新增'}追蹤蛋種：${eggName}`, 'telegram');
       this.saveLocal();
       this.syncMemberToSheet(member).catch(() => {});
 
       await this.answerCallback(cb.id, `${exists ? '⬜ 已取消' : '✅ 已開啟'}：${eggName}`);
-      await this.sendEggFilterMenu(chatId, page, biome, messageId);
+      await this.sendEggFilterMenu(chatId, page, biome, rarity, messageId);
       return;
     }
 
@@ -1323,12 +1329,13 @@ class MemberService {
       return;
     }
 
-    // 9. 蛋種過濾快捷範本 (egg_preset:<preset>:<page>:<biome>)
+    // 9. 蛋種過濾快捷範本 (egg_preset:<preset>:<page>:<biome>:<rarity>)
     if (data.startsWith('egg_preset:')) {
       const parts = data.split(':');
       const preset = parts[1];
       const page = parseInt(parts[2], 10) || 0;
       const biome = parts[3] || 'All';
+      const rarity = parts[4] || 'All';
 
       member.filterType = 'custom';
       if (preset === 'high28') {
@@ -1347,25 +1354,38 @@ class MemberService {
 
       this.saveLocal();
       this.syncMemberToSheet(member).catch(() => {});
-      await this.sendEggFilterMenu(chatId, page, biome, messageId);
+      await this.sendEggFilterMenu(chatId, page, biome, rarity, messageId);
       return;
     }
 
-    // 10. 切換地區分類 (egg_biome:<biome>)
+    // 10. 切換地區分類 (egg_biome:<biome>:<rarity>)
     if (data.startsWith('egg_biome:')) {
-      const biome = data.replace('egg_biome:', '');
+      const parts = data.split(':');
+      const biome = parts[1] || 'All';
+      const rarity = parts[2] || 'All';
       await this.answerCallback(cb.id, `切換分區：${BIOME_LABELS[biome] || biome}`);
-      await this.sendEggFilterMenu(chatId, 0, biome, messageId);
+      await this.sendEggFilterMenu(chatId, 0, biome, rarity, messageId);
       return;
     }
 
-    // 11. 切換分頁 (egg_page:<page>:<biome>)
+    // 10.5 切換稀有度分類 (egg_rarity:<rarity>:<biome>)
+    if (data.startsWith('egg_rarity:')) {
+      const parts = data.split(':');
+      const rarity = parts[1] || 'All';
+      const biome = parts[2] || 'All';
+      await this.answerCallback(cb.id, `切換階級：${rarity === 'All' ? '全部' : rarity}`);
+      await this.sendEggFilterMenu(chatId, 0, biome, rarity, messageId);
+      return;
+    }
+
+    // 11. 切換分頁 (egg_page:<page>:<biome>:<rarity>)
     if (data.startsWith('egg_page:')) {
       const parts = data.split(':');
       const page = parseInt(parts[1], 10) || 0;
       const biome = parts[2] || 'All';
+      const rarity = parts[3] || 'All';
       await this.answerCallback(cb.id);
-      await this.sendEggFilterMenu(chatId, page, biome, messageId);
+      await this.sendEggFilterMenu(chatId, page, biome, rarity, messageId);
       return;
     }
 
@@ -1446,18 +1466,22 @@ class MemberService {
     }
   }
 
-  // 發送或編輯蛋種過濾選單 (具備地區分類、分頁、與即時勾選)
-  async sendEggFilterMenu(chatId, page = 0, biome = 'All', messageId = null) {
+  // 發送或編輯蛋種過濾選單 (具備地區分類、稀有度階級、分頁、與即時勾選)
+  async sendEggFilterMenu(chatId, page = 0, biome = 'All', rarity = 'All', messageId = null) {
     const member = this.members.get(String(chatId)) || this.registerMember(chatId);
     if (!Array.isArray(member.customEggNames)) {
       member.customEggNames = [...ALL_HIGH_TIER_NAMES];
     }
     const selectedEggs = member.customEggNames;
 
-    // 依地區篩選
-    const filteredEggs = biome === 'All'
-      ? HIGH_TIER_EGGS
-      : HIGH_TIER_EGGS.filter(e => e.biome === biome);
+    // 依地區與稀有度多維度篩選
+    let filteredEggs = HIGH_TIER_EGGS;
+    if (biome !== 'All') {
+      filteredEggs = filteredEggs.filter(e => e.biome === biome);
+    }
+    if (rarity !== 'All') {
+      filteredEggs = filteredEggs.filter(e => e.rarity.toLowerCase() === rarity.toLowerCase());
+    }
 
     const PAGE_SIZE = 6;
     const totalPages = Math.max(1, Math.ceil(filteredEggs.length / PAGE_SIZE));
@@ -1469,19 +1493,28 @@ class MemberService {
       : (member.filterType === 'rare_only' ? '👑 僅 VIP 稀有蛋' : '🎯 自選精準蛋種');
 
     const biomeLabel = BIOME_LABELS[biome] || biome;
+    const rarityLabel = rarity === 'All' ? '全部階級' : rarity;
 
     let text = `⚙️ <b>【Telegram 蛋種精準推播設定】</b>\n\n` +
       `• <b>接收模式：</b> ${modeBadge}\n` +
       `• <b>追蹤數量：</b> <b>${selectedEggs.length} / 28 款高階神蛋</b>\n` +
-      `• <b>當前分區：</b> <b>${biomeLabel}</b> (共 ${filteredEggs.length} 款，第 ${currentPage + 1}/${totalPages} 頁)\n\n` +
+      `• <b>當前分區：</b> <b>${biomeLabel}</b> | <b>階級：${rarityLabel}</b> (共 ${filteredEggs.length} 款，第 ${currentPage + 1}/${totalPages} 頁)\n\n` +
       `👇 <i>點擊下方蛋名按鈕切換【✅ 追蹤 / ⬜ 忽略】：</i>\n` +
-      `💡 <i>小撇步：可直接輸入 <code>/filter &lt;關鍵字&gt;</code> 搜尋（例：<code>/filter dragon</code>）</i>`;
+      `💡 <i>小撇步：可直接輸入 <code>/filter &lt;關鍵字/稀有度&gt;</code> 搜尋（例：<code>/filter divine</code>, <code>/filter dragon</code>）</i>`;
 
     // 1. 範本快捷行
     const presetRow = [
-      { text: '⭐ 28種全選', callback_data: `egg_preset:high28:${currentPage}:${biome}` },
-      { text: '🔥 Top 10 神蛋', callback_data: `egg_preset:top10:${currentPage}:${biome}` },
-      { text: '🗑️ 清空清單', callback_data: `egg_preset:clear:${currentPage}:${biome}` }
+      { text: '⭐ 28種全選', callback_data: `egg_preset:high28:${currentPage}:${biome}:${rarity}` },
+      { text: '🔥 Top 10 神蛋', callback_data: `egg_preset:top10:${currentPage}:${biome}:${rarity}` },
+      { text: '🗑️ 清空清單', callback_data: `egg_preset:clear:${currentPage}:${biome}:${rarity}` }
+    ];
+
+    // 1.5 稀有度階級快捷按鈕行
+    const rarityButtons = [
+      { text: rarity === 'All' ? '🔘 🌟 全部' : '🌟 全部', callback_data: `egg_rarity:All:${biome}` },
+      { text: rarity === 'Divine' ? '🔘 👑 Divine' : '👑 Divine', callback_data: `egg_rarity:Divine:${biome}` },
+      { text: rarity === 'Eternal' ? '🔘 💎 Eternal' : '💎 Eternal', callback_data: `egg_rarity:Eternal:${biome}` },
+      { text: rarity === 'Secret' ? '🔘 🔮 Secret' : '🔮 Secret', callback_data: `egg_rarity:Secret:${biome}` }
     ];
 
     // 2. 地區快捷分類按鈕 (3 列，每列 3 顆)
@@ -1507,7 +1540,7 @@ class MemberService {
 
         return {
           text: isActive ? `🔘 ${shortName}` : shortName,
-          callback_data: `egg_biome:${bKey}`
+          callback_data: `egg_biome:${bKey}:${rarity}`
         };
       });
     });
@@ -1519,13 +1552,13 @@ class MemberService {
       const e2 = pageEggs[i + 1];
       const is1On = selectedEggs.includes(e1.name);
       const row = [
-        { text: `${is1On ? '✅' : '⬜'} ${e1.name}`, callback_data: `egg_toggle:${e1.name}:${currentPage}:${biome}` }
+        { text: `${is1On ? '✅' : '⬜'} ${e1.name}`, callback_data: `egg_toggle:${e1.name}:${currentPage}:${biome}:${rarity}` }
       ];
       if (e2) {
         const is2On = selectedEggs.includes(e2.name);
         row.push({
           text: `${is2On ? '✅' : '⬜'} ${e2.name}`,
-          callback_data: `egg_toggle:${e2.name}:${currentPage}:${biome}`
+          callback_data: `egg_toggle:${e2.name}:${currentPage}:${biome}:${rarity}`
         });
       }
       eggRows.push(row);
@@ -1535,9 +1568,9 @@ class MemberService {
     const prevPage = (currentPage - 1 + totalPages) % totalPages;
     const nextPage = (currentPage + 1) % totalPages;
     const navRow = [
-      { text: '◀️ 上一頁', callback_data: `egg_page:${prevPage}:${biome}` },
-      { text: `📄 ${currentPage + 1} / ${totalPages}`, callback_data: `egg_page:${currentPage}:${biome}` },
-      { text: '下一頁 ▶️', callback_data: `egg_page:${nextPage}:${biome}` }
+      { text: '◀️ 上一頁', callback_data: `egg_page:${prevPage}:${biome}:${rarity}` },
+      { text: `📄 ${currentPage + 1} / ${totalPages}`, callback_data: `egg_page:${currentPage}:${biome}:${rarity}` },
+      { text: '下一頁 ▶️', callback_data: `egg_page:${nextPage}:${biome}:${rarity}` }
     ];
 
     // 5. 提交與確認動作行 (核心新增：讓使用者明確確認已提交並儲存！)
@@ -1556,6 +1589,7 @@ class MemberService {
     const keyboard = {
       inline_keyboard: [
         presetRow,
+        rarityButtons,
         ...biomeButtons,
         ...eggRows,
         navRow,

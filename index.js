@@ -1242,9 +1242,29 @@ app.get('/api/history/drops', (req, res) => {
     const search = (req.query.search || '').trim().toLowerCase();
     const rarity = (req.query.rarity || 'all').trim();
     const biome = (req.query.biome || 'all').trim();
+    const timeRange = (req.query.timeRange || 'all').trim();
     const sort = (req.query.sort || 'newest').trim();
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    // 時間區間篩選 (1h: 最近1小時, 6h: 最近6小時, today: 台灣時間今天, all: 全部)
+    if (timeRange && timeRange !== 'all') {
+      const now = Date.now();
+      rows = rows.filter(r => {
+        const dropTime = new Date(r[0]).getTime();
+        if (isNaN(dropTime)) return false;
+        if (timeRange === '1h') {
+          return (now - dropTime) <= 60 * 60 * 1000;
+        } else if (timeRange === '6h') {
+          return (now - dropTime) <= 6 * 60 * 60 * 1000;
+        } else if (timeRange === 'today') {
+          const dropDateTaipei = new Date(dropTime).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
+          const nowDateTaipei = new Date(now).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' });
+          return dropDateTaipei === nowDateTaipei;
+        }
+        return true;
+      });
+    }
 
     // 關鍵字搜尋 (蛋名稱、稀有度、生態區或伺服器訊息)
     if (search) {

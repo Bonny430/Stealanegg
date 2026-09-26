@@ -146,13 +146,27 @@
         <div class="egg-pred-title-group">
           <div class="card-tag" style="background: linear-gradient(135deg, #a855f7, #6366f1); color:white; margin-bottom:6px;">🎯 Single Egg Spawn Estimator</div>
           <h2>🔮 單蛋專屬掉落預測器</h2>
-          <p class="section-desc">選擇任意目標神蛋，系統基於 2,160+ 筆真實大數據與生態刷新規律，精準粗估<b>大概還需多久出現</b>、距上次現身時間與逾期警戒！</p>
+          <p class="section-desc">選擇任意目標神蛋，系統基於 2,950+ 筆真實大數據與生態刷新規律，精準粗估<b>大概還需多久出現</b>、距上次現身時間與逾期警戒！</p>
         </div>
         <div class="egg-pred-selector-wrap">
           <label for="eggPredictorSelect" style="font-size:12px; color:#94a3b8; font-weight:600; margin-bottom:4px; display:block;">目標預測蛋種：</label>
-          <select id="eggPredictorSelect" class="select-input egg-pred-select">
-            <!-- 動態填入 28 種高階神蛋 -->
-          </select>
+          <div class="egg-pred-input-group">
+            <input type="text" id="eggPredSearchInput" class="select-input egg-pred-search-input" placeholder="🔍 搜尋蛋名 (如: World, Shark, Dragon...)" style="margin-bottom: 6px;">
+            <select id="eggPredictorSelect" class="select-input egg-pred-select">
+              <!-- 動態填入 28 種高階神蛋 -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 稀有度分類篩選標籤 -->
+      <div class="egg-pred-rarity-filter-bar">
+        <span class="bar-label" style="font-size:12px; color:#94a3b8;">💎 階級篩選：</span>
+        <div class="egg-pred-rarity-pills" id="eggPredRarityPills">
+          <button type="button" class="pred-rarity-pill active" data-rarity="all">🌟 全部高階 (28)</button>
+          <button type="button" class="pred-rarity-pill" data-rarity="Divine">👑 神聖 Divine (5)</button>
+          <button type="button" class="pred-rarity-pill" data-rarity="Eternal">💎 永恆 Eternal (11)</button>
+          <button type="button" class="pred-rarity-pill" data-rarity="Secret">🔮 秘密 Secret (12)</button>
         </div>
       </div>
 
@@ -179,8 +193,8 @@
       </div>
     </section>
 
-    <!-- 💎 寵物鑽石產能與價值試算器 (Pet Diamond & Production Calculator) -->
-    <section class="card pet-calc-section" id="petCalculatorSection">
+    <!-- 💎 寵物鑽石產能與價值試算器 (暫時隱藏，待官方精確公式校正) -->
+    <section class="card pet-calc-section" id="petCalculatorSection" style="display: none;">
       <div class="pet-calc-header">
         <div class="pet-calc-title-group">
           <div class="card-tag" style="background: linear-gradient(135deg, #10b981, #06b6d4); color:white; margin-bottom:6px;">💎 Pet Diamond & Production Calculator</div>
@@ -513,6 +527,20 @@
         </div>
       </div>
 
+      <!-- 稀有度快速篩選 -->
+      <div class="filter-bar rarity-filter-bar">
+        <span class="bar-label">💎 稀有度分類：</span>
+        <div class="filter-chips" id="catalogRarityChips">
+          <div class="filter-chip active" data-rarity="all">全部稀有度</div>
+          <div class="filter-chip" data-rarity="Divine">👑 Divine 神聖</div>
+          <div class="filter-chip" data-rarity="Eternal">💎 Eternal 永恆</div>
+          <div class="filter-chip" data-rarity="Secret">🔮 Secret 秘密</div>
+          <div class="filter-chip" data-rarity="Legendary">⭐ Legendary 傳奇</div>
+          <div class="filter-chip" data-rarity="Epic">🟣 Epic 史詩</div>
+          <div class="filter-chip" data-rarity="Rare">🔵 Rare 稀有</div>
+        </div>
+      </div>
+
       <!-- 蛋種推播快捷操作列 (以蛋為核心) -->
       <div class="egg-control-bar">
         <div class="egg-status-summary">
@@ -529,7 +557,10 @@
 
       <!-- 蛋搜尋列 -->
       <div class="search-bar-wrap">
-        <input type="text" id="eggSearchInput" placeholder="🔍 搜尋蛋名稱、地點或獲取方式 (例如: Cosmic, Dragon, 熔煉, 祭壇, T-Rex...)">
+        <div class="search-input-with-clear" style="position:relative; flex:1;">
+          <input type="text" id="eggSearchInput" placeholder="🔍 搜尋蛋名稱、地點或獲取方式 (例如: Cosmic, Dragon, 熔煉, 祭壇, T-Rex...)">
+          <button type="button" id="eggSearchClearBtn" class="search-clear-btn hidden" title="清除搜尋">&times;</button>
+        </div>
         <span class="egg-count" id="eggCountBadge">顯示 0 / 0 顆蛋</span>
       </div>
 
@@ -545,7 +576,7 @@
         <div>
           <div class="card-tag" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); color:white; margin-bottom:6px;">🗄️ Full Database Explorer</div>
           <h2>🗄️ 全服歷史資料庫瀏覽器 & 掉落日誌</h2>
-          <p class="section-desc">已清洗剔除 180+ 雜訊，收錄 2,955+ 筆真實全服掉落紀錄，支援關鍵字搜尋、生態區與稀有度多維度過濾及 Excel 一鍵匯出！</p>
+          <p class="section-desc">已清洗剔除 180+ 雜訊，收錄 2,955+ 筆真實全服掉落紀錄，支援關鍵字搜尋、時間範圍、生態區與稀有度多維度過濾及 Excel 一鍵匯出！</p>
         </div>
         <div class="db-action-btns">
           <a href="/api/download/xlsx" class="btn btn-success btn-sm" download="Steal_An_Egg_全服掉落歷史資料庫.xlsx" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
@@ -563,7 +594,10 @@
       <!-- 快捷工具與多維度篩選器 -->
       <div class="db-toolbar">
         <div class="db-filter-row">
-          <input type="text" id="dbSearchInput" class="db-search-input" placeholder="🔍 搜尋蛋名稱、生態區、掉落詳細關鍵字...">
+          <div class="search-input-with-clear" style="position:relative; flex:1.5;">
+            <input type="text" id="dbSearchInput" class="db-search-input" placeholder="🔍 搜尋蛋名稱、生態區、掉落詳細關鍵字...">
+            <button type="button" id="dbSearchClearBtn" class="search-clear-btn hidden" title="清除搜尋">&times;</button>
+          </div>
           <select id="dbBiomeSelect" class="db-select">
             <option value="all">🗺️ 所有生態區 (All Biomes)</option>
             <option value="Angels">👼 Angels 天使</option>
@@ -586,14 +620,39 @@
             <option value="50">50 筆/頁</option>
             <option value="100">100 筆/頁</option>
           </select>
+          <button type="button" id="dbResetFiltersBtn" class="btn btn-secondary btn-sm" style="padding:8px 12px; white-space:nowrap;" title="重置所有搜尋條件">
+            🔄 重置篩選
+          </button>
         </div>
 
+        <!-- 時間區間快選標籤列 -->
+        <div class="db-pills-row time-pills-row">
+          <span style="font-size:12px; color:#94a3b8; font-weight:600;">🕒 時間區間：</span>
+          <button type="button" class="time-pill active" data-time="all">🌐 全部歷史</button>
+          <button type="button" class="time-pill" data-time="1h">⚡ 最近 1 小時</button>
+          <button type="button" class="time-pill" data-time="6h">⏳ 最近 6 小時</button>
+          <button type="button" class="time-pill" data-time="today">📅 今日掉落 (Today)</button>
+        </div>
+
+        <!-- 稀有度篩選列 -->
         <div class="db-pills-row">
           <span style="font-size:12px; color:#94a3b8; font-weight:600;">💎 稀有度篩選：</span>
           <button type="button" class="rarity-pill active" data-rarity="all">🌟 全部 (All)</button>
           <button type="button" class="rarity-pill" data-rarity="Divine">👑 神聖 (Divine)</button>
           <button type="button" class="rarity-pill" data-rarity="Eternal">💎 永恆 (Eternal)</button>
           <button type="button" class="rarity-pill" data-rarity="Secret">🔮 秘密 (Secret)</button>
+        </div>
+
+        <!-- 熱門快速搜尋標籤 -->
+        <div class="db-hot-tags-row">
+          <span style="font-size:11px; color:#64748b; font-weight:600;">🔥 熱門快搜：</span>
+          <span class="db-hot-tag" data-tag="World Burner">🔥 World Burner</span>
+          <span class="db-hot-tag" data-tag="ArchAngel">👼 ArchAngel</span>
+          <span class="db-hot-tag" data-tag="Cosmic Dragon">🪐 Cosmic Dragon</span>
+          <span class="db-hot-tag" data-tag="Mutant Shark">🦈 Mutant Shark</span>
+          <span class="db-hot-tag" data-tag="Demons">😈 Demons</span>
+          <span class="db-hot-tag" data-tag="Titan Temple">🏛️ Titan Temple</span>
+          <span class="db-hot-tag" data-tag="Kraken">🐙 Kraken</span>
         </div>
       </div>
 
@@ -817,6 +876,27 @@
                 <button type="button" id="myClearEggsBtn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:4px 8px;">🗑️ 清空</button>
               </div>
             </div>
+
+            <!-- 彈窗內蛋種搜尋與稀有度快選 -->
+            <div class="modal-egg-filter-box" style="margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <div class="search-input-with-clear" style="position:relative; margin-bottom: 8px;">
+                <input type="text" id="myEggSearchInput" class="input-text" placeholder="🔍 搜尋個人蛋種 (如: World, Shark, Dragon...)" style="width: 100%; padding: 6px 30px 6px 10px; font-size: 12px; border-radius: 6px;">
+                <button type="button" id="myEggSearchClearBtn" class="search-clear-btn hidden" title="清除搜尋" style="right: 8px; top: 50%; transform: translateY(-50%);">&times;</button>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <div class="modal-rarity-pills" id="myEggRarityPills" style="display: flex; gap: 4px;">
+                  <button type="button" class="modal-rarity-pill active" data-rarity="all">全部 (28)</button>
+                  <button type="button" class="modal-rarity-pill" data-rarity="Divine">👑 神聖 (5)</button>
+                  <button type="button" class="modal-rarity-pill" data-rarity="Eternal">💎 永恆 (11)</button>
+                  <button type="button" class="modal-rarity-pill" data-rarity="Secret">🔮 秘密 (12)</button>
+                </div>
+                <div class="modal-batch-actions" style="display: flex; gap: 4px;">
+                  <button type="button" id="mySelectFilteredBtn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:3px 7px;">✅ 勾選搜尋結果</button>
+                  <button type="button" id="myDeselectFilteredBtn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:3px 7px;">⬜ 取消搜尋結果</button>
+                </div>
+              </div>
+            </div>
+
             <div id="myEggsGridContainer" class="my-eggs-grid">
               <!-- 動態載入 28 款神蛋勾選卡片 -->
             </div>

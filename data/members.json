@@ -1,58 +1,8 @@
 {
-  "12345": {
-    "chatId": "12345",
-    "username": "",
-    "firstName": "Tester",
-    "tier": "free",
-    "expireAt": null,
-    "enabled": true,
-    "filterType": "custom",
-    "customRarities": [
-      "Secret",
-      "Eternal",
-      "Divine",
-      "World Burner"
-    ],
-    "customEggNames": [
-      "Cosmic Dragon",
-      "World Burner",
-      "Mutant Shark",
-      "Gargoyle",
-      "Kraken",
-      "Cerberus",
-      "Eternal Lunar Dragon",
-      "Phoenix",
-      "Mosasaurus",
-      "ArchAngel",
-      "Gorilla King",
-      "El Maja",
-      "Ice Dragon",
-      "Lava Dragon",
-      "Oni Tiger",
-      "Pegasus",
-      "Skeleton Horse",
-      "Cosmic Skeleton Boss",
-      "Centaur",
-      "King Snake",
-      "Pure Jellyfish",
-      "Stag",
-      "Yeti",
-      "T-Rex",
-      "Tralaledon",
-      "Kitsune",
-      "Nightflame",
-      "Unicorn"
-    ],
-    "activityLogs": [],
-    "createdAt": "2026-09-21T13:55:05.762Z",
-    "updatedAt": "2026-09-21T13:55:05.763Z",
-    "notificationsCount": 0,
-    "notes": "Telegram 自助註冊會員"
-  },
   "8670104462": {
     "chatId": "8670104462",
-    "username": "admin",
-    "firstName": "Super Admin",
+    "username": "",
+    "firstName": "User",
     "tier": "admin",
     "expireAt": "2099-12-31T23:59:59.999Z",
     "enabled": true,
@@ -96,10 +46,18 @@
       "Nightflame",
       "Unicorn"
     ],
-    "activityLogs": [],
-    "createdAt": "2026-09-21T16:34:06.594Z",
-    "updatedAt": "2026-09-21T16:34:06.594Z",
+    "activityLogs": [
+      {
+        "id": "log_1790262161421_3724",
+        "timestamp": "2026-09-24T15:02:41.421Z",
+        "action": "submit_filter",
+        "description": "提交並確認蛋種篩選 (已勾選 28 款神蛋)",
+        "source": "telegram"
+      }
+    ],
+    "createdAt": "2026-09-24T15:02:41.400Z",
+    "updatedAt": "2026-09-24T15:02:41.421Z",
     "notificationsCount": 0,
-    "notes": "系統主管理員"
+    "notes": "系統管理員"
   }
 }

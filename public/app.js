@@ -511,7 +511,10 @@ async function loadEggPredictions() {
   }
 }
 
-// 初始化單蛋預測器
+let currentPredRarityFilter = 'all';
+let currentPredSearchQuery = '';
+
+// 初始化單蛋預測器 (支援關鍵字搜尋與神聖/永恆/秘密階級即時過濾)
 async function initEggPredictor() {
   if (!eggPredictorSelect) return;
 
@@ -520,35 +523,95 @@ async function initEggPredictor() {
     currentSelectedPredictionEgg = savedEgg;
   }
 
-  // 填入下拉選單 (依生態與稀有度排序，神聖/永恆置頂)
-  eggPredictorSelect.innerHTML = HIGH_TIER_EGGS_META.map(meta => {
-    return `<option value="${meta.name}">[${meta.biome}] ${meta.name} (${meta.rarity})</option>`;
-  }).join('');
+  const predSearchInput = document.getElementById('eggPredSearchInput');
+  const predRarityPills = document.querySelectorAll('#eggPredRarityPills .pred-rarity-pill');
 
-  eggPredictorSelect.value = currentSelectedPredictionEgg;
+  function updateEggPredictorList() {
+    const q = currentPredSearchQuery.toLowerCase();
+    const filteredEggs = HIGH_TIER_EGGS_META.filter(meta => {
+      // 1. 稀有度階級篩選
+      if (currentPredRarityFilter !== 'all' && meta.rarity.toLowerCase() !== currentPredRarityFilter.toLowerCase()) {
+        return false;
+      }
+      // 2. 關鍵字搜尋 (蛋名稱、生態區、稀有度)
+      if (q) {
+        const match = meta.name.toLowerCase().includes(q) ||
+                      meta.biome.toLowerCase().includes(q) ||
+                      meta.rarity.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+
+    if (filteredEggs.length > 0) {
+      eggPredictorSelect.innerHTML = filteredEggs.map(meta => {
+        return `<option value="${meta.name}">[${meta.biome}] ${meta.name} (${meta.rarity})</option>`;
+      }).join('');
+
+      // 若目前選定的蛋仍在過濾清單中則保持，否則自動選取過濾結果的第一顆
+      const hasCurrent = filteredEggs.some(m => m.name === currentSelectedPredictionEgg);
+      if (hasCurrent) {
+        eggPredictorSelect.value = currentSelectedPredictionEgg;
+      } else {
+        currentSelectedPredictionEgg = filteredEggs[0].name;
+        eggPredictorSelect.value = currentSelectedPredictionEgg;
+        localStorage.setItem('egg_pred_selected', currentSelectedPredictionEgg);
+        renderEggPrediction(currentSelectedPredictionEgg);
+      }
+    } else {
+      eggPredictorSelect.innerHTML = `<option value="">無符合搜尋條件的蛋種</option>`;
+    }
+
+    // 同步更新下方快速切換熱門標籤 Chips
+    if (eggQuickPills) {
+      const topPillEggs = filteredEggs.slice(0, 10);
+      eggQuickPills.innerHTML = topPillEggs.map(m => {
+        const isActive = m.name === currentSelectedPredictionEgg;
+        return `<button type="button" class="quick-pill ${isActive ? 'active' : ''}" data-egg="${m.name}">${m.name}</button>`;
+      }).join('');
+
+      eggQuickPills.querySelectorAll('.quick-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const egg = pill.getAttribute('data-egg');
+          if (egg) {
+            currentSelectedPredictionEgg = egg;
+            localStorage.setItem('egg_pred_selected', currentSelectedPredictionEgg);
+            eggPredictorSelect.value = egg;
+            updateQuickPillsActive(egg);
+            renderEggPrediction(egg);
+          }
+        });
+      });
+    }
+  }
+
+  // 監聽即時搜尋輸入
+  if (predSearchInput) {
+    predSearchInput.addEventListener('input', (e) => {
+      currentPredSearchQuery = e.target.value.trim();
+      updateEggPredictorList();
+    });
+  }
+
+  // 監聽稀有度標籤切換
+  predRarityPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      predRarityPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentPredRarityFilter = pill.getAttribute('data-rarity') || 'all';
+      updateEggPredictorList();
+    });
+  });
 
   eggPredictorSelect.addEventListener('change', (e) => {
+    if (!e.target.value) return;
     currentSelectedPredictionEgg = e.target.value;
     localStorage.setItem('egg_pred_selected', currentSelectedPredictionEgg);
     updateQuickPillsActive(currentSelectedPredictionEgg);
     renderEggPrediction(currentSelectedPredictionEgg);
   });
 
-  if (eggQuickPills) {
-    eggQuickPills.querySelectorAll('.quick-pill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const egg = pill.getAttribute('data-egg');
-        if (egg) {
-          currentSelectedPredictionEgg = egg;
-          localStorage.setItem('egg_pred_selected', currentSelectedPredictionEgg);
-          if (eggPredictorSelect) eggPredictorSelect.value = egg;
-          updateQuickPillsActive(egg);
-          renderEggPrediction(egg);
-        }
-      });
-    });
-  }
-
+  updateEggPredictorList();
   await loadEggPredictions();
 }
 
@@ -761,6 +824,7 @@ let dbState = {
   search: '',
   rarity: 'all',
   biome: 'all',
+  timeRange: 'all', // 'all', '1h', '6h', 'today'
   sort: 'newest',
   page: 1,
   limit: 50,
@@ -788,6 +852,7 @@ async function loadHistory(isBackground = false) {
       search: dbState.search,
       rarity: dbState.rarity,
       biome: dbState.biome,
+      timeRange: dbState.timeRange || 'all',
       sort: dbState.sort
     });
 
@@ -895,24 +960,41 @@ function updateDbPagination() {
 }
 
 // 初始化全服歷史資料庫瀏覽器監聽器 (零丟失持久化)
+// 初始化全服歷史資料庫瀏覽器監聽器 (零丟失持久化)
 function initDbExplorer() {
   const searchInput = document.getElementById('dbSearchInput');
+  const searchClearBtn = document.getElementById('dbSearchClearBtn');
   const biomeSelect = document.getElementById('dbBiomeSelect');
   const sortSelect = document.getElementById('dbSortSelect');
   const limitSelect = document.getElementById('dbLimitSelect');
   const refreshBtn = document.getElementById('refreshDbBtn');
+  const resetBtn = document.getElementById('dbResetFiltersBtn');
+  const timePills = document.querySelectorAll('.time-pill');
+  const hotTags = document.querySelectorAll('.db-hot-tag');
 
   // 從 localStorage 恢復使用者自訂篩選狀態
   const savedSearch = localStorage.getItem('egg_db_search');
   if (savedSearch !== null) {
     dbState.search = savedSearch;
-    if (searchInput) searchInput.value = savedSearch;
+    if (searchInput) {
+      searchInput.value = savedSearch;
+      if (searchClearBtn) searchClearBtn.classList.toggle('hidden', !savedSearch);
+    }
   }
 
   const savedBiome = localStorage.getItem('egg_db_biome');
   if (savedBiome !== null) {
     dbState.biome = savedBiome;
     if (biomeSelect) biomeSelect.value = savedBiome;
+  }
+
+  const savedTime = localStorage.getItem('egg_db_time_range');
+  if (savedTime !== null) {
+    dbState.timeRange = savedTime;
+    timePills.forEach(p => {
+      if (p.getAttribute('data-time') === savedTime) p.classList.add('active');
+      else p.classList.remove('active');
+    });
   }
 
   const savedSort = localStorage.getItem('egg_db_sort');
@@ -941,6 +1023,7 @@ function initDbExplorer() {
   let searchTimer = null;
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
+      if (searchClearBtn) searchClearBtn.classList.toggle('hidden', !e.target.value);
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         dbState.search = e.target.value.trim();
@@ -951,6 +1034,19 @@ function initDbExplorer() {
     });
   }
 
+  // 搜尋清除按鈕
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      searchClearBtn.classList.add('hidden');
+      dbState.search = '';
+      dbState.page = 1;
+      localStorage.removeItem('egg_db_search');
+      loadHistory();
+    });
+  }
+
+  // 生態區下拉切換
   if (biomeSelect) {
     biomeSelect.addEventListener('change', (e) => {
       dbState.biome = e.target.value;
@@ -960,6 +1056,7 @@ function initDbExplorer() {
     });
   }
 
+  // 排序下拉切換
   if (sortSelect) {
     sortSelect.addEventListener('change', (e) => {
       dbState.sort = e.target.value;
@@ -969,6 +1066,7 @@ function initDbExplorer() {
     });
   }
 
+  // 分頁每頁筆數切換
   if (limitSelect) {
     limitSelect.addEventListener('change', (e) => {
       dbState.limit = parseInt(e.target.value) || 50;
@@ -978,6 +1076,7 @@ function initDbExplorer() {
     });
   }
 
+  // 重新整理按鈕
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
       loadHistory();
@@ -996,6 +1095,64 @@ function initDbExplorer() {
       loadHistory();
     });
   });
+
+  // 時間區間膠囊點擊與保存
+  timePills.forEach(p => {
+    p.addEventListener('click', () => {
+      timePills.forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      dbState.timeRange = p.getAttribute('data-time') || 'all';
+      dbState.page = 1;
+      localStorage.setItem('egg_db_time_range', dbState.timeRange);
+      loadHistory();
+    });
+  });
+
+  // 熱門快搜標籤點擊
+  hotTags.forEach(tag => {
+    tag.addEventListener('click', () => {
+      const val = tag.getAttribute('data-tag');
+      if (!val) return;
+      if (searchInput) {
+        searchInput.value = val;
+        if (searchClearBtn) searchClearBtn.classList.remove('hidden');
+      }
+      dbState.search = val;
+      dbState.page = 1;
+      localStorage.setItem('egg_db_search', val);
+      loadHistory();
+      showToast(`🔍 已過濾熱門標籤：${val}`, 'info');
+    });
+  });
+
+  // 重置所有篩選器
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      dbState.search = '';
+      dbState.rarity = 'all';
+      dbState.biome = 'all';
+      dbState.timeRange = 'all';
+      dbState.sort = 'newest';
+      dbState.page = 1;
+
+      if (searchInput) searchInput.value = '';
+      if (searchClearBtn) searchClearBtn.classList.add('hidden');
+      if (biomeSelect) biomeSelect.value = 'all';
+      if (sortSelect) sortSelect.value = 'newest';
+
+      pills.forEach(p => p.classList.toggle('active', p.getAttribute('data-rarity') === 'all'));
+      timePills.forEach(p => p.classList.toggle('active', p.getAttribute('data-time') === 'all'));
+
+      localStorage.removeItem('egg_db_search');
+      localStorage.removeItem('egg_db_biome');
+      localStorage.removeItem('egg_db_rarity');
+      localStorage.removeItem('egg_db_time_range');
+      localStorage.removeItem('egg_db_sort');
+
+      loadHistory();
+      showToast('🔄 已重置所有歷史資料庫篩選條件！', 'success');
+    });
+  }
 
   // 分頁按鈕
   const firstBtn = document.getElementById('dbFirstPageBtn');
@@ -1054,6 +1211,7 @@ function updateSelectedCountBadge() {
 
 let selectedSpawnType = localStorage.getItem('egg_catalog_spawn_type') || 'all';
 let selectedBiome = localStorage.getItem('egg_catalog_biome') || 'all';
+let selectedCatalogRarity = localStorage.getItem('egg_catalog_rarity') || 'all';
 
 // 初始化機制與地區篩選按鈕事件 (零丟失持久化)
 function initFilterBars() {
@@ -1091,13 +1249,44 @@ function initFilterBars() {
     };
   });
 
+  // 稀有度篩選標籤
+  const rarityChips = document.querySelectorAll('#catalogRarityChips .filter-chip');
+  if (selectedCatalogRarity) {
+    rarityChips.forEach(c => {
+      if (c.getAttribute('data-rarity') === selectedCatalogRarity) c.classList.add('active');
+      else c.classList.remove('active');
+    });
+  }
+  rarityChips.forEach(chip => {
+    chip.onclick = () => {
+      rarityChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedCatalogRarity = chip.getAttribute('data-rarity') || 'all';
+      localStorage.setItem('egg_catalog_rarity', selectedCatalogRarity);
+      renderEggsGrid();
+    };
+  });
+
+  const eggClearBtn = document.getElementById('eggSearchClearBtn');
   if (eggSearchInput) {
     const savedSearch = localStorage.getItem('egg_catalog_search');
     if (savedSearch) {
       eggSearchInput.value = savedSearch;
+      if (eggClearBtn) eggClearBtn.classList.remove('hidden');
     }
     eggSearchInput.addEventListener('input', () => {
+      if (eggClearBtn) eggClearBtn.classList.toggle('hidden', !eggSearchInput.value);
       localStorage.setItem('egg_catalog_search', eggSearchInput.value);
+      renderEggsGrid();
+    });
+  }
+
+  if (eggClearBtn) {
+    eggClearBtn.addEventListener('click', () => {
+      if (eggSearchInput) eggSearchInput.value = '';
+      eggClearBtn.classList.add('hidden');
+      localStorage.removeItem('egg_catalog_search');
+      renderEggsGrid();
     });
   }
 }
@@ -1129,6 +1318,13 @@ function renderEggsGrid() {
       if (targetB === 'angels & demons') {
         if (!b.includes('angel') && !b.includes('demon')) return false;
       } else if (!b.includes(targetB)) {
+        return false;
+      }
+    }
+
+    // 4. 稀有度分類篩選
+    if (selectedCatalogRarity !== 'all') {
+      if ((egg.rarity || '').toLowerCase() !== selectedCatalogRarity.toLowerCase()) {
         return false;
       }
     }
@@ -2045,7 +2241,29 @@ if (openMySettingsBtn) {
   };
 }
 
-// 渲染 28 款神蛋勾選卡片
+// 渲染 28 款神蛋勾選卡片 (支援關鍵字搜尋、階級篩選與批次操作)
+let myModalSearchQuery = '';
+let myModalRarityFilter = 'all';
+
+function filterMyEggsCards() {
+  if (!myEggsGridContainer) return;
+  const q = myModalSearchQuery.toLowerCase();
+  myEggsGridContainer.querySelectorAll('.my-egg-card').forEach(card => {
+    const name = (card.querySelector('.my-egg-name')?.textContent || '').toLowerCase();
+    const tag = (card.querySelector('.my-egg-tag')?.textContent || '').toLowerCase();
+    const biome = (card.querySelector('.my-egg-tag.biome')?.textContent || '').toLowerCase();
+
+    const rarityMatch = (myModalRarityFilter === 'all') || (tag === myModalRarityFilter.toLowerCase());
+    const searchMatch = !q || name.includes(q) || tag.includes(q) || biome.includes(q);
+
+    if (rarityMatch && searchMatch) {
+      card.classList.remove('hidden');
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+}
+
 function renderMyEggsChecklist(selectedEggs = []) {
   if (!myEggsGridContainer) return;
 
@@ -2067,6 +2285,7 @@ function renderMyEggsChecklist(selectedEggs = []) {
   }).join('');
 
   updateSelectedCount();
+  filterMyEggsCards();
 
   // 綁定卡片勾選事件
   myEggsGridContainer.querySelectorAll('.my-egg-card').forEach(card => {
@@ -2080,6 +2299,69 @@ function renderMyEggsChecklist(selectedEggs = []) {
       }
       updateSelectedCount();
     };
+  });
+}
+
+// 彈窗內部搜尋與階級篩選監聽
+const myEggSearchInput = document.getElementById('myEggSearchInput');
+const myEggSearchClearBtn = document.getElementById('myEggSearchClearBtn');
+const myEggRarityPills = document.querySelectorAll('#myEggRarityPills .modal-rarity-pill');
+const mySelectFilteredBtn = document.getElementById('mySelectFilteredBtn');
+const myDeselectFilteredBtn = document.getElementById('myDeselectFilteredBtn');
+
+if (myEggSearchInput) {
+  myEggSearchInput.addEventListener('input', (e) => {
+    myModalSearchQuery = e.target.value.trim();
+    if (myEggSearchClearBtn) myEggSearchClearBtn.classList.toggle('hidden', !myModalSearchQuery);
+    filterMyEggsCards();
+  });
+}
+
+if (myEggSearchClearBtn) {
+  myEggSearchClearBtn.addEventListener('click', () => {
+    if (myEggSearchInput) myEggSearchInput.value = '';
+    myModalSearchQuery = '';
+    myEggSearchClearBtn.classList.add('hidden');
+    filterMyEggsCards();
+  });
+}
+
+myEggRarityPills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    myEggRarityPills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    myModalRarityFilter = pill.getAttribute('data-rarity') || 'all';
+    filterMyEggsCards();
+  });
+});
+
+if (mySelectFilteredBtn) {
+  mySelectFilteredBtn.addEventListener('click', () => {
+    const visibleCards = myEggsGridContainer.querySelectorAll('.my-egg-card:not(.hidden)');
+    visibleCards.forEach(card => {
+      const chk = card.querySelector('.my-egg-chk');
+      if (chk) {
+        chk.checked = true;
+        card.classList.add('selected');
+      }
+    });
+    updateSelectedCount();
+    showToast(`✅ 已勾選目前篩選出的 ${visibleCards.length} 款神蛋！`, 'info');
+  });
+}
+
+if (myDeselectFilteredBtn) {
+  myDeselectFilteredBtn.addEventListener('click', () => {
+    const visibleCards = myEggsGridContainer.querySelectorAll('.my-egg-card:not(.hidden)');
+    visibleCards.forEach(card => {
+      const chk = card.querySelector('.my-egg-chk');
+      if (chk) {
+        chk.checked = false;
+        card.classList.remove('selected');
+      }
+    });
+    updateSelectedCount();
+    showToast(`⬜ 已取消勾選目前篩選出的 ${visibleCards.length} 款神蛋！`, 'info');
   });
 }
 

@@ -22,6 +22,7 @@ if (fs.existsSync(envPath)) {
 
 // 載入會員與訂閱服務模組
 const memberService = require('./memberService');
+const { syncWikiEggs } = require('./scripts/wikiSync');
 
 // 環境變數設定
 const PORT = process.env.PORT || 10000;
@@ -81,8 +82,9 @@ const crossCheckStats = {
   recentVerifications: []
 };
 
-// 28 種官方可刷新高階蛋種清單 (預設勾選)
+// 官方可刷新高階神蛋清單 (含 Update 7 魔法森林與最新神蛋，預設全勾選)
 const DEFAULT_HIGH_TIER_EGGS = [
+  'Royal Skywhale', 'Celestial Sunlion', 'Starry Fox', 'RazorFang', 'Mecha Scrambler', 'World Eater',
   'Pure Jellyfish', 'Gargoyle', 'Kraken', 'T-Rex', 'Tralaledon', 'Cosmic Dragon',
   'Mutant Shark', 'Cerberus', 'Stag', 'Mosasaurus', 'Oni Tiger', 'Cosmic Skeleton Boss',
   'Yeti', 'Eternal Lunar Dragon', 'Gorilla King', 'Phoenix', 'Centaur', 'Ice Dragon',
@@ -102,7 +104,8 @@ let syncStatus = {
   isSyncing: false,
   totalFetched: 0,
   newRecorded: 0,
-  lastError: null
+  lastError: null,
+  lastSyncTime: null
 };
 
 // 載入蛋圖鑑快取
@@ -145,13 +148,118 @@ async function loadConfigFromSheet() {
   }
 }
 
+// Discord 角色身分組 ID 與稀有度精準對照表 (確保新蛋首發 0 延遲辨識，絕不出現未知蛋)
+const DISCORD_ROLE_RARITY_MAP = {
+  '1541434980163395655': 'Eternal', // Eternals 專屬身分組
+  '1541434599505133608': 'Secret',  // Secrets 專屬身分組
+  '1544692536290054207': 'Divine',  // Divines 專屬身分組
+  '1544772470714671164': 'Divine',  // Divine Egg 標記
+  '1550479496900116500': 'Divine',  // World Burner 專屬身分組
+  '1550479501249740932': 'Divine',  // ArchAngel 專屬身分組
+  '1550479509503877213': 'Divine',  // Kitsune 專屬身分組
+  '1550479505489920100': 'Divine',  // Nightflame 專屬身分組
+  '1550479513945903116': 'Divine',  // Unicorn 專屬身分組
+  '1555993162227654798': 'Divine',  // Royal Skywhale 專屬身分組
+  '1544692524780888074': 'Secret'   // 天使惡魔活動身分組
+};
+
+function inferRarityFromContext(content, embeds, channelName) {
+  const fullText = `${content || ''} ${Array.isArray(embeds) ? embeds.map(e => `${e.title || ''} ${e.description || ''}`).join(' ') : ''}`;
+  for (const [roleId, r] of Object.entries(DISCORD_ROLE_RARITY_MAP)) {
+    if (fullText.includes(roleId)) return r;
+  }
+  const chLower = (channelName || '').toLowerCase();
+  if (chLower.includes('divine')) return 'Divine';
+  if (chLower.includes('eternal')) return 'Eternal';
+  if (chLower.includes('secret')) return 'Secret';
+
+  if (/<:Divine:|\bDivine Egg\b/i.test(fullText)) return 'Divine';
+  if (/<:Eternal:|\bEternal Egg\b/i.test(fullText)) return 'Eternal';
+  if (/<:Secret:|\bSecret Egg\b/i.test(fullText)) return 'Secret';
+  if (/Cosmic/i.test(fullText)) return 'Cosmic';
+  if (/Mythic/i.test(fullText)) return 'Mythic';
+  return null;
+}
+
+// 全新蛋種自適應自動註冊入庫 (保證系統永動性與自我更新)
+function autoRegisterNewEgg(rawName, detectedRarity, detectedBiome, imageUrl = null) {
+  if (!rawName || rawName === '未知' || rawName === '未知蛋' || rawName.includes('未知')) return null;
+
+  const cleanName = rawName.replace(/\s+Egg$/i, '').trim();
+  const existing = eggsCatalog.find(e => {
+    const k1 = (e.cleanName || e.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const k2 = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return k1 === k2;
+  });
+
+  if (existing) {
+    if (detectedRarity && detectedRarity !== '未知' && (existing.rarity === '未知' || existing.rarity === 'Unknown')) {
+      existing.rarity = detectedRarity;
+    }
+    if (detectedBiome && detectedBiome !== '未知地點' && (existing.biome === 'Unknown' || !existing.biome)) {
+      existing.biome = detectedBiome;
+    }
+    return existing;
+  }
+
+  const finalRarity = (detectedRarity && detectedRarity !== '未知') ? detectedRarity : 'Secret';
+  const finalBiome = (detectedBiome && detectedBiome !== '未知地點') ? detectedBiome : 'Enchanted Forest';
+
+  const newEntry = {
+    pageTitle: cleanName,
+    name: `${cleanName} Egg`,
+    cleanName: cleanName,
+    petName: cleanName,
+    rarity: finalRarity,
+    rarityClass: finalRarity.toLowerCase(),
+    biome: finalBiome,
+    mps: '',
+    reward: '',
+    growTime: '',
+    imageUrl: imageUrl || null,
+    spawnType: finalRarity === 'Divine' ? '👑 神聖降臨 (Divine Spawn)' : (finalRarity === 'Eternal' ? '🌟 永恆守護者 (Eternal Spawn)' : '🔮 秘密刷新 (Secret Spawn)'),
+    obtainMethod: `${finalBiome} 地圖自然刷新 (Discord 即時偵測自動入庫)`,
+    isMapSpawnable: true,
+    _autoDiscovered: true,
+    discoveredAt: new Date().toISOString()
+  };
+
+  eggsCatalog.push(newEntry);
+  console.log(`✨ [自適應自動入庫] 成功自動註冊全新蛋種：${cleanName} (${finalRarity}, ${finalBiome})！`);
+
+  // 非同步寫入本地 eggs.json
+  try {
+    fs.writeFileSync(EGGS_PATH, JSON.stringify(eggsCatalog, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[Auto-Register] 寫入 eggs.json 失敗:', err.message);
+  }
+
+  // 同步通知 memberService 加入高階名冊並為會員自動增補追蹤
+  if (['Divine', 'Eternal', 'Secret'].includes(finalRarity)) {
+    memberService.addNewHighTierEgg({
+      name: cleanName,
+      rarity: finalRarity,
+      biome: finalBiome
+    });
+  }
+
+  return newEntry;
+}
+
 // 手動補充 Discord 特殊簡寫或別名
 const ALIASES = {
   'trex': 'T-Rex',
   't-rex': 'T-Rex',
   'snakeking': 'King Snake',
   'elgranmaja': 'El Maja',
-  'razorfang': 'RazorFang'
+  'razorfang': 'RazorFang',
+  'worldeater': 'World Eater',
+  'riftborn': 'World Eater',
+  'celestialsunlion': 'Celestial Sunlion',
+  'sunlion': 'Celestial Sunlion',
+  'royalskywhale': 'Royal Skywhale',
+  'skywhale': 'Royal Skywhale',
+  'starryfox': 'Starry Fox'
 };
 
 function normalizeEgg(rawName, detectedRarity, detectedBiome) {
@@ -176,16 +284,27 @@ function normalizeEgg(rawName, detectedRarity, detectedBiome) {
   if (matched) {
     return {
       name: matched.cleanName || matched.name,
-      rarity: matched.rarity || detectedRarity,
-      biome: (matched.biome && matched.biome !== 'Unknown') ? matched.biome : detectedBiome,
+      rarity: (matched.rarity && matched.rarity !== 'Unknown' && matched.rarity !== '未知') ? matched.rarity : (detectedRarity || 'Secret'),
+      biome: (matched.biome && matched.biome !== 'Unknown' && matched.biome !== '未知地點') ? matched.biome : detectedBiome,
       imageUrl: matched.imageUrl
+    };
+  }
+
+  // 自動動態自適應註冊！
+  const autoEgg = autoRegisterNewEgg(rawName, detectedRarity, detectedBiome);
+  if (autoEgg) {
+    return {
+      name: autoEgg.cleanName || autoEgg.name,
+      rarity: autoEgg.rarity,
+      biome: autoEgg.biome,
+      imageUrl: autoEgg.imageUrl
     };
   }
 
   return {
     name: rawName,
-    rarity: detectedRarity || 'Secret',
-    biome: detectedBiome || '未知地點',
+    rarity: (detectedRarity && detectedRarity !== '未知') ? detectedRarity : 'Secret',
+    biome: (detectedBiome && detectedBiome !== '未知地點') ? detectedBiome : '未知地點',
     imageUrl: null
   };
 }
@@ -251,10 +370,10 @@ function extractEggInfo(embeds, content, createdAt, channelMeta = {}) {
     }
   }
 
-  // 濾除無效廣告、非蛋訊息、Rift 裂縫事件、Discord 邀請連結等雜訊
+  // 濾除無效廣告、非蛋訊息、非蛋裂縫事件、Discord 邀請連結等雜訊
   const embedText = (embeds && Array.isArray(embeds)) ? embeds.map(e => `${e.title || ''} ${e.description || ''}`).join(' ') : '';
   const fullText = `${content || ''} ${embedText}`;
-  const isJunkMessage = /Admin Abuse|管理員濫用|Admin Spawned|Staff Spawned|\bAA\b|Riftborn|Riftbeast|Shattered Rift|discord\.gg|ts pinging ppl|Every 5 mins|romarket|store/i.test(fullText);
+  const isJunkMessage = /Admin Abuse|管理員濫用|Admin Spawned|Staff Spawned|\bAA\b|Riftbeast|Shattered Rift|discord\.gg|ts pinging ppl|Every 5 mins|romarket|store/i.test(fullText);
   if (isJunkMessage) {
     return null;
   }
@@ -263,7 +382,13 @@ function extractEggInfo(embeds, content, createdAt, channelMeta = {}) {
     return null;
   }
 
-  // 標準化蛋名稱、稀有度與地點
+  // 若尚未取得明確稀有度，優先從身分組 ID 與頻道上下文推導
+  if (rarity === '未知' || !rarity) {
+    const inferred = inferRarityFromContext(content, embeds, channelMeta.channelName);
+    if (inferred) rarity = inferred;
+  }
+
+  // 標準化蛋名稱、稀有度與地點 (若為全新蛋種，內部會自動註冊入庫)
   const norm = normalizeEgg(name, rarity, location);
   if (norm) {
     name = norm.name;
@@ -398,6 +523,13 @@ function computeStatsFromRows(rows) {
 
 // 活動與蛋種加入時間點對照表 (Genesis Time for each egg / biome)
 const EGG_GENESIS_TIMES = {
+  // Update 7 魔法森林 (Enchanted Forest) 發布時間: 2026-10-03 15:00:00 UTC (台灣時間 2026-10-03 23:00:00)
+  'Royal Skywhale': new Date('2026-10-03T15:00:00.000Z').getTime(),
+  'Celestial Sunlion': new Date('2026-10-03T15:00:00.000Z').getTime(),
+  'Starry Fox': new Date('2026-10-03T15:00:00.000Z').getTime(),
+  // Update 6 機甲實驗室 (Dr. Scramble)
+  'Mecha Scrambler': new Date('2026-09-26T15:00:00.000Z').getTime(),
+  'World Eater': new Date('2026-09-07T00:00:00.000Z').getTime(),
   // Angels & Demons 活動正式發布時間: 2026-09-12 17:30:00 UTC (台灣時間 2026-09-13 01:30:00)
   'World Burner': new Date('2026-09-12T17:30:00.000Z').getTime(),
   'ArchAngel': new Date('2026-09-12T17:30:00.000Z').getTime(),
@@ -415,10 +547,18 @@ const EGG_GENESIS_TIMES = {
   'Unicorn': new Date('2026-09-05T00:00:00.000Z').getTime()
 };
 
-// 28 款高階可刷新神蛋元數據 (含生態地區、稀有度與先驗基準週期)
+// 官方高階可刷新神蛋元數據 (含生態地區、稀有度與先驗基準週期)
 const HIGH_TIER_EGGS_META = [
+  // 👑 Update 7 魔法森林 & 新晉神蛋
+  { name: 'Royal Skywhale', rarity: 'Divine', biome: 'Enchanted Forest', baseCycleMin: 2880 },
+  { name: 'Celestial Sunlion', rarity: 'Eternal', biome: 'Enchanted Forest', baseCycleMin: 450 },
+  { name: 'Starry Fox', rarity: 'Secret', biome: 'Enchanted Forest', baseCycleMin: 180 },
+  { name: 'RazorFang', rarity: 'Secret', biome: 'Demons', baseCycleMin: 200 },
+  { name: 'Mecha Scrambler', rarity: 'Divine', biome: 'Titan Temple', baseCycleMin: 4320 },
+  { name: 'World Eater', rarity: 'Eternal', biome: 'Rift', baseCycleMin: 600 },
+  // 🌟 經典神蛋元數據
   { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic', baseCycleMin: 135 },
-  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 11595 }, // 活動開跑至首現約 8.05 天
+  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 11595 },
   { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple', baseCycleMin: 145 },
   { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons', baseCycleMin: 50 },
   { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean', baseCycleMin: 135 },
@@ -426,7 +566,7 @@ const HIGH_TIER_EGGS_META = [
   { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic', baseCycleMin: 290 },
   { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano', baseCycleMin: 470 },
   { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric', baseCycleMin: 240 },
-  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 3440 }, // 活動開跑至首現約 2.39 天
+  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons', baseCycleMin: 3440 },
   { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple', baseCycleMin: 370 },
   { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean', baseCycleMin: 950 },
   { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow', baseCycleMin: 450 },
@@ -653,6 +793,62 @@ function computeAllEggPredictions(rows = cachedRows) {
   return HIGH_TIER_EGGS_META.map(meta => computeSingleEggPrediction(meta.name, rows));
 }
 
+// 歷史資料庫自癒與修復函數 (自動更正歷史遺留的未知蛋與稀有度)
+function repairHistoricalUnknownDrops(rows) {
+  let repairedCount = 0;
+  for (const r of rows) {
+    let name = (r[1] || '').trim();
+    let rarity = (r[2] || '').trim();
+    const rawText = (r[3] || '').trim();
+
+    if (rawText) {
+      if (!name || name === 'undefined' || name === '未知' || name === '未知蛋' || name.includes('未知')) {
+        if (rawText.includes('Celestial Sunlion')) name = 'Celestial Sunlion';
+        else if (rawText.includes('Starry Fox')) name = 'Starry Fox';
+        else if (rawText.includes('Royal Skywhale')) name = 'Royal Skywhale';
+        else if (rawText.includes('RazorFang')) name = 'RazorFang';
+        else if (rawText.includes('Mecha Scrambler')) name = 'Mecha Scrambler';
+        else if (rawText.includes('World Eater') || rawText.includes('Riftborn')) name = 'World Eater';
+        r[1] = name;
+      }
+    }
+
+    if (name === 'Celestial Sunlion' && (rarity === '未知' || !rarity || rarity === 'undefined')) {
+      r[2] = 'Eternal';
+      repairedCount++;
+    } else if (name === 'Starry Fox' && (rarity === '未知' || !rarity || rarity === 'undefined')) {
+      r[2] = 'Secret';
+      repairedCount++;
+    } else if (name === 'RazorFang' && (rarity === '未知' || !rarity || rarity === 'undefined')) {
+      r[2] = 'Secret';
+      repairedCount++;
+    } else if (name === 'Royal Skywhale' && (rarity === '未知' || !rarity || rarity === 'undefined')) {
+      r[2] = 'Divine';
+      repairedCount++;
+    } else if (name === 'Mecha Scrambler' && (rarity === '未知' || !rarity || rarity === 'undefined')) {
+      r[2] = 'Divine';
+      repairedCount++;
+    } else if (name === 'World Eater' && (rarity === '未知' || !rarity || rarity === 'undefined')) {
+      r[2] = 'Eternal';
+      repairedCount++;
+    }
+  }
+  if (repairedCount > 0) {
+    console.log(`[資料庫自癒] 已修復 ${repairedCount} 筆歷史未知稀有度紀錄 (Celestial Sunlion/Starry Fox/RazorFang)！`);
+  }
+}
+
+// 判斷是否為全服資料庫首次掉落之全新蛋種
+function isFirstTimeDrop(eggName) {
+  if (!eggName) return false;
+  const clean = eggName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const count = (cachedRows || []).filter(r => {
+    const rName = (r[1] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return rName === clean;
+  }).length;
+  return count <= 1;
+}
+
 // 從 Google Sheet 刷新本地快取
 async function refreshCacheFromSheet() {
   try {
@@ -661,16 +857,17 @@ async function refreshCacheFromSheet() {
     if (json && json.data && json.data.length > 1) {
       cachedRows = json.data.slice(1).filter(r => {
         if (!r[0] || r[0].toString().trim() === '') return false;
-        const n = (r[1] || '').trim();
-        if (!n || n === '未知' || n === '未知蛋' || n.includes('未知')) return false;
         return true;
       });
+      // 智慧資料庫自癒：修復歷史紀錄中的未知稀有度蛋種
+      repairHistoricalUnknownDrops(cachedRows);
+
       // 記憶體防護：限制快取最多 5,000 筆，避免 Render 512MB RAM 溢出
       if (cachedRows.length > 5000) {
         cachedRows = cachedRows.slice(-5000);
       }
       cachedStats = computeStatsFromRows(cachedRows);
-      console.log(`[快取] 已同步 ${cachedRows.length} 筆資料庫紀錄，預測模型已更新 (已過濾未知蛋雜訊)`);
+      console.log(`[快取] 已同步 ${cachedRows.length} 筆資料庫紀錄，預測模型已更新 (已執行自癒清洗)`);
     }
   } catch (err) {
     console.warn('[快取] 載入 Google Sheet 失敗:', err.message);
@@ -722,20 +919,49 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
     
     let predictionSection = '';
     if (prediction) {
-      predictionSection = `\n\n📊 【生蛋週期分析】\n` +
+      predictionSection = `\n\n📊 <b>【生蛋週期分析】</b>\n` +
         `• 伺服器週期：每 5 分鐘固定出蛋 (整點 xx:00, xx:05...)\n` +
         `• 預計下次出蛋：${prediction.predictedTimeStr} (約 ${prediction.minutesLeft} 分鐘後)\n` +
         `• 稀有蛋平均間隔：約 ${cachedStats?.rareBroadcastIntervalMinutes || '9.4'} 分鐘 (約 1~2 輪出一次)`;
+    }
+
+    let specialBanner = '';
+    if (isFirstTimeDrop(eggInfo.name)) {
+      specialBanner = `🚨 <b>【🎉 全新更新蛋種 首次現身！】</b> 🚨\n✨ 官方最新更新蛋種首次在世界地圖刷新！\n\n`;
+    }
+
+    const biomeIcons = {
+      'Enchanted Forest': '🌲🦋 魔法森林 (Enchanted Forest)',
+      'Cosmic': '🪐 宇宙空間 (Cosmic)',
+      'Titan Temple': '🏛️ 泰坦神殿 (Titan Temple)',
+      'Volcano': '🌋 烈焰火山 (Volcano)',
+      'Abyss Ocean': '🌊 深淵海洋 (Abyss Ocean)',
+      'Angels & Demons': '👼😈 天使與惡魔 (Angels & Demons)',
+      'Angels': '👼 天使領域 (Angels)',
+      'Demons': '😈 惡魔領域 (Demons)',
+      'Prehistoric': '🦖 史前叢林 (Prehistoric)',
+      'Cherry Blossom': '🌸 櫻花之境 (Cherry Blossom)',
+      'Snow': '❄️ 極地雪原 (Snow)',
+      'Rift': '🌀 時空裂縫 (Rift)'
+    };
+    const formattedBiome = biomeIcons[eggInfo.location] || eggInfo.location;
+
+    let extraMeta = '';
+    const catalogMatch = eggsCatalog.find(e => (e.cleanName || e.name || '').toLowerCase() === (eggInfo.name || '').toLowerCase());
+    if (catalogMatch) {
+      if (catalogMatch.mps) extraMeta += `• 產能估算：💰 <b>${catalogMatch.mps}</b>\n`;
+      if (catalogMatch.reward) extraMeta += `• 速度門檻：⚡ <b>${catalogMatch.reward}</b>\n`;
     }
 
     const crossTag = sourceInfo?.isCrossVerified ? ` [⚡ 交叉比對通報 +${sourceInfo.delaySec}s]` : '';
     const sourceText = sourceInfo ? `• 偵測來源：#${sourceInfo.channelName} (${sourceInfo.server})${crossTag}\n` : '';
     const headerTitle = sourceInfo?.isCrossVerified ? `🥚【Steal An Egg 掉落快訊 (多源通報)】` : `🥚【Steal An Egg 掉落快訊】`;
 
-    const messageText = `${headerTitle}\n\n` +
-      `• 蛋名稱：${eggInfo.name}\n` +
-      `• 稀有度：${eggInfo.rarity}\n` +
-      `• 出現地點：${eggInfo.location}\n` +
+    const messageText = `${specialBanner}${headerTitle}\n\n` +
+      `• 蛋名稱：<b>${eggInfo.name}</b>\n` +
+      `• 稀有度：<b>${eggInfo.rarity}</b>\n` +
+      `• 出現地點：${formattedBiome}\n` +
+      extraMeta +
       `• 發現時間：${formattedDateTime} (台灣時間)\n` +
       sourceText +
       `\n🔗 監控儀表板：https://stealanegg.onrender.com/\n` +
@@ -751,7 +977,8 @@ async function sendTelegramNotification(eggInfo, text, prediction, sourceInfo) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
-          text: messageText
+          text: messageText,
+          parse_mode: 'HTML'
         })
       }).then(async res => {
         const dur = Date.now() - tStart;
@@ -1238,6 +1465,7 @@ app.get('/api/history', async (req, res) => {
 app.get('/api/history/drops', (req, res) => {
   try {
     let rows = [...cachedRows];
+    repairHistoricalUnknownDrops(rows);
     
     const search = (req.query.search || '').trim().toLowerCase();
     const rarity = (req.query.rarity || 'all').trim();
@@ -1673,6 +1901,31 @@ app.post('/api/members/toggle', (req, res) => {
   res.json({ success: true, member });
 });
 
+// 管理員手動觸發 Fandom Wiki 與官方資料庫同步
+app.post('/api/admin/sync-wiki', async (req, res) => {
+  try {
+    const result = await syncWikiEggs();
+    if (result.success) {
+      eggsCatalog = result.eggs;
+      if (result.newEggsCount > 0) {
+        result.newEggNames.forEach(n => {
+          const found = eggsCatalog.find(e => e.cleanName === n);
+          if (found) {
+            memberService.addNewHighTierEgg({
+              name: found.cleanName,
+              rarity: found.rarity,
+              biome: found.biome
+            });
+          }
+        });
+      }
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 啟動 Express
 app.listen(PORT, async () => {
   console.log(`[Web] 儀表板伺服器運行於 Port ${PORT}`);
@@ -1699,6 +1952,33 @@ app.listen(PORT, async () => {
       return computeAllEggPredictions(cachedRows);
     }
   });
+
+  // 串接 Telegram 管理員 /sync_wiki 指令
+  memberService.onSyncWikiRequested = async () => {
+    const result = await syncWikiEggs();
+    if (result.success) {
+      eggsCatalog = result.eggs;
+      if (result.newEggsCount > 0) {
+        result.newEggNames.forEach(n => {
+          const found = eggsCatalog.find(e => e.cleanName === n);
+          if (found) {
+            memberService.addNewHighTierEgg({
+              name: found.cleanName,
+              rarity: found.rarity,
+              biome: found.biome
+            });
+          }
+        });
+      }
+      return `✅ <b>【Fandom Wiki 雙向同步完畢】</b>\n` +
+        `• 目前全服蛋種庫存：<b>${result.totalEggs} 款</b>\n` +
+        `• 本次新增收錄：<b>${result.newEggsCount} 款</b>\n` +
+        (result.newEggsCount > 0 ? `• 新蛋名單：${result.newEggNames.join(', ')}\n` : '') +
+        `• 狀態：所有神蛋已開放會員追蹤與即時週期預測！`;
+    }
+    return `⚠️ 同步完成，未發現新蛋種。`;
+  };
+
   memberService.startTelegramPoller();
 
   // 啟動 Discord 連線自癒 Watchdog (每 30 秒自動偵測並自癒)
@@ -1706,6 +1986,30 @@ app.listen(PORT, async () => {
 
   // 每 10 分鐘在背景靜態校驗 Google Sheet 快取
   setInterval(refreshCacheFromSheet, 10 * 60 * 1000);
+
+  // 每 12 小時在背景自動檢查一次 Fandom Wiki 是否有新蛋更新
+  setInterval(async () => {
+    try {
+      console.log('[Wiki Auto-Sync] 觸發定時背景同步...');
+      const result = await syncWikiEggs();
+      if (result.success && result.newEggsCount > 0) {
+        eggsCatalog = result.eggs;
+        result.newEggNames.forEach(n => {
+          const found = eggsCatalog.find(e => e.cleanName === n);
+          if (found) {
+            memberService.addNewHighTierEgg({
+              name: found.cleanName,
+              rarity: found.rarity,
+              biome: found.biome
+            });
+          }
+        });
+        sendAdminAlert('✨ 官方更新新蛋自動入庫', `定時 Wiki 爬蟲發現 ${result.newEggsCount} 款全新蛋種 (${result.newEggNames.join(', ')})，已自動註冊入庫並同步開放追蹤！`);
+      }
+    } catch (err) {
+      console.warn('[Wiki Auto-Sync] 背景同步異常:', err.message);
+    }
+  }, 12 * 60 * 60 * 1000);
 });
 
 // 登入 Discord 小號

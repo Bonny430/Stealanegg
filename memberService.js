@@ -10,8 +10,16 @@ const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const ALL_RARITIES = ['Secret', 'Eternal', 'Divine', 'World Burner', 'Mythical', 'Legendary', 'Rare'];
 const VIP_DEFAULT_RARITIES = ['Secret', 'Eternal', 'Divine', 'World Burner'];
 
-// 28 種官方自然地圖刷新高階神蛋名冊 (精準追蹤核心)
+// 官方自然地圖刷新高階神蛋名冊 (包含 Update 7 魔法森林與最新高階神蛋)
 const HIGH_TIER_EGGS = [
+  // 👑 Update 7 魔法森林 (Enchanted Forest) & 新增高階神蛋
+  { name: 'Royal Skywhale', rarity: 'Divine', biome: 'Enchanted Forest' },
+  { name: 'Celestial Sunlion', rarity: 'Eternal', biome: 'Enchanted Forest' },
+  { name: 'Starry Fox', rarity: 'Secret', biome: 'Enchanted Forest' },
+  { name: 'RazorFang', rarity: 'Secret', biome: 'Demons' },
+  { name: 'Mecha Scrambler', rarity: 'Divine', biome: 'Titan Temple' },
+  { name: 'World Eater', rarity: 'Eternal', biome: 'Rift' },
+  // 🌟 既有經典高階神蛋
   { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic' },
   { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons' },
   { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple' },
@@ -43,30 +51,34 @@ const HIGH_TIER_EGGS = [
 ];
 
 const TOP_10_EGG_NAMES = [
-  'Cosmic Dragon',
+  'Royal Skywhale',
+  'Celestial Sunlion',
   'World Burner',
+  'ArchAngel',
+  'Cosmic Dragon',
   'Mutant Shark',
-  'Gargoyle',
+  'Starry Fox',
   'Kraken',
-  'Cerberus',
   'Eternal Lunar Dragon',
-  'Phoenix',
-  'Mosasaurus',
-  'ArchAngel'
+  'Phoenix'
 ];
 
 const ALL_HIGH_TIER_NAMES = HIGH_TIER_EGGS.map(e => e.name);
 
 const BIOME_LABELS = {
-  'All': '🌐 全部 (28種)',
+  'All': `🌐 全部 (${HIGH_TIER_EGGS.length}種)`,
+  'Enchanted Forest': '🌲 魔法森林',
   'Cosmic': '🪐 宇宙',
   'Titan Temple': '🏛️ 泰坦',
   'Volcano': '🌋 火山',
   'Abyss Ocean': '🌊 深海',
   'Angels & Demons': '👼 天使惡魔',
+  'Demons': '😈 惡魔',
+  'Angels': '👼 天使',
   'Prehistoric': '🦖 史前',
   'Cherry Blossom': '🌸 櫻花',
-  'Snow': '❄️ 冰雪'
+  'Snow': '❄️ 冰雪',
+  'Rift': '🌀 裂縫'
 };
 
 class MemberService {
@@ -99,13 +111,20 @@ class MemberService {
         for (const [id, m] of Object.entries(parsed)) {
           if (!Array.isArray(m.customEggNames)) {
             m.customEggNames = [...ALL_HIGH_TIER_NAMES];
+          } else if (m.tier === 'admin' || m.customEggNames.length >= 25 || m.autoTrackNewEggs !== false) {
+            // 自動為追蹤全部蛋種或管理員補上新版本高階神蛋
+            for (const eggName of ALL_HIGH_TIER_NAMES) {
+              if (!m.customEggNames.includes(eggName)) {
+                m.customEggNames.push(eggName);
+              }
+            }
           }
           if (!Array.isArray(m.activityLogs)) {
             m.activityLogs = [];
           }
           this.members.set(String(id), m);
         }
-        console.log(`[MemberService] 已載入 ${this.members.size} 位會員`);
+        console.log(`[MemberService] 已載入 ${this.members.size} 位會員 (已自動同步最新神蛋追蹤)`);
       } catch (err) {
         console.error('[MemberService] 讀取 members.json 失敗:', err.message);
       }
@@ -143,6 +162,31 @@ class MemberService {
     this.syncFromSheet().catch(err => {
       console.warn('[MemberService] Google Sheet 同步略過或稍後重試:', err.message);
     });
+  }
+
+  // 動態註冊新神蛋至會員服務名冊並同步追蹤
+  addNewHighTierEgg({ name, rarity, biome }) {
+    if (!name) return;
+    const exists = HIGH_TIER_EGGS.some(e => e.name.toLowerCase() === name.toLowerCase());
+    if (!exists) {
+      HIGH_TIER_EGGS.push({ name, rarity: rarity || 'Secret', biome: biome || 'Enchanted Forest' });
+      if (!ALL_HIGH_TIER_NAMES.includes(name)) {
+        ALL_HIGH_TIER_NAMES.push(name);
+      }
+      BIOME_LABELS['All'] = `🌐 全部 (${HIGH_TIER_EGGS.length}種)`;
+      console.log(`[MemberService] 成功擴充神蛋名冊：${name} (${rarity}, ${biome})`);
+    }
+
+    // 為所有具備自動追蹤新蛋特性的會員自動增補追蹤
+    for (const member of this.members.values()) {
+      if (Array.isArray(member.customEggNames) && (member.tier === 'admin' || member.autoTrackNewEggs !== false)) {
+        if (!member.customEggNames.includes(name)) {
+          member.customEggNames.push(name);
+          this.logMemberAction(member.chatId, 'auto_track_new_egg', `自動加入新發布神蛋：${name}`, 'system');
+        }
+      }
+    }
+    this.saveLocal();
   }
 
   // 儲存 Session 到本地檔案
@@ -479,6 +523,12 @@ class MemberService {
       // 若已有自選蛋名清單，以蛋種精準匹配為唯一標準
       if (Array.isArray(member.customEggNames)) {
         if (member.customEggNames.length === 0) return false;
+
+        // 若為新發布的頂級神蛋 (Divine 或 Eternal)，且會員未關閉自動追蹤新蛋，自動放行推播
+        if ((eggInfo.rarity === 'Divine' || eggInfo.rarity === 'Eternal') && member.autoTrackNewEggs !== false) {
+          return true;
+        }
+
         return member.customEggNames.some(target => {
           const targetLower = target.toLowerCase().trim();
           return eggNameLower.includes(targetLower) || targetLower.includes(eggNameLower);
@@ -1169,6 +1219,21 @@ class MemberService {
           } catch (_) {}
         }
         await this.sendTelegramMessage(chatId, `✅ 廣播發送完畢，成功送達 ${sent} 位會員。`);
+        return;
+      }
+
+      if (text === '/sync_wiki' || text === '/sync' || text === '/update_data') {
+        await this.sendTelegramMessage(chatId, '⏳ 正在連線 Fandom Wiki API 抓取官方最新更新資料...');
+        if (typeof this.onSyncWikiRequested === 'function') {
+          try {
+            const res = await this.onSyncWikiRequested();
+            await this.sendTelegramMessage(chatId, res);
+          } catch (err) {
+            await this.sendTelegramMessage(chatId, `❌ 同步發生錯誤: ${err.message}`);
+          }
+        } else {
+          await this.sendTelegramMessage(chatId, '✅ Wiki 自動同步指令已受理。');
+        }
         return;
       }
     }

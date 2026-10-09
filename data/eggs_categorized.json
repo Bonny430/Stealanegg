@@ -1,380 +1,6 @@
 [
   {
     "id": 1,
-    "name": "Eternal Lunar Dragon",
-    "fullName": "Eternal Lunar Dragon Egg",
-    "rarity": "Eternal",
-    "biome": "Cosmic",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6e/Eternal_Lunar_Dragon_Egg.png/revision/latest?cb=20260902164152"
-  },
-  {
-    "id": 2,
-    "name": "Gorilla King",
-    "fullName": "Gorilla King Egg",
-    "rarity": "Eternal",
-    "biome": "Titan Temple",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/51/Gorilla_King_Egg.png/revision/latest?cb=20260908023701"
-  },
-  {
-    "id": 3,
-    "name": "El Maja",
-    "fullName": "El Maja Egg",
-    "rarity": "Eternal",
-    "biome": "Abyss Ocean",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/El_Maja_Egg.png/revision/latest?cb=20260902163938"
-  },
-  {
-    "id": 4,
-    "name": "Ice Dragon",
-    "fullName": "Ice Dragon Egg",
-    "rarity": "Eternal",
-    "biome": "Snow",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2c/Ice_Dragon_Egg.png/revision/latest?cb=20260902163726"
-  },
-  {
-    "id": 5,
-    "name": "Equinox",
-    "fullName": "Equinox Egg",
-    "rarity": "Eternal",
-    "biome": "Angels & Demons",
-    "spawnType": "🔨 熔煉專屬 (Fusion Shrine)",
-    "obtainMethod": "Angels & Demons 融合祭壇放入指定寵物合成 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/be/Equinox_Egg.png/revision/latest?cb=20260913045528"
-  },
-  {
-    "id": 6,
-    "name": "Mosasaurus",
-    "fullName": "Mosasaurus Egg",
-    "rarity": "Eternal",
-    "biome": "Prehistoric",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ee/Mosasaurus_Egg.png/revision/latest?cb=20260902164044"
-  },
-  {
-    "id": 7,
-    "name": "Lava Dragon",
-    "fullName": "Lava Dragon Egg",
-    "rarity": "Eternal",
-    "biome": "Volcano",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/41/Lava_Dragon_Egg.png/revision/latest?cb=20260902163828"
-  },
-  {
-    "id": 8,
-    "name": "Phoenix",
-    "fullName": "Phoenix Egg",
-    "rarity": "Eternal",
-    "biome": "Volcano",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/cd/Phoenix_Egg.png/revision/latest?cb=20260902163822"
-  },
-  {
-    "id": 9,
-    "name": "Oni Tiger",
-    "fullName": "Oni Tiger Egg",
-    "rarity": "Eternal",
-    "biome": "Cherry Blossom",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/d6/Oni_Tiger_Egg.png/revision/latest?cb=20260908114553"
-  },
-  {
-    "id": 10,
-    "name": "Pegasus",
-    "fullName": "Pegasus Egg",
-    "rarity": "Eternal",
-    "biome": "Angels",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e9/Pegasus_Egg.png/revision/latest?cb=20260912173205"
-  },
-  {
-    "id": 11,
-    "name": "Shattered Rift",
-    "fullName": "Shattered Rift Egg",
-    "rarity": "Eternal",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
-  },
-  {
-    "id": 12,
-    "name": "Brainrot",
-    "fullName": "Brainrot Egg",
-    "rarity": "Eternal",
-    "biome": "Event",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
-  },
-  {
-    "id": 13,
-    "name": "Skeleton Horse",
-    "fullName": "Skeleton Horse Egg",
-    "rarity": "Eternal",
-    "biome": "Demon",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/49/Skeleton_Horse_Egg.png/revision/latest?cb=20260912173044"
-  },
-  {
-    "id": 14,
-    "name": "Riftbeasts",
-    "fullName": "Riftbeasts Egg",
-    "rarity": "Eternal",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
-  },
-  {
-    "id": 15,
-    "name": "Riftborn",
-    "fullName": "Riftborn Egg",
-    "rarity": "Eternal",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
-  },
-  {
-    "id": 16,
-    "name": "Void Dragon",
-    "fullName": "Void Dragon Egg",
-    "rarity": "Eternal",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b8/Void_Dragon_Egg.png/revision/latest?cb=20260908022905"
-  },
-  {
-    "id": 17,
-    "name": "Cosmic Skeleton Boss",
-    "fullName": "Cosmic Skeleton Boss Egg",
-    "rarity": "Secret",
-    "biome": "Cosmic",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/58/Cosmic_Skeleton_Boss_Egg.png/revision/latest?cb=20260902164137"
-  },
-  {
-    "id": 18,
-    "name": "Cosmic Dragon",
-    "fullName": "Cosmic Dragon Egg",
-    "rarity": "Secret",
-    "biome": "Cosmic",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4c/Cosmic_Dragon_Egg.png/revision/latest?cb=20260902164144"
-  },
-  {
-    "id": 19,
-    "name": "Cerberus",
-    "fullName": "Cerberus Egg",
-    "rarity": "Secret",
-    "biome": "Volcano",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/44/Cerberus_Egg.png/revision/latest?cb=20260902163812"
-  },
-  {
-    "id": 20,
-    "name": "Riftborn",
-    "fullName": "Riftborn Egg",
-    "rarity": "Secret",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
-  },
-  {
-    "id": 21,
-    "name": "Brainrot",
-    "fullName": "Brainrot Egg",
-    "rarity": "Secret",
-    "biome": "Event",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
-  },
-  {
-    "id": 22,
-    "name": "Centaur",
-    "fullName": "Centaur Egg",
-    "rarity": "Secret",
-    "biome": "Angels & Demons",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7d/Centaur_Egg.png/revision/latest?cb=20260912173212"
-  },
-  {
-    "id": 23,
-    "name": "Kraken",
-    "fullName": "Kraken Egg",
-    "rarity": "Secret",
-    "biome": "Abyss Ocean",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8b/Kraken_Egg.png/revision/latest?cb=20260902163929"
-  },
-  {
-    "id": 24,
-    "name": "King Snake",
-    "fullName": "King Snake Egg",
-    "rarity": "Secret",
-    "biome": "Jungle",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/92/King_Snake_Egg.png/revision/latest?cb=20260902163528"
-  },
-  {
-    "id": 25,
-    "name": "Gargoyle",
-    "fullName": "Gargoyle Egg",
-    "rarity": "Secret",
-    "biome": "Demon",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/44/Gargoyle.png/revision/latest?cb=20260912164712"
-  },
-  {
-    "id": 26,
-    "name": "Mutant Shark",
-    "fullName": "Mutant Shark Egg",
-    "rarity": "Secret",
-    "biome": "Titan Temple",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8c/Mutant_Shark_Egg.png/revision/latest?cb=20260908022852"
-  },
-  {
-    "id": 27,
-    "name": "Riftbeasts",
-    "fullName": "Riftbeasts Egg",
-    "rarity": "Secret",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
-  },
-  {
-    "id": 28,
-    "name": "Pure Jellyfish",
-    "fullName": "Pure Jellyfish Egg",
-    "rarity": "Secret",
-    "biome": "Angels",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/Pure_Jellyfish_Egg.png/revision/latest?cb=20260912173222"
-  },
-  {
-    "id": 29,
-    "name": "Stag",
-    "fullName": "Stag Egg",
-    "rarity": "Secret",
-    "biome": "Cherry Blossom",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2f/Stag_Egg.png/revision/latest?cb=20260904031758"
-  },
-  {
-    "id": 30,
-    "name": "Shattered Rift",
-    "fullName": "Shattered Rift Egg",
-    "rarity": "Secret",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
-  },
-  {
-    "id": 31,
-    "name": "Yeti",
-    "fullName": "Yeti Egg",
-    "rarity": "Secret",
-    "biome": "Snow",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0d/Yeti_Egg.png/revision/latest?cb=20260902163712"
-  },
-  {
-    "id": 32,
-    "name": "T-Rex",
-    "fullName": "T-Rex Egg",
-    "rarity": "Secret",
-    "biome": "Prehistoric",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/63/T-Rex_Egg.png/revision/latest?cb=20260902190920"
-  },
-  {
-    "id": 33,
-    "name": "Tralaledon",
-    "fullName": "Tralaledon Egg",
-    "rarity": "Secret",
-    "biome": "Prehistoric",
-    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
-    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
-    "isMapSpawnable": true,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4a/Tralaledon_Egg.png/revision/latest?cb=20260902164034"
-  },
-  {
-    "id": 34,
-    "name": "Riftborn",
-    "fullName": "Riftborn Egg",
-    "rarity": "Secret",
-    "biome": "Rift",
-    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
-    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
-    "isMapSpawnable": false,
-    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
-  },
-  {
-    "id": 35,
     "name": "ArchAngel",
     "fullName": "ArchAngel Egg",
     "rarity": "Divine",
@@ -385,7 +11,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a9/ArchAngel_Egg.png/revision/latest?cb=20260912173157"
   },
   {
-    "id": 36,
+    "id": 2,
     "name": "Aetheron",
     "fullName": "Aetheron Egg",
     "rarity": "Divine",
@@ -396,7 +22,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/96/Aetheron_Egg.png/revision/latest?cb=20260913045513"
   },
   {
-    "id": 37,
+    "id": 3,
     "name": "Kitsune",
     "fullName": "Kitsune Egg",
     "rarity": "Divine",
@@ -407,7 +33,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/3d/Kitsune_Egg.png/revision/latest?cb=20260908022827"
   },
   {
-    "id": 38,
+    "id": 4,
     "name": "Nightflame",
     "fullName": "Nightflame Egg",
     "rarity": "Divine",
@@ -418,7 +44,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b9/Nightflame_Egg.png/revision/latest?cb=20260908023646"
   },
   {
-    "id": 39,
+    "id": 5,
     "name": "Shattered Rift",
     "fullName": "Shattered Rift Egg",
     "rarity": "Divine",
@@ -429,7 +55,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
   },
   {
-    "id": 40,
+    "id": 6,
     "name": "Unicorn",
     "fullName": "Unicorn Egg",
     "rarity": "Divine",
@@ -440,7 +66,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4f/Unicorn_Egg.png/revision/latest?cb=20260902164200"
   },
   {
-    "id": 41,
+    "id": 7,
     "name": "World Burner",
     "fullName": "World Burner Egg",
     "rarity": "Divine",
@@ -451,7 +77,667 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/World_Burner_Egg.png/revision/latest?cb=20260912173051"
   },
   {
+    "id": 8,
+    "name": "Aetheron",
+    "fullName": "Aetheron Egg",
+    "rarity": "Divine",
+    "biome": "Angels & Demons",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Angels & Demons 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e7/Aetheron.png/revision/latest?cb=20260913045520"
+  },
+  {
+    "id": 9,
+    "name": "Mecha Scrambler",
+    "fullName": "Mecha Scrambler Egg",
+    "rarity": "Divine",
+    "biome": "Titan Temple",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "每30分鐘機甲Boss極罕掉落",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/70/Mecha_Scrambler.png/revision/latest?cb=20260927050809"
+  },
+  {
+    "id": 10,
+    "name": "Extinction",
+    "fullName": "Extinction Egg",
+    "rarity": "Divine",
+    "biome": "Extinction Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/76/Extinction_Egg.png/revision/latest?cb=20260927050817"
+  },
+  {
+    "id": 11,
+    "name": "Unstable",
+    "fullName": "Unstable Egg",
+    "rarity": "Divine",
+    "biome": "Unstable Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/73/Unstable_Egg.png/revision/latest?cb=20260927050847"
+  },
+  {
+    "id": 12,
+    "name": "Skeletal",
+    "fullName": "Skeletal Egg",
+    "rarity": "Divine",
+    "biome": "Skeletal Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Skeletal_Egg.png/revision/latest?cb=20260927050829"
+  },
+  {
+    "id": 13,
+    "name": "Royal Skywhale",
+    "fullName": "Royal Skywhale Egg",
+    "rarity": "Divine",
+    "biome": "Enchanted Forest",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖刷新 (Discord 專屬推播)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 14,
+    "name": "Spirit World Guardian",
+    "fullName": "Spirit World Guardian Egg",
+    "rarity": "Divine",
+    "biome": "Enchanted Forest",
+    "spawnType": "🔨 熔煉專屬 (Fusion Shrine)",
+    "obtainMethod": "Celestial Sunlion + Royal Skywhale 融合",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 15,
+    "name": "Eternal Lunar Dragon",
+    "fullName": "Eternal Lunar Dragon Egg",
+    "rarity": "Eternal",
+    "biome": "Cosmic",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6e/Eternal_Lunar_Dragon_Egg.png/revision/latest?cb=20260902164152"
+  },
+  {
+    "id": 16,
+    "name": "Gorilla King",
+    "fullName": "Gorilla King Egg",
+    "rarity": "Eternal",
+    "biome": "Titan Temple",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/51/Gorilla_King_Egg.png/revision/latest?cb=20260908023701"
+  },
+  {
+    "id": 17,
+    "name": "El Maja",
+    "fullName": "El Maja Egg",
+    "rarity": "Eternal",
+    "biome": "Abyss Ocean",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/El_Maja_Egg.png/revision/latest?cb=20260902163938"
+  },
+  {
+    "id": 18,
+    "name": "Ice Dragon",
+    "fullName": "Ice Dragon Egg",
+    "rarity": "Eternal",
+    "biome": "Snow",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2c/Ice_Dragon_Egg.png/revision/latest?cb=20260902163726"
+  },
+  {
+    "id": 19,
+    "name": "Equinox",
+    "fullName": "Equinox Egg",
+    "rarity": "Eternal",
+    "biome": "Angels & Demons",
+    "spawnType": "🔨 熔煉專屬 (Fusion Shrine)",
+    "obtainMethod": "Angels & Demons 融合祭壇放入指定寵物合成 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/be/Equinox_Egg.png/revision/latest?cb=20260913045528"
+  },
+  {
+    "id": 20,
+    "name": "Mosasaurus",
+    "fullName": "Mosasaurus Egg",
+    "rarity": "Eternal",
+    "biome": "Prehistoric",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ee/Mosasaurus_Egg.png/revision/latest?cb=20260902164044"
+  },
+  {
+    "id": 21,
+    "name": "Lava Dragon",
+    "fullName": "Lava Dragon Egg",
+    "rarity": "Eternal",
+    "biome": "Volcano",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/41/Lava_Dragon_Egg.png/revision/latest?cb=20260902163828"
+  },
+  {
+    "id": 22,
+    "name": "Phoenix",
+    "fullName": "Phoenix Egg",
+    "rarity": "Eternal",
+    "biome": "Volcano",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/cd/Phoenix_Egg.png/revision/latest?cb=20260902163822"
+  },
+  {
+    "id": 23,
+    "name": "Oni Tiger",
+    "fullName": "Oni Tiger Egg",
+    "rarity": "Eternal",
+    "biome": "Cherry Blossom",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/d6/Oni_Tiger_Egg.png/revision/latest?cb=20260908114553"
+  },
+  {
+    "id": 24,
+    "name": "Pegasus",
+    "fullName": "Pegasus Egg",
+    "rarity": "Eternal",
+    "biome": "Angels",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e9/Pegasus_Egg.png/revision/latest?cb=20260912173205"
+  },
+  {
+    "id": 25,
+    "name": "Shattered Rift",
+    "fullName": "Shattered Rift Egg",
+    "rarity": "Eternal",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
+  },
+  {
+    "id": 26,
+    "name": "Brainrot",
+    "fullName": "Brainrot Egg",
+    "rarity": "Eternal",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
+  },
+  {
+    "id": 27,
+    "name": "Skeleton Horse",
+    "fullName": "Skeleton Horse Egg",
+    "rarity": "Eternal",
+    "biome": "Demon",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/49/Skeleton_Horse_Egg.png/revision/latest?cb=20260912173044"
+  },
+  {
+    "id": 28,
+    "name": "Riftbeasts",
+    "fullName": "Riftbeasts Egg",
+    "rarity": "Eternal",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
+  },
+  {
+    "id": 29,
+    "name": "Riftborn",
+    "fullName": "Riftborn Egg",
+    "rarity": "Eternal",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
+  },
+  {
+    "id": 30,
+    "name": "Void Dragon",
+    "fullName": "Void Dragon Egg",
+    "rarity": "Eternal",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b8/Void_Dragon_Egg.png/revision/latest?cb=20260908022905"
+  },
+  {
+    "id": 31,
+    "name": "Experimental",
+    "fullName": "Experimental Egg",
+    "rarity": "Eternal",
+    "biome": "Experimental Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/ca/Experimental_Egg.png/revision/latest?cb=20260927050856"
+  },
+  {
+    "id": 32,
+    "name": "Biohazard",
+    "fullName": "Biohazard Egg",
+    "rarity": "Eternal",
+    "biome": "Biohazard Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/14/Biohazard_Egg.png/revision/latest?cb=20260927050838"
+  },
+  {
+    "id": 33,
+    "name": "Unstable",
+    "fullName": "Unstable Egg",
+    "rarity": "Eternal",
+    "biome": "Unstable Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/73/Unstable_Egg.png/revision/latest?cb=20260927050847"
+  },
+  {
+    "id": 34,
+    "name": "Pink Dragon Experiment #010",
+    "fullName": "Pink Dragon Experiment #010 Egg",
+    "rarity": "Eternal",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a4/Pink_Dragon_Experiment_Egg.png/revision/latest?cb=20260927050955"
+  },
+  {
+    "id": 35,
+    "name": "Skeletal",
+    "fullName": "Skeletal Egg",
+    "rarity": "Eternal",
+    "biome": "Skeletal Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Skeletal_Egg.png/revision/latest?cb=20260927050829"
+  },
+  {
+    "id": 36,
+    "name": "Skeletal",
+    "fullName": "Skeletal Egg",
+    "rarity": "Eternal",
+    "biome": "Skeletal Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Skeletal_Egg.png/revision/latest?cb=20260927050829"
+  },
+  {
+    "id": 37,
+    "name": "Celestial Sunlion",
+    "fullName": "Celestial Sunlion Egg",
+    "rarity": "Eternal",
+    "biome": "Enchanted Forest",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新 / 守護者Boss",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/21/Enchanted_Lion_V2.png/revision/latest?cb=20261005044445"
+  },
+  {
+    "id": 38,
+    "name": "World Eater",
+    "fullName": "World Eater Egg",
+    "rarity": "Eternal",
+    "biome": "Rift",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Rift 裂縫自然刷新 / 事件",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
+  },
+  {
+    "id": 39,
+    "name": "Cosmic Skeleton Boss",
+    "fullName": "Cosmic Skeleton Boss Egg",
+    "rarity": "Secret",
+    "biome": "Cosmic",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/97/Cosmic_Skeleton_Boss.png/revision/latest?cb=20260904110709"
+  },
+  {
+    "id": 40,
+    "name": "Cosmic Dragon",
+    "fullName": "Cosmic Dragon Egg",
+    "rarity": "Secret",
+    "biome": "Cosmic",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4c/Cosmic_Dragon_Egg.png/revision/latest?cb=20260902164144"
+  },
+  {
+    "id": 41,
+    "name": "Cerberus",
+    "fullName": "Cerberus Egg",
+    "rarity": "Secret",
+    "biome": "Volcano",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/44/Cerberus_Egg.png/revision/latest?cb=20260902163812"
+  },
+  {
     "id": 42,
+    "name": "Riftborn",
+    "fullName": "Riftborn Egg",
+    "rarity": "Secret",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
+  },
+  {
+    "id": 43,
+    "name": "Brainrot",
+    "fullName": "Brainrot Egg",
+    "rarity": "Secret",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
+  },
+  {
+    "id": 44,
+    "name": "Centaur",
+    "fullName": "Centaur Egg",
+    "rarity": "Secret",
+    "biome": "Angels & Demons",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7d/Centaur_Egg.png/revision/latest?cb=20260912173212"
+  },
+  {
+    "id": 45,
+    "name": "Kraken",
+    "fullName": "Kraken Egg",
+    "rarity": "Secret",
+    "biome": "Abyss Ocean",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8b/Kraken_Egg.png/revision/latest?cb=20260902163929"
+  },
+  {
+    "id": 46,
+    "name": "King Snake",
+    "fullName": "King Snake Egg",
+    "rarity": "Secret",
+    "biome": "Jungle",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/92/King_Snake_Egg.png/revision/latest?cb=20260902163528"
+  },
+  {
+    "id": 47,
+    "name": "Gargoyle",
+    "fullName": "Gargoyle Egg",
+    "rarity": "Secret",
+    "biome": "Demon",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/da/Gargoyle_Egg.png/revision/latest?cb=20260912173113"
+  },
+  {
+    "id": 48,
+    "name": "Mutant Shark",
+    "fullName": "Mutant Shark Egg",
+    "rarity": "Secret",
+    "biome": "Titan Temple",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8c/Mutant_Shark_Egg.png/revision/latest?cb=20260908022852"
+  },
+  {
+    "id": 49,
+    "name": "Riftbeasts",
+    "fullName": "Riftbeasts Egg",
+    "rarity": "Secret",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
+  },
+  {
+    "id": 50,
+    "name": "Pure Jellyfish",
+    "fullName": "Pure Jellyfish Egg",
+    "rarity": "Secret",
+    "biome": "Angels",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/Pure_Jellyfish_Egg.png/revision/latest?cb=20260912173222"
+  },
+  {
+    "id": 51,
+    "name": "Stag",
+    "fullName": "Stag Egg",
+    "rarity": "Secret",
+    "biome": "Cherry Blossom",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2f/Stag_Egg.png/revision/latest?cb=20260904031758"
+  },
+  {
+    "id": 52,
+    "name": "Shattered Rift",
+    "fullName": "Shattered Rift Egg",
+    "rarity": "Secret",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
+  },
+  {
+    "id": 53,
+    "name": "Yeti",
+    "fullName": "Yeti Egg",
+    "rarity": "Secret",
+    "biome": "Snow",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0d/Yeti_Egg.png/revision/latest?cb=20260902163712"
+  },
+  {
+    "id": 54,
+    "name": "T-Rex",
+    "fullName": "T-Rex Egg",
+    "rarity": "Secret",
+    "biome": "Prehistoric",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/63/T-Rex_Egg.png/revision/latest?cb=20260902190920"
+  },
+  {
+    "id": 55,
+    "name": "Tralaledon",
+    "fullName": "Tralaledon Egg",
+    "rarity": "Secret",
+    "biome": "Prehistoric",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "地圖自然刷新 (Discord #egg-notifier 發布頻道公告)",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4a/Tralaledon_Egg.png/revision/latest?cb=20260902164034"
+  },
+  {
+    "id": 56,
+    "name": "Riftborn",
+    "fullName": "Riftborn Egg",
+    "rarity": "Secret",
+    "biome": "Rift",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "限時活動代幣兌換 / 特殊活動關卡 / 兌換碼 (地圖不刷新)",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
+  },
+  {
+    "id": 57,
+    "name": "Experiment #001",
+    "fullName": "Experiment #001 Egg",
+    "rarity": "Secret",
+    "biome": "Unknown",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Unknown 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Experiment_-001_Egg.png/revision/latest?cb=20260919174434"
+  },
+  {
+    "id": 58,
+    "name": "Experimental",
+    "fullName": "Experimental Egg",
+    "rarity": "Secret",
+    "biome": "Experimental Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/ca/Experimental_Egg.png/revision/latest?cb=20260927050856"
+  },
+  {
+    "id": 59,
+    "name": "Biohazard",
+    "fullName": "Biohazard Egg",
+    "rarity": "Secret",
+    "biome": "Biohazard Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/14/Biohazard_Egg.png/revision/latest?cb=20260927050838"
+  },
+  {
+    "id": 60,
+    "name": "Skeletal",
+    "fullName": "Skeletal Egg",
+    "rarity": "Secret",
+    "biome": "Skeletal Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Skeletal_Egg.png/revision/latest?cb=20260927050829"
+  },
+  {
+    "id": 61,
+    "name": "Skeletal",
+    "fullName": "Skeletal Egg",
+    "rarity": "Secret",
+    "biome": "Skeletal Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Skeletal_Egg.png/revision/latest?cb=20260927050829"
+  },
+  {
+    "id": 62,
+    "name": "Skeletal",
+    "fullName": "Skeletal Egg",
+    "rarity": "Secret",
+    "biome": "Skeletal Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/68/Skeletal_Egg.png/revision/latest?cb=20260927050829"
+  },
+  {
+    "id": 63,
+    "name": "Unstable",
+    "fullName": "Unstable Egg",
+    "rarity": "Secret",
+    "biome": "Unstable Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/73/Unstable_Egg.png/revision/latest?cb=20260927050847"
+  },
+  {
+    "id": 64,
+    "name": "Toxic Hedgehog",
+    "fullName": "Toxic Hedgehog Egg",
+    "rarity": "Secret",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/32/Toxic_Hedgehog_Egg.png/revision/latest?cb=20260927050940"
+  },
+  {
+    "id": 65,
+    "name": "Starry Fox",
+    "fullName": "Starry Fox Egg",
+    "rarity": "Secret",
+    "biome": "Enchanted Forest",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/40/Starry_Fox.png/revision/latest?cb=20261006232700"
+  },
+  {
+    "id": 66,
+    "name": "Jitterbug",
+    "fullName": "Jitterbug Egg",
+    "rarity": "Secret",
+    "biome": "Enchanted Forest",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "蘑菇記憶解謎與板球班卓琴解鎖",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 67,
+    "name": "RazorFang",
+    "fullName": "RazorFang Egg",
+    "rarity": "Secret",
+    "biome": "Demons",
+    "spawnType": "🌟 高階自然刷新 (High Tier Spawn)",
+    "obtainMethod": "Demons 惡魔生態區自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/c2/RazorFang.png/revision/latest?cb=20260912164720"
+  },
+  {
+    "id": 68,
     "name": "Beluga Whale",
     "fullName": "Beluga Whale Egg",
     "rarity": "Cosmic",
@@ -462,7 +748,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/3a/Beluga_Whale_Egg.png/revision/latest?cb=20260902163922"
   },
   {
-    "id": 43,
+    "id": 69,
     "name": "Bronto",
     "fullName": "Bronto Egg",
     "rarity": "Cosmic",
@@ -473,7 +759,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1b/Bronto_Egg.png/revision/latest?cb=20260902164016"
   },
   {
-    "id": 44,
+    "id": 70,
     "name": "Koi",
     "fullName": "Koi Egg",
     "rarity": "Cosmic",
@@ -484,7 +770,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ed/Koi_Egg.png/revision/latest?cb=20260904031809"
   },
   {
-    "id": 45,
+    "id": 71,
     "name": "King Mammoth",
     "fullName": "King Mammoth Egg",
     "rarity": "Cosmic",
@@ -495,7 +781,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e5/King_Mammoth_Egg.png/revision/latest?cb=20260902163630"
   },
   {
-    "id": 46,
+    "id": 72,
     "name": "Riftbeasts",
     "fullName": "Riftbeasts Egg",
     "rarity": "Cosmic",
@@ -506,7 +792,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
   },
   {
-    "id": 47,
+    "id": 73,
     "name": "Imp",
     "fullName": "Imp Egg",
     "rarity": "Cosmic",
@@ -517,7 +803,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/38/Imp_Egg.png/revision/latest?cb=20260912173133"
   },
   {
-    "id": 48,
+    "id": 74,
     "name": "Demon Hound",
     "fullName": "Demon Hound Egg",
     "rarity": "Cosmic",
@@ -528,7 +814,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Demon_Hound_Egg.png/revision/latest?cb=20260912173124"
   },
   {
-    "id": 49,
+    "id": 75,
     "name": "Holy Peacock",
     "fullName": "Holy Peacock Egg",
     "rarity": "Cosmic",
@@ -539,7 +825,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/66/Holy_Peacock_Egg.png/revision/latest?cb=20260912173230"
   },
   {
-    "id": 50,
+    "id": 76,
     "name": "Leviathan",
     "fullName": "Leviathan Egg",
     "rarity": "Cosmic",
@@ -550,7 +836,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/ad/Leviathan_Egg.png/revision/latest?cb=20260902163305"
   },
   {
-    "id": 51,
+    "id": 77,
     "name": "Mantaris",
     "fullName": "Mantaris Egg",
     "rarity": "Cosmic",
@@ -561,7 +847,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e9/Mantaris_Egg.png/revision/latest?cb=20260904033235"
   },
   {
-    "id": 52,
+    "id": 78,
     "name": "La Vacca Saturno Saturnita",
     "fullName": "La Vacca Saturno Saturnita Egg",
     "rarity": "Cosmic",
@@ -572,7 +858,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/18/La_Vacca_Saturno_Saturnita_Egg.png/revision/latest?cb=20260902164130"
   },
   {
-    "id": 53,
+    "id": 79,
     "name": "Brainrot",
     "fullName": "Brainrot Egg",
     "rarity": "Cosmic",
@@ -583,7 +869,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
   },
   {
-    "id": 54,
+    "id": 80,
     "name": "Rhinotaur",
     "fullName": "Rhinotaur Egg",
     "rarity": "Cosmic",
@@ -594,7 +880,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7e/Rhinotaur_Egg.png/revision/latest?cb=20260904033220"
   },
   {
-    "id": 55,
+    "id": 81,
     "name": "Snowy Owl",
     "fullName": "Snowy Owl Egg",
     "rarity": "Cosmic",
@@ -605,7 +891,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/72/Snowy_Owl_Egg.png/revision/latest?cb=20260904031817"
   },
   {
-    "id": 56,
+    "id": 82,
     "name": "Royal Sphinx",
     "fullName": "Royal Sphinx Egg",
     "rarity": "Cosmic",
@@ -616,7 +902,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/33/Royal_Sphinx_Egg.png/revision/latest?cb=20260902163404"
   },
   {
-    "id": 57,
+    "id": 83,
     "name": "Shattered Rift",
     "fullName": "Shattered Rift Egg",
     "rarity": "Cosmic",
@@ -627,7 +913,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
   },
   {
-    "id": 58,
+    "id": 84,
     "name": "Sacred Moth",
     "fullName": "Sacred Moth Egg",
     "rarity": "Cosmic",
@@ -638,7 +924,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/c7/Sacred_Moth_Egg.png/revision/latest?cb=20260912173237"
   },
   {
-    "id": 59,
+    "id": 85,
     "name": "Whale Shark",
     "fullName": "Whale Shark Egg",
     "rarity": "Cosmic",
@@ -649,7 +935,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e1/Whale_Shark_Egg.png/revision/latest?cb=20260902163914"
   },
   {
-    "id": 60,
+    "id": 86,
     "name": "Triceratops",
     "fullName": "Triceratops Egg",
     "rarity": "Cosmic",
@@ -660,7 +946,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2a/Triceratops_Egg.png/revision/latest?cb=20260902164008"
   },
   {
-    "id": 61,
+    "id": 87,
     "name": "Riftborn",
     "fullName": "Riftborn Egg",
     "rarity": "Cosmic",
@@ -671,7 +957,106 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
   },
   {
-    "id": 62,
+    "id": 88,
+    "name": "Nibbles #013",
+    "fullName": "Nibbles #013 Egg",
+    "rarity": "Cosmic",
+    "biome": "Unknown",
+    "spawnType": "🥚 基礎/中階蛋 (Base Spawn)",
+    "obtainMethod": "Unknown 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f3/Nibbles_-013_Egg.png/revision/latest?cb=20260919174419"
+  },
+  {
+    "id": 89,
+    "name": "Biohazard",
+    "fullName": "Biohazard Egg",
+    "rarity": "Cosmic",
+    "biome": "Biohazard Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/14/Biohazard_Egg.png/revision/latest?cb=20260927050838"
+  },
+  {
+    "id": 90,
+    "name": "Experimental",
+    "fullName": "Experimental Egg",
+    "rarity": "Cosmic",
+    "biome": "Experimental Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/ca/Experimental_Egg.png/revision/latest?cb=20260927050856"
+  },
+  {
+    "id": 91,
+    "name": "Experimental",
+    "fullName": "Experimental Egg",
+    "rarity": "Cosmic",
+    "biome": "Experimental Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/ca/Experimental_Egg.png/revision/latest?cb=20260927050856"
+  },
+  {
+    "id": 92,
+    "name": "Unstable",
+    "fullName": "Unstable Egg",
+    "rarity": "Cosmic",
+    "biome": "Unstable Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/73/Unstable_Egg.png/revision/latest?cb=20260927050847"
+  },
+  {
+    "id": 93,
+    "name": "Biohazard",
+    "fullName": "Biohazard Egg",
+    "rarity": "Cosmic",
+    "biome": "Biohazard Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/14/Biohazard_Egg.png/revision/latest?cb=20260927050838"
+  },
+  {
+    "id": 94,
+    "name": "Uncoiled Armadillo",
+    "fullName": "Uncoiled Armadillo Egg",
+    "rarity": "Cosmic",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/81/Uncoiled_Armadillo_Egg.png/revision/latest?cb=20260927050920"
+  },
+  {
+    "id": 95,
+    "name": "Spirit Panda",
+    "fullName": "Spirit Panda Egg",
+    "rarity": "Cosmic",
+    "biome": "Enchanted Forest",
+    "spawnType": "🥚 基礎/中階蛋 (Base Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 96,
+    "name": "Astral Jackalope",
+    "fullName": "Astral Jackalope Egg",
+    "rarity": "Cosmic",
+    "biome": "Enchanted Forest",
+    "spawnType": "🥚 基礎/中階蛋 (Base Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 97,
     "name": "Ankylosaurus",
     "fullName": "Ankylosaurus Egg",
     "rarity": "Mythic",
@@ -682,7 +1067,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/53/Ankylosaurus_Egg.png/revision/latest?cb=20260902164000"
   },
   {
-    "id": 63,
+    "id": 98,
     "name": "Bladehide",
     "fullName": "Bladehide Egg",
     "rarity": "Mythic",
@@ -693,7 +1078,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/01/Bladehide_Egg.png/revision/latest?cb=20260904033243"
   },
   {
-    "id": 64,
+    "id": 99,
     "name": "Chillin Chilli",
     "fullName": "Chillin Chilli Egg",
     "rarity": "Mythic",
@@ -704,7 +1089,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/95/Chillin_Chilli_Egg.png/revision/latest?cb=20260902163806"
   },
   {
-    "id": 65,
+    "id": 100,
     "name": "Cosmic Gorilla",
     "fullName": "Cosmic Gorilla Egg",
     "rarity": "Mythic",
@@ -715,7 +1100,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f9/Cosmic_Gorilla_Egg.png/revision/latest?cb=20260902164114"
   },
   {
-    "id": 66,
+    "id": 101,
     "name": "Brainrot",
     "fullName": "Brainrot Egg",
     "rarity": "Mythic",
@@ -726,7 +1111,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
   },
   {
-    "id": 67,
+    "id": 102,
     "name": "Mammoth",
     "fullName": "Mammoth Egg",
     "rarity": "Mythic",
@@ -737,7 +1122,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/3f/Mammoth_Egg.png/revision/latest?cb=20260902163620"
   },
   {
-    "id": 68,
+    "id": 103,
     "name": "Orca",
     "fullName": "Orca Egg",
     "rarity": "Mythic",
@@ -748,7 +1133,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b7/Orca_Egg.png/revision/latest?cb=20260902163904"
   },
   {
-    "id": 69,
+    "id": 104,
     "name": "Red Panda",
     "fullName": "Red Panda Egg",
     "rarity": "Mythic",
@@ -759,7 +1144,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/82/Red_Panda_Egg.png/revision/latest?cb=20260904031826"
   },
   {
-    "id": 70,
+    "id": 105,
     "name": "Sand Spider",
     "fullName": "Sand Spider Egg",
     "rarity": "Mythic",
@@ -770,7 +1155,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b3/Sand_Spider_Egg.png/revision/latest?cb=20260902163348"
   },
   {
-    "id": 71,
+    "id": 106,
     "name": "Scorpion",
     "fullName": "Scorpion Egg",
     "rarity": "Mythic",
@@ -781,7 +1166,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ef/Scorpion_Egg.png/revision/latest?cb=20260902163357"
   },
   {
-    "id": 72,
+    "id": 107,
     "name": "Spider",
     "fullName": "Spider Egg",
     "rarity": "Mythic",
@@ -792,7 +1177,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/96/Spider_Egg.png/revision/latest?cb=20260902163459"
   },
   {
-    "id": 73,
+    "id": 108,
     "name": "Sabertooth Tiger",
     "fullName": "Sabertooth Tiger Egg",
     "rarity": "Mythic",
@@ -803,7 +1188,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b4/Sabertooth_Tiger_Egg.png/revision/latest?cb=20260902163611"
   },
   {
-    "id": 74,
+    "id": 109,
     "name": "Riftbeasts",
     "fullName": "Riftbeasts Egg",
     "rarity": "Mythic",
@@ -814,7 +1199,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
   },
   {
-    "id": 75,
+    "id": 110,
     "name": "Shattered Rift",
     "fullName": "Shattered Rift Egg",
     "rarity": "Mythic",
@@ -825,7 +1210,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/12/Shattered_Rift_Egg.png/revision/latest?cb=20260907221216"
   },
   {
-    "id": 76,
+    "id": 111,
     "name": "Tiger",
     "fullName": "Tiger Egg",
     "rarity": "Mythic",
@@ -836,7 +1221,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f1/Tiger_Egg.png/revision/latest?cb=20260902163519"
   },
   {
-    "id": 77,
+    "id": 112,
     "name": "Riftborn",
     "fullName": "Riftborn Egg",
     "rarity": "Mythic",
@@ -847,7 +1232,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
   },
   {
-    "id": 78,
+    "id": 113,
     "name": "Toro",
     "fullName": "Toro Egg",
     "rarity": "Mythic",
@@ -858,7 +1243,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/c0/Toro_Egg.png/revision/latest?cb=20260912173140"
   },
   {
-    "id": 79,
+    "id": 114,
     "name": "Winged Lamb",
     "fullName": "Winged Lamb Egg",
     "rarity": "Mythic",
@@ -869,7 +1254,62 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b2/Winged_Lamb_Egg.png/revision/latest?cb=20260912173247"
   },
   {
-    "id": 80,
+    "id": 115,
+    "name": "Citadel Snail #007",
+    "fullName": "Citadel Snail #007 Egg",
+    "rarity": "Mythic",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/60/Citadel_Snail_Egg.png/revision/latest?cb=20260927050913"
+  },
+  {
+    "id": 116,
+    "name": "Unstable",
+    "fullName": "Unstable Egg",
+    "rarity": "Mythic",
+    "biome": "Unstable Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/73/Unstable_Egg.png/revision/latest?cb=20260927050847"
+  },
+  {
+    "id": 117,
+    "name": "Biohazard",
+    "fullName": "Biohazard Egg",
+    "rarity": "Mythic",
+    "biome": "Biohazard Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/14/Biohazard_Egg.png/revision/latest?cb=20260927050838"
+  },
+  {
+    "id": 118,
+    "name": "Experimental",
+    "fullName": "Experimental Egg",
+    "rarity": "Mythic",
+    "biome": "Experimental Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/ca/Experimental_Egg.png/revision/latest?cb=20260927050856"
+  },
+  {
+    "id": 119,
+    "name": "Enchanted Bluejay",
+    "fullName": "Enchanted Bluejay Egg",
+    "rarity": "Mythic",
+    "biome": "Enchanted Forest",
+    "spawnType": "🥚 基礎/中階蛋 (Base Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 120,
     "name": "Brr Brr Patapim",
     "fullName": "Brr Brr Patapim Egg",
     "rarity": "Legendary",
@@ -880,7 +1320,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1e/Brr_Brr_Patapim_Egg.png/revision/latest?cb=20260902163150"
   },
   {
-    "id": 81,
+    "id": 121,
     "name": "Axolotl",
     "fullName": "Axolotl Egg",
     "rarity": "Legendary",
@@ -891,7 +1331,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/9/9b/Axolotl_Egg.png/revision/latest?cb=20260902163253"
   },
   {
-    "id": 82,
+    "id": 122,
     "name": "Cosmic Gecko",
     "fullName": "Cosmic Gecko Egg",
     "rarity": "Legendary",
@@ -902,7 +1342,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7d/Cosmic_Gecko_Egg.png/revision/latest?cb=20260902164108"
   },
   {
-    "id": 83,
+    "id": 123,
     "name": "Crustacia",
     "fullName": "Crustacia Egg",
     "rarity": "Legendary",
@@ -913,7 +1353,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7b/Crustacia_Egg.png/revision/latest?cb=20260904033329"
   },
   {
-    "id": 84,
+    "id": 124,
     "name": "Gorilla",
     "fullName": "Gorilla Egg",
     "rarity": "Legendary",
@@ -924,7 +1364,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/89/Gorilla_Egg.png/revision/latest?cb=20260902163442"
   },
   {
-    "id": 85,
+    "id": 125,
     "name": "Flaming Bull",
     "fullName": "Flaming Bull Egg",
     "rarity": "Legendary",
@@ -935,7 +1375,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/10/Flaming_Bull_Egg.png/revision/latest?cb=20260902163752"
   },
   {
-    "id": 86,
+    "id": 126,
     "name": "Orangutini Ananassini",
     "fullName": "Orangutini Ananassini Egg",
     "rarity": "Legendary",
@@ -946,7 +1386,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f0/Orangutini_Ananassini_Egg.png/revision/latest?cb=20260902163453"
   },
   {
-    "id": 87,
+    "id": 127,
     "name": "Polar Bear",
     "fullName": "Polar Bear Egg",
     "rarity": "Legendary",
@@ -957,7 +1397,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f3/Polar_Bear_Egg.png/revision/latest?cb=20260902163601"
   },
   {
-    "id": 88,
+    "id": 128,
     "name": "Lava Iguana",
     "fullName": "Lava Iguana Egg",
     "rarity": "Legendary",
@@ -968,7 +1408,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Lava_Iguana_Egg.png/revision/latest?cb=20260902163758"
   },
   {
-    "id": 89,
+    "id": 129,
     "name": "Pterodactyl",
     "fullName": "Pterodactyl Egg",
     "rarity": "Legendary",
@@ -979,7 +1419,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/c7/Pterodactyl_Egg.png/revision/latest?cb=20260902163953"
   },
   {
-    "id": 90,
+    "id": 130,
     "name": "Snake",
     "fullName": "Snake Egg",
     "rarity": "Legendary",
@@ -990,7 +1430,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2a/Snake_Egg.png/revision/latest?cb=20260902163340"
   },
   {
-    "id": 91,
+    "id": 131,
     "name": "Shark",
     "fullName": "Shark Egg",
     "rarity": "Legendary",
@@ -1001,7 +1441,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f9/Shark_Egg.png/revision/latest?cb=20260902163855"
   },
   {
-    "id": 92,
+    "id": 132,
     "name": "Salamander",
     "fullName": "Salamander Egg",
     "rarity": "Legendary",
@@ -1012,7 +1452,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/51/Salamander_Egg.png/revision/latest?cb=20260904031835"
   },
   {
-    "id": 93,
+    "id": 133,
     "name": "Riftborn Eggs",
     "fullName": "Riftborn Eggs Egg",
     "rarity": "Legendary",
@@ -1023,7 +1463,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/1a/Riftborn_Egg.png/revision/latest?cb=20260907221208"
   },
   {
-    "id": 94,
+    "id": 134,
     "name": "Spideron",
     "fullName": "Spideron Egg",
     "rarity": "Legendary",
@@ -1034,7 +1474,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a3/Spideron_Egg.png/revision/latest?cb=20260908022840"
   },
   {
-    "id": 95,
+    "id": 135,
     "name": "Luminous",
     "fullName": "Luminous Egg",
     "rarity": "Legendary",
@@ -1045,7 +1485,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b7/Luminous_Egg.png/revision/latest?cb=20260912182907"
   },
   {
-    "id": 96,
+    "id": 136,
     "name": "Riftbeasts",
     "fullName": "Riftbeasts Egg",
     "rarity": "Legendary",
@@ -1056,7 +1496,51 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/57/Riftbeasts_Egg.png/revision/latest?cb=20260907221223"
   },
   {
-    "id": 97,
+    "id": 137,
+    "name": "Extinction",
+    "fullName": "Extinction Egg",
+    "rarity": "Legendary",
+    "biome": "Extinction Egg",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/76/Extinction_Egg.png/revision/latest?cb=20260927050817"
+  },
+  {
+    "id": 138,
+    "name": "Eye Bat #021",
+    "fullName": "Eye Bat #021 Egg",
+    "rarity": "Legendary",
+    "biome": "Event",
+    "spawnType": "🎟️ 限時活動/商店 (Event/Shop)",
+    "obtainMethod": "特殊途徑",
+    "isMapSpawnable": false,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0d/Eye_Bat_Egg.png/revision/latest?cb=20260927050904"
+  },
+  {
+    "id": 139,
+    "name": "Petal Beetle",
+    "fullName": "Petal Beetle Egg",
+    "rarity": "Legendary",
+    "biome": "Enchanted Forest",
+    "spawnType": "🥚 基礎/中階蛋 (Base Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 140,
+    "name": "Prism Gecko",
+    "fullName": "Prism Gecko Egg",
+    "rarity": "Legendary",
+    "biome": "Enchanted Forest",
+    "spawnType": "🥚 基礎/中階蛋 (Base Spawn)",
+    "obtainMethod": "Enchanted Forest 地圖自然刷新",
+    "isMapSpawnable": true,
+    "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f5/Enchanted_Forest.png/revision/latest?cb=20261005044210"
+  },
+  {
+    "id": 141,
     "name": "Crane",
     "fullName": "Crane Egg",
     "rarity": "Epic",
@@ -1067,7 +1551,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/1/10/Crane_Egg.png/revision/latest?cb=20260904031143"
   },
   {
-    "id": 98,
+    "id": 142,
     "name": "Bear",
     "fullName": "Bear Egg",
     "rarity": "Epic",
@@ -1078,7 +1562,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Bear_Egg.png/revision/latest?cb=20260902163143"
   },
   {
-    "id": 99,
+    "id": 143,
     "name": "Crocodile",
     "fullName": "Crocodile Egg",
     "rarity": "Epic",
@@ -1089,7 +1573,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/5a/Crocodile_Egg.png/revision/latest?cb=20260902163434"
   },
   {
-    "id": 100,
+    "id": 144,
     "name": "Centapede",
     "fullName": "Centapede Egg",
     "rarity": "Epic",
@@ -1100,7 +1584,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/f9/Centapede_Egg.png/revision/latest?cb=20260902164100"
   },
   {
-    "id": 101,
+    "id": 145,
     "name": "Brainrot",
     "fullName": "Brainrot Egg",
     "rarity": "Epic",
@@ -1111,7 +1595,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
   },
   {
-    "id": 102,
+    "id": 146,
     "name": "Fox",
     "fullName": "Fox Egg",
     "rarity": "Epic",
@@ -1122,7 +1606,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/48/Fox_Egg.png/revision/latest?cb=20260902163136"
   },
   {
-    "id": 103,
+    "id": 147,
     "name": "Lava Frog",
     "fullName": "Lava Frog Egg",
     "rarity": "Epic",
@@ -1133,7 +1617,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/f/fa/Lava_Frog_Egg.png/revision/latest?cb=20260902190903"
   },
   {
-    "id": 104,
+    "id": 148,
     "name": "Swan",
     "fullName": "Swan Egg",
     "rarity": "Epic",
@@ -1144,7 +1628,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b7/Swan_Egg.png/revision/latest?cb=20260902163244"
   },
   {
-    "id": 105,
+    "id": 149,
     "name": "Swordfish",
     "fullName": "Swordfish Egg",
     "rarity": "Epic",
@@ -1155,7 +1639,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/4d/Swordfish_Egg.png/revision/latest?cb=20260902163844"
   },
   {
-    "id": 106,
+    "id": 150,
     "name": "Trulimero Trulicina",
     "fullName": "Trulimero Trulicina Egg",
     "rarity": "Epic",
@@ -1166,7 +1650,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/5e/Trulimero_Trulicina_Egg.png/revision/latest?cb=20260902163237"
   },
   {
-    "id": 107,
+    "id": 151,
     "name": "Tob Tobi Tob Tob",
     "fullName": "Tob Tobi Tob Tob Egg",
     "rarity": "Epic",
@@ -1177,7 +1661,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/e8/Tob_Tobi_Tob_Tob_Egg.png/revision/latest?cb=20260902163333"
   },
   {
-    "id": 108,
+    "id": 152,
     "name": "Walrus",
     "fullName": "Walrus Egg",
     "rarity": "Epic",
@@ -1188,7 +1672,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/ce/Walrus_Egg.png/revision/latest?cb=20260902163543"
   },
   {
-    "id": 109,
+    "id": 153,
     "name": "Camel",
     "fullName": "Camel Egg",
     "rarity": "Rare",
@@ -1199,7 +1683,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/e/ec/Camel_Egg.png/revision/latest?cb=20260902163325"
   },
   {
-    "id": 110,
+    "id": 154,
     "name": "Burrowing Owl",
     "fullName": "Burrowing Owl Egg",
     "rarity": "Rare",
@@ -1210,7 +1694,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/3/33/Burrowing_Owl_Egg.png/revision/latest?cb=20260902163114"
   },
   {
-    "id": 111,
+    "id": 155,
     "name": "Chimpanzee",
     "fullName": "Chimpanzee Egg",
     "rarity": "Rare",
@@ -1221,7 +1705,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/de/Chimpanzee_Egg.png/revision/latest?cb=20260902163414"
   },
   {
-    "id": 112,
+    "id": 156,
     "name": "Dodo",
     "fullName": "Dodo Egg",
     "rarity": "Rare",
@@ -1232,7 +1716,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/d/de/Dodo_Egg.png/revision/latest?cb=20260902163946"
   },
   {
-    "id": 113,
+    "id": 157,
     "name": "Penguin",
     "fullName": "Penguin Egg",
     "rarity": "Rare",
@@ -1243,7 +1727,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/5c/Penguin_Egg.png/revision/latest?cb=20260902163534"
   },
   {
-    "id": 114,
+    "id": 158,
     "name": "Lava Gecko",
     "fullName": "Lava Gecko Egg",
     "rarity": "Rare",
@@ -1254,7 +1738,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/80/Lava_Gecko_Egg.png/revision/latest?cb=20260902163735"
   },
   {
-    "id": 115,
+    "id": 159,
     "name": "Parrotfish",
     "fullName": "Parrotfish Egg",
     "rarity": "Rare",
@@ -1265,7 +1749,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/2c/Parrotfish_Egg.png/revision/latest?cb=20260902163835"
   },
   {
-    "id": 116,
+    "id": 160,
     "name": "Raccoon",
     "fullName": "Raccoon Egg",
     "rarity": "Rare",
@@ -1276,7 +1760,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/80/Raccoon_Egg.png/revision/latest?cb=20260902163127"
   },
   {
-    "id": 117,
+    "id": 161,
     "name": "Turtle",
     "fullName": "Turtle Egg",
     "rarity": "Rare",
@@ -1287,7 +1771,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0d/Turtle_Egg.png/revision/latest?cb=20260902163231"
   },
   {
-    "id": 118,
+    "id": 162,
     "name": "Toucan",
     "fullName": "Toucan Egg",
     "rarity": "Rare",
@@ -1298,7 +1782,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/5/55/Toucan_Egg.png/revision/latest?cb=20260902163424"
   },
   {
-    "id": 119,
+    "id": 163,
     "name": "Brainrot",
     "fullName": "Brainrot Egg",
     "rarity": "Rare",
@@ -1309,7 +1793,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/2/24/Brainrot_Egg.png/revision/latest?cb=20260910043722"
   },
   {
-    "id": 120,
+    "id": 164,
     "name": "Bird",
     "fullName": "Bird Egg",
     "rarity": "Uncommon",
@@ -1320,7 +1804,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/7f/Bird_Egg.png/revision/latest?cb=20260902163105"
   },
   {
-    "id": 121,
+    "id": 165,
     "name": "Catfish",
     "fullName": "Catfish Egg",
     "rarity": "Uncommon",
@@ -1331,7 +1815,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/8/8c/Catfish_Egg.png/revision/latest?cb=20260902163224"
   },
   {
-    "id": 122,
+    "id": 166,
     "name": "Fennec",
     "fullName": "Fennec Egg",
     "rarity": "Uncommon",
@@ -1342,7 +1826,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/4/49/Fennec_Egg.png/revision/latest?cb=20260902163318"
   },
   {
-    "id": 123,
+    "id": 167,
     "name": "Dog",
     "fullName": "Dog Egg",
     "rarity": "Common",
@@ -1353,7 +1837,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/6a/Dog_Egg.png/revision/latest?cb=20260902163059"
   },
   {
-    "id": 124,
+    "id": 168,
     "name": "Frog",
     "fullName": "Frog Egg",
     "rarity": "Common",
@@ -1364,7 +1848,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/c/cf/Frog_Egg.png/revision/latest?cb=20260902163202"
   },
   {
-    "id": 125,
+    "id": 169,
     "name": "Duckling",
     "fullName": "Duckling Egg",
     "rarity": "Common",
@@ -1375,7 +1859,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/b/b1/Duckling_Egg.png/revision/latest?cb=20260902163211"
   },
   {
-    "id": 126,
+    "id": 170,
     "name": "Jerboa",
     "fullName": "Jerboa Egg",
     "rarity": "Common",
@@ -1386,7 +1870,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0f/Jerboa_Egg.png/revision/latest?cb=20260902163312"
   },
   {
-    "id": 127,
+    "id": 171,
     "name": "Monster",
     "fullName": "Monster Egg",
     "rarity": "Monster",
@@ -1397,7 +1881,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest?cb=20260910043902"
   },
   {
-    "id": 128,
+    "id": 172,
     "name": "Dragon",
     "fullName": "Dragon Egg",
     "rarity": "Event",
@@ -1408,7 +1892,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0b/Dragon_Egg.png/revision/latest?cb=20260910043705"
   },
   {
-    "id": 129,
+    "id": 173,
     "name": "Monster",
     "fullName": "Monster Egg",
     "rarity": "Monster",
@@ -1419,7 +1903,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest?cb=20260910043902"
   },
   {
-    "id": 130,
+    "id": 174,
     "name": "Monster",
     "fullName": "Monster Egg",
     "rarity": "Monster",
@@ -1430,7 +1914,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest?cb=20260910043902"
   },
   {
-    "id": 131,
+    "id": 175,
     "name": "Monster",
     "fullName": "Monster Egg",
     "rarity": "Monster",
@@ -1441,7 +1925,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest?cb=20260910043902"
   },
   {
-    "id": 132,
+    "id": 176,
     "name": "Drilla",
     "fullName": "Drilla Egg",
     "rarity": "Event",
@@ -1452,7 +1936,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/6/67/Drilla_Egg.png/revision/latest?cb=20260910041409"
   },
   {
-    "id": 133,
+    "id": 177,
     "name": "Dragon",
     "fullName": "Dragon Egg",
     "rarity": "Event",
@@ -1463,7 +1947,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0b/Dragon_Egg.png/revision/latest?cb=20260910043705"
   },
   {
-    "id": 134,
+    "id": 178,
     "name": "Mecha",
     "fullName": "Mecha Egg",
     "rarity": "Monster",
@@ -1474,7 +1958,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest?cb=20260908030040"
   },
   {
-    "id": 135,
+    "id": 179,
     "name": "Monster",
     "fullName": "Monster Egg",
     "rarity": "Monster",
@@ -1485,7 +1969,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest?cb=20260910043902"
   },
   {
-    "id": 136,
+    "id": 180,
     "name": "Mecha",
     "fullName": "Mecha Egg",
     "rarity": "Monster",
@@ -1496,7 +1980,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest?cb=20260908030040"
   },
   {
-    "id": 137,
+    "id": 181,
     "name": "Mecha",
     "fullName": "Mecha Egg",
     "rarity": "Monster",
@@ -1507,7 +1991,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest?cb=20260908030040"
   },
   {
-    "id": 138,
+    "id": 182,
     "name": "Mecha",
     "fullName": "Mecha Egg",
     "rarity": "Monster",
@@ -1518,7 +2002,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest?cb=20260908030040"
   },
   {
-    "id": 139,
+    "id": 183,
     "name": "Mecha",
     "fullName": "Mecha Egg",
     "rarity": "Monster",
@@ -1529,7 +2013,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest?cb=20260908030040"
   },
   {
-    "id": 140,
+    "id": 184,
     "name": "Mecha",
     "fullName": "Mecha Egg",
     "rarity": "Monster",
@@ -1540,7 +2024,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/7/79/Mecha_Egg.png/revision/latest?cb=20260908030040"
   },
   {
-    "id": 141,
+    "id": 185,
     "name": "Monster",
     "fullName": "Monster Egg",
     "rarity": "Monster",
@@ -1551,7 +2035,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/a/a2/Monster_Egg.png/revision/latest?cb=20260910043902"
   },
   {
-    "id": 142,
+    "id": 186,
     "name": "Dragon",
     "fullName": "Dragon Egg",
     "rarity": "Event",
@@ -1562,7 +2046,7 @@
     "imageUrl": "https://static.wikia.nocookie.net/stealanegg/images/0/0b/Dragon_Egg.png/revision/latest?cb=20260910043705"
   },
   {
-    "id": 143,
+    "id": 187,
     "name": "Scorched Dragon",
     "fullName": "Scorched Dragon Egg",
     "rarity": "Event",

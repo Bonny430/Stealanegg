@@ -497,11 +497,11 @@
       <div class="filter-bar spawn-type-filter-bar">
         <span class="bar-label">⚙️ 刷新機制：</span>
         <div class="filter-chips" id="spawnTypeChips">
-          <div class="filter-chip active" data-spawn-type="all">全部類型 (143)</div>
-          <div class="filter-chip" data-spawn-type="high">🌟 高階自然刷新 (28)</div>
-          <div class="filter-chip" data-spawn-type="fusion">🔨 熔煉專屬 (2)</div>
-          <div class="filter-chip" data-spawn-type="event">🎟️ 限時活動/商店 (40)</div>
-          <div class="filter-chip" data-spawn-type="base">🥚 基礎/中階蛋 (73)</div>
+          <div class="filter-chip active" data-spawn-type="all">全部類型 (187)</div>
+          <div class="filter-chip" data-spawn-type="high">🌟 高階自然刷新 (36)</div>
+          <div class="filter-chip" data-spawn-type="fusion">🔨 熔煉專屬 (3)</div>
+          <div class="filter-chip" data-spawn-type="event">🎟️ 限時活動/商店 (69)</div>
+          <div class="filter-chip" data-spawn-type="base">🥚 基礎/中階蛋 (79)</div>
         </div>
       </div>
 
@@ -510,6 +510,7 @@
         <span class="bar-label">🗺️ 地區分類：</span>
         <div class="filter-chips" id="biomeChips">
           <div class="filter-chip active" data-biome="all">全部地區</div>
+          <div class="filter-chip" data-biome="Enchanted Forest">🌲 Enchanted Forest</div>
           <div class="filter-chip" data-biome="Cosmic">🪐 Cosmic</div>
           <div class="filter-chip" data-biome="Titan Temple">🏛️ Titan Temple</div>
           <div class="filter-chip" data-biome="Abyss Ocean">🌊 Abyss Ocean</div>
@@ -545,10 +546,10 @@
       <div class="egg-control-bar">
         <div class="egg-status-summary">
           <span class="bar-label">🎯 蛋種推播勾選狀態：</span>
-          <span class="egg-active-count" id="eggActiveCountBadge">已勾選 28 / 143 種蛋接收通知</span>
+          <span class="egg-active-count" id="eggActiveCountBadge">已勾選 34 / 187 種蛋接收通知</span>
         </div>
         <div class="chip-actions">
-          <button id="selectHighOnly" class="btn btn-sm btn-primary">⭐ 勾選 28 種高階可刷新蛋</button>
+          <button id="selectHighOnly" class="btn btn-sm btn-primary">⭐ 勾選 34 種高階可刷新蛋</button>
           <button id="selectTop10" class="btn btn-sm btn-secondary">🔥 勾選 Top 10 熱門蛋</button>
           <button id="selectAllEggs" class="btn btn-sm btn-text">全部勾選</button>
           <button id="clearAllEggs" class="btn btn-sm btn-text">全部取消</button>
@@ -600,6 +601,7 @@
           </div>
           <select id="dbBiomeSelect" class="db-select">
             <option value="all">🗺️ 所有生態區 (All Biomes)</option>
+            <option value="Enchanted Forest">🌲 Enchanted Forest 魔法森林</option>
             <option value="Angels">👼 Angels 天使</option>
             <option value="Demons">😈 Demons 惡魔</option>
             <option value="Angels & Demons">⚔️ Angels & Demons 活動區</option>
@@ -611,6 +613,7 @@
             <option value="Titan Temple">🏛️ Titan Temple 泰坦神廟</option>
             <option value="Snow">❄️ Snow 雪地</option>
             <option value="Jungle">🌴 Jungle 叢林</option>
+            <option value="Rift">🌀 Rift 裂縫</option>
           </select>
           <select id="dbSortSelect" class="db-select">
             <option value="newest">🕒 由新到舊 (最新置頂)</option>
@@ -646,6 +649,9 @@
         <!-- 熱門快速搜尋標籤 -->
         <div class="db-hot-tags-row">
           <span style="font-size:11px; color:#64748b; font-weight:600;">🔥 熱門快搜：</span>
+          <span class="db-hot-tag" data-tag="Royal Skywhale">👑 Skywhale</span>
+          <span class="db-hot-tag" data-tag="Celestial Sunlion">🦁 Sunlion</span>
+          <span class="db-hot-tag" data-tag="Enchanted Forest">🌲 Enchanted Forest</span>
           <span class="db-hot-tag" data-tag="World Burner">🔥 World Burner</span>
           <span class="db-hot-tag" data-tag="ArchAngel">👼 ArchAngel</span>
           <span class="db-hot-tag" data-tag="Cosmic Dragon">🪐 Cosmic Dragon</span>
@@ -864,14 +870,14 @@
             </div>
           </div>
 
-          <!-- 自選 28 種高階神蛋清單 -->
+          <!-- 自選 34 種高階神蛋清單 -->
           <div id="myCustomEggsWrap" class="hidden" style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
               <span style="font-size:13px; font-weight:600; color:#f8fafc;">
-                🥚 挑選追蹤蛋種 (<span id="mySelectedEggCount">0</span> / 28 款)：
+                🥚 挑選追蹤蛋種 (<span id="mySelectedEggCount">0</span> / 34 款)：
               </span>
               <div style="display:flex; gap:6px;">
-                <button type="button" id="mySelectAll28Btn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:4px 8px;">⭐ 28種全選</button>
+                <button type="button" id="mySelectAll28Btn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:4px 8px;">⭐ 34種全選</button>
                 <button type="button" id="mySelectTop10Btn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:4px 8px;">🔥 Top 10</button>
                 <button type="button" id="myClearEggsBtn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:4px 8px;">🗑️ 清空</button>
               </div>
@@ -880,15 +886,15 @@
             <!-- 彈窗內蛋種搜尋與稀有度快選 -->
             <div class="modal-egg-filter-box" style="margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
               <div class="search-input-with-clear" style="position:relative; margin-bottom: 8px;">
-                <input type="text" id="myEggSearchInput" class="input-text" placeholder="🔍 搜尋個人蛋種 (如: World, Shark, Dragon...)" style="width: 100%; padding: 6px 30px 6px 10px; font-size: 12px; border-radius: 6px;">
+                <input type="text" id="myEggSearchInput" class="input-text" placeholder="🔍 搜尋個人蛋種 (如: Skywhale, Sunlion, World, Shark...)" style="width: 100%; padding: 6px 30px 6px 10px; font-size: 12px; border-radius: 6px;">
                 <button type="button" id="myEggSearchClearBtn" class="search-clear-btn hidden" title="清除搜尋" style="right: 8px; top: 50%; transform: translateY(-50%);">&times;</button>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
                 <div class="modal-rarity-pills" id="myEggRarityPills" style="display: flex; gap: 4px;">
-                  <button type="button" class="modal-rarity-pill active" data-rarity="all">全部 (28)</button>
-                  <button type="button" class="modal-rarity-pill" data-rarity="Divine">👑 神聖 (5)</button>
-                  <button type="button" class="modal-rarity-pill" data-rarity="Eternal">💎 永恆 (11)</button>
-                  <button type="button" class="modal-rarity-pill" data-rarity="Secret">🔮 秘密 (12)</button>
+                  <button type="button" class="modal-rarity-pill active" data-rarity="all">全部 (34)</button>
+                  <button type="button" class="modal-rarity-pill" data-rarity="Divine">👑 神聖 (7)</button>
+                  <button type="button" class="modal-rarity-pill" data-rarity="Eternal">💎 永恆 (12)</button>
+                  <button type="button" class="modal-rarity-pill" data-rarity="Secret">🔮 秘密 (15)</button>
                 </div>
                 <div class="modal-batch-actions" style="display: flex; gap: 4px;">
                   <button type="button" id="mySelectFilteredBtn" class="btn btn-secondary btn-sm" style="font-size:11px; padding:3px 7px;">✅ 勾選搜尋結果</button>

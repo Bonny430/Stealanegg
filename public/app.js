@@ -1,14 +1,47 @@
 // Steal An Egg Dashboard Client
 let eggsCatalog = [];
 
-// 28 種官方可刷新高階蛋種清單
-const DEFAULT_HIGH_TIER_NAMES = [
-  'Pure Jellyfish', 'Gargoyle', 'Kraken', 'T-Rex', 'Tralaledon', 'Cosmic Dragon',
-  'Mutant Shark', 'Cerberus', 'Stag', 'Mosasaurus', 'Oni Tiger', 'Cosmic Skeleton Boss',
-  'Yeti', 'Eternal Lunar Dragon', 'Gorilla King', 'Phoenix', 'Centaur', 'Ice Dragon',
-  'Lava Dragon', 'Pegasus', 'Skeleton Horse', 'King Snake', 'Unicorn', 'El Maja',
-  'Kitsune', 'ArchAngel', 'Nightflame', 'World Burner'
+// 34 種官方可刷新高階神蛋名冊 (包含 Update 7 魔法森林與最新高階神蛋)
+const HIGH_TIER_EGGS_META = [
+  // 👑 Update 7 魔法森林 (Enchanted Forest) & 新增高階神蛋
+  { name: 'Royal Skywhale', rarity: 'Divine', biome: 'Enchanted Forest' },
+  { name: 'Celestial Sunlion', rarity: 'Eternal', biome: 'Enchanted Forest' },
+  { name: 'Starry Fox', rarity: 'Secret', biome: 'Enchanted Forest' },
+  { name: 'RazorFang', rarity: 'Secret', biome: 'Demons' },
+  { name: 'Mecha Scrambler', rarity: 'Divine', biome: 'Titan Temple' },
+  { name: 'World Eater', rarity: 'Eternal', biome: 'Rift' },
+  // 🌟 既有經典高階神蛋
+  { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic' },
+  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons' },
+  { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple' },
+  { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean' },
+  { name: 'Cerberus', rarity: 'Secret', biome: 'Volcano' },
+  { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic' },
+  { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano' },
+  { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric' },
+  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons' },
+  { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple' },
+  { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean' },
+  { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow' },
+  { name: 'Lava Dragon', rarity: 'Eternal', biome: 'Volcano' },
+  { name: 'Oni Tiger', rarity: 'Eternal', biome: 'Cherry Blossom' },
+  { name: 'Pegasus', rarity: 'Eternal', biome: 'Angels & Demons' },
+  { name: 'Skeleton Horse', rarity: 'Eternal', biome: 'Angels & Demons' },
+  { name: 'Cosmic Skeleton Boss', rarity: 'Secret', biome: 'Cosmic' },
+  { name: 'Centaur', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'King Snake', rarity: 'Secret', biome: 'Jungle' },
+  { name: 'Pure Jellyfish', rarity: 'Secret', biome: 'Angels & Demons' },
+  { name: 'Stag', rarity: 'Secret', biome: 'Cherry Blossom' },
+  { name: 'Yeti', rarity: 'Secret', biome: 'Snow' },
+  { name: 'T-Rex', rarity: 'Secret', biome: 'Prehistoric' },
+  { name: 'Tralaledon', rarity: 'Secret', biome: 'Prehistoric' },
+  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom' },
+  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple' },
+  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic' }
 ];
+
+const DEFAULT_HIGH_TIER_NAMES = HIGH_TIER_EGGS_META.map(e => e.name);
 
 let userConfig = {
   filterEnabled: true,
@@ -1398,7 +1431,7 @@ if (selectHighOnlyBtn) {
     userConfig.selectedEggs = [...DEFAULT_HIGH_TIER_NAMES];
     updateSelectedCountBadge();
     renderEggsGrid();
-    showToast('⭐ 已勾選 28 種高階可刷新蛋！', 'success');
+    showToast('⭐ 已勾選 34 種高階可刷新蛋！', 'success');
   };
 }
 
@@ -2114,40 +2147,9 @@ if (logoutBtn) {
 }
 
 // ==================== 個人偏好設定 Modal & 操作日誌 ====================
-const HIGH_TIER_EGGS_META = [
-  { name: 'Cosmic Dragon', rarity: 'Secret', biome: 'Cosmic' },
-  { name: 'World Burner', rarity: 'Divine', biome: 'Angels & Demons' },
-  { name: 'Mutant Shark', rarity: 'Secret', biome: 'Titan Temple' },
-  { name: 'Gargoyle', rarity: 'Secret', biome: 'Angels & Demons' },
-  { name: 'Kraken', rarity: 'Secret', biome: 'Abyss Ocean' },
-  { name: 'Cerberus', rarity: 'Secret', biome: 'Volcano' },
-  { name: 'Eternal Lunar Dragon', rarity: 'Eternal', biome: 'Cosmic' },
-  { name: 'Phoenix', rarity: 'Eternal', biome: 'Volcano' },
-  { name: 'Mosasaurus', rarity: 'Eternal', biome: 'Prehistoric' },
-  { name: 'ArchAngel', rarity: 'Divine', biome: 'Angels & Demons' },
-  { name: 'Gorilla King', rarity: 'Eternal', biome: 'Titan Temple' },
-  { name: 'El Maja', rarity: 'Eternal', biome: 'Abyss Ocean' },
-  { name: 'Ice Dragon', rarity: 'Eternal', biome: 'Snow' },
-  { name: 'Lava Dragon', rarity: 'Eternal', biome: 'Volcano' },
-  { name: 'Oni Tiger', rarity: 'Eternal', biome: 'Cherry Blossom' },
-  { name: 'Pegasus', rarity: 'Eternal', biome: 'Angels & Demons' },
-  { name: 'Skeleton Horse', rarity: 'Eternal', biome: 'Angels & Demons' },
-  { name: 'Cosmic Skeleton Boss', rarity: 'Secret', biome: 'Cosmic' },
-  { name: 'Centaur', rarity: 'Secret', biome: 'Angels & Demons' },
-  { name: 'King Snake', rarity: 'Secret', biome: 'Jungle' },
-  { name: 'Pure Jellyfish', rarity: 'Secret', biome: 'Angels & Demons' },
-  { name: 'Stag', rarity: 'Secret', biome: 'Cherry Blossom' },
-  { name: 'Yeti', rarity: 'Secret', biome: 'Snow' },
-  { name: 'T-Rex', rarity: 'Secret', biome: 'Prehistoric' },
-  { name: 'Tralaledon', rarity: 'Secret', biome: 'Prehistoric' },
-  { name: 'Kitsune', rarity: 'Divine', biome: 'Cherry Blossom' },
-  { name: 'Nightflame', rarity: 'Divine', biome: 'Titan Temple' },
-  { name: 'Unicorn', rarity: 'Divine', biome: 'Cosmic' }
-];
-
 const TOP_10_EGG_LIST = [
-  'Cosmic Dragon', 'World Burner', 'Mutant Shark', 'Gargoyle', 'Kraken',
-  'Cerberus', 'Eternal Lunar Dragon', 'Phoenix', 'Mosasaurus', 'ArchAngel'
+  'Royal Skywhale', 'Celestial Sunlion', 'World Burner', 'ArchAngel', 'Cosmic Dragon',
+  'Mutant Shark', 'Starry Fox', 'Kraken', 'Phoenix', 'Mosasaurus'
 ];
 
 // DOM 元素引用
